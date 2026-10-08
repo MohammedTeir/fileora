@@ -2,6 +2,7 @@ package dev.deviceagent.core.agent
 
 import dev.deviceagent.core.ai.Message
 import dev.deviceagent.core.tools.Plan
+import dev.deviceagent.core.tools.media.MediaBackend
 
 /** Every task ends in exactly one of these (spec section 12). Computed from facts, not from what the model claims. */
 enum class TaskStatus {
@@ -37,6 +38,7 @@ data class AgentConfig(
     val initialMessages: List<Message> = emptyList(),
     /** Called after each completed model/tool turn so an app can persist an exact checkpoint. */
     val onCheckpoint: ((List<Message>) -> Unit)? = null,
+    val mediaBackend: MediaBackend? = null,
 )
 
 /** One failed try, kept for the audit trail and the final report. */

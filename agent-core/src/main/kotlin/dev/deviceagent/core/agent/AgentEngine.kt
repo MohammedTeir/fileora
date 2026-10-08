@@ -91,7 +91,7 @@ class AgentEngine(
 
     suspend fun run(goal: String, config: AgentConfig): TaskOutcome {
         val taskId = newTaskId()
-        val run = Run(taskId, ToolContext(taskId, fs, config.privacyMode))
+        val run = Run(taskId, ToolContext(taskId, fs, config.privacyMode, config.mediaBackend))
         val declarations = registry.specs().map { ToolDeclaration(it.name, it.description, it.params) } + ToolDeclaration(
             ASK_USER,
             ASK_USER_DESCRIPTION,
