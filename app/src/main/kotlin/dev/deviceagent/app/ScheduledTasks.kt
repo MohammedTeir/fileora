@@ -52,11 +52,19 @@ object ScheduledTasks {
             .setInputData(input)
             .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PREFIX + task.id, ExistingPeriodicWorkPolicy.UPDATE, request)
+        AgentDatabase.get(context).scheduledTaskDao().upsert(task.toEntity())
     }
 
     fun cancel(context: Context, id: String) {
         WorkManager.getInstance(context).cancelUniqueWork(PREFIX + id)
+        AgentDatabase.get(context).scheduledTaskDao().delete(id)
     }
+
+    fun list(context: Context): List<ScheduledTask> = AgentDatabase.get(context).scheduledTaskDao().all().map { it.toTask() }
+
+    private const val SEPARATOR = "\u001f"
+    private fun ScheduledTask.toEntity() = ScheduledTaskEntity(id, goal, model, rootNames.joinToString(SEPARATOR), rootUris.joinToString(SEPARATOR), intervalHours, sendContents, dryRun, manual)
+    private fun ScheduledTaskEntity.toTask() = ScheduledTask(id, goal, model, rootNames.split(SEPARATOR).filter(String::isNotEmpty), rootUris.split(SEPARATOR).filter(String::isNotEmpty), intervalHours, sendContents, dryRun, manual)
 }
 
 class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {

@@ -54,6 +54,7 @@ private fun Screen(vm: AgentViewModel) {
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) vm.addRoot(uri) }
     var keyInput by remember { mutableStateOf("") }
     var modelInput by remember(s.model) { mutableStateOf(s.model) }
+    var intervalInput by remember { mutableStateOf("24") }
 
     Column(
         Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -147,6 +148,18 @@ private fun Screen(vm: AgentViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::runTask, enabled = !s.running && s.goal.isNotBlank()) { Text(if (s.running) "Working…" else "Run") }
                 if (s.running) OutlinedButton(onClick = vm::cancelTask) { Text("Cancel") }
+            }
+        }
+
+        Section("Scheduled task") {
+            Text("Schedules use the current goal, model, and approved folders. They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(value = intervalInput, onValueChange = { intervalInput = it.filter(Char::isDigit) }, label = { Text("Repeat every N hours") })
+            Button(onClick = { intervalInput.toLongOrNull()?.let(vm::scheduleCurrent) }) { Text("Schedule current task") }
+            s.scheduledTasks.forEach { task ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${task.id}: every ${task.intervalHours}h (manual)", Modifier.weight(1f), fontSize = 12.sp)
+                    TextButton(onClick = { vm.cancelScheduledTask(task.id) }) { Text("Cancel") }
+                }
             }
         }
 

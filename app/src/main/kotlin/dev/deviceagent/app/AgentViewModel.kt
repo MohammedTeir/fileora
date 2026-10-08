@@ -67,6 +67,7 @@ data class UiState(
     val usageSummary: String = "",
     val history: List<AuditEntry> = emptyList(),
     val restorableUndoTaskId: String? = null,
+    val scheduledTasks: List<ScheduledTask> = emptyList(),
 )
 
 class AgentViewModel(app: Application) : AndroidViewModel(app) {
@@ -140,6 +141,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             )
         }
         refreshHistory()
+        viewModelScope.launch(Dispatchers.IO) { _state.update { it.copy(scheduledTasks = ScheduledTasks.list(app)) } }
         val filter = IntentFilter().apply {
             addAction(AgentTaskService.ACTION_RESULT)
             addAction(AgentTaskService.ACTION_PROGRESS)
@@ -235,6 +237,26 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(sendFileContents = on) }
     }
     fun dismissNotice() = _state.update { it.copy(notice = null) }
+
+    fun scheduleCurrent(intervalHours: Long) {
+        val s = _state.value
+        if (s.goal.isBlank() || s.model.isBlank() || s.roots.isEmpty()) {
+            _state.update { it.copy(notice = "Set a goal, model, and approved folder before scheduling.") }
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true)
+                ScheduledTasks.schedule(getApplication(), task)
+                _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled every $intervalHours hour(s) in manual mode.") }
+            }.onFailure { e -> _state.update { it.copy(notice = e.message ?: "Could not schedule task.") } }
+        }
+    }
+
+    fun cancelScheduledTask(id: String) = viewModelScope.launch(Dispatchers.IO) {
+        ScheduledTasks.cancel(getApplication(), id)
+        _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled task cancelled.") }
+    }
 
     // ───────── running a task ─────────
 
