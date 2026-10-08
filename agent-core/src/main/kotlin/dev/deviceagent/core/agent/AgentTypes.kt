@@ -34,6 +34,10 @@ data class AgentConfig(
     /** Show what would happen; never change anything. */
     val dryRun: Boolean = false,
     val temperature: Double = 0.2,
+    /** Route only failed tool-result turns to [recoveryModel]; disabled unless the user opts in. */
+    val automaticModelRouting: Boolean = false,
+    /** Optional recovery model on the same configured provider. */
+    val recoveryModel: String? = null,
     /** Provider-neutral conversation to continue after a process restart. */
     val initialMessages: List<Message> = emptyList(),
     /** Called after each completed model/tool turn so an app can persist an exact checkpoint. */

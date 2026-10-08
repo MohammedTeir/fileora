@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 92 tests pass (`./gradlew :agent-core:check`).
+- `agent-core` (pure Kotlin/JVM): 98 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -55,7 +55,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 16 | Search by content — **implemented in core** | `file.search_content` searches approved roots with binary skipping, per-file/total byte bounds, result caps, short untrusted snippets, and names-only privacy blocking. Device/SAF validation remains. |
 | 17 | Scheduled tasks | WorkManager; scheduled tasks run in MANUAL or low-risk-only mode unless pre-approved. |
 | 18 | More providers — **implemented** | Gemini, OpenAI-compatible, and Claude adapters reuse the shared contract; Compose selection, separate Keystore keys, foreground execution, and scheduled-task provider persistence are wired. Device/live-provider validation remains. |
-| 19 | Model routing | Cheap model for listing/planning, stronger model for hard recovery. |
+| 19 | Model routing — **implemented in code** | Default-off routing keeps the selected model for planning/normal turns; after a failed tool-result turn, it uses a user-selected, same-provider recovery model only if tool calling is supported. UI, foreground/resume, scheduled persistence, Room migration, and core tests are wired; Android/device validation remains. |
 
 ## P3: advanced (later, higher risk)
 

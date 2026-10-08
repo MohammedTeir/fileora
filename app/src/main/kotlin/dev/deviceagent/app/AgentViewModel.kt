@@ -54,6 +54,8 @@ data class UiState(
     val provider: ProviderChoice = ProviderChoice.GEMINI,
     val apiKeyMask: String? = null,
     val model: String = "",
+    val automaticModelRouting: Boolean = false,
+    val recoveryModel: String = "",
     val availableModels: List<String> = emptyList(),
     val roots: List<RootUi> = emptyList(),
     val goal: String = "",
@@ -140,6 +142,8 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 provider = choice,
                 apiKeyMask = key?.let(::maskSecret),
                 model = prefs.getString("model", "") ?: "",
+                automaticModelRouting = prefs.getBoolean("automatic_model_routing", false),
+                recoveryModel = prefs.getString(recoveryModelPreference(choice), "") ?: "",
                 sendFileContents = prefs.getBoolean("send_file_contents", false),
                 roots = loadRoots(),
                 checkpointAvailable = AgentTaskService.hasCheckpoint(app),
@@ -182,12 +186,23 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun setProvider(provider: ProviderChoice) {
         prefs.edit().putString("provider", provider.name).apply()
         val key = secrets.get(secretKey(provider))
-        _state.update { it.copy(provider = provider, apiKeyMask = key?.let(::maskSecret), availableModels = emptyList()) }
+        val recoveryModel = prefs.getString(recoveryModelPreference(provider), "") ?: ""
+        _state.update { it.copy(provider = provider, apiKeyMask = key?.let(::maskSecret), recoveryModel = recoveryModel, availableModels = emptyList()) }
     }
 
     fun setModel(model: String) {
         prefs.edit().putString("model", model.trim()).apply()
         _state.update { it.copy(model = model.trim()) }
+    }
+
+    fun setAutomaticModelRouting(on: Boolean) {
+        prefs.edit().putBoolean("automatic_model_routing", on).apply()
+        _state.update { it.copy(automaticModelRouting = on) }
+    }
+
+    fun setRecoveryModel(model: String) {
+        prefs.edit().putString(recoveryModelPreference(_state.value.provider), model.trim()).apply()
+        _state.update { it.copy(recoveryModel = model.trim()) }
     }
 
     fun refreshModels() = viewModelScope.launch(Dispatchers.IO) {
@@ -256,9 +271,13 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(notice = "Set a goal, model, and approved folder before scheduling.") }
             return
         }
+        if (s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model)) {
+            _state.update { it.copy(notice = "Choose a recovery model different from the planning/default model before scheduling.") }
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name)
+                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name, automaticModelRouting = s.automaticModelRouting, recoveryModel = s.recoveryModel.ifBlank { null })
                 ScheduledTasks.schedule(getApplication(), task)
                 _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled every $intervalHours hour(s) in manual mode.") }
             }.onFailure { e -> _state.update { it.copy(notice = e.message ?: "Could not schedule task.") } }
@@ -315,6 +334,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             s.running -> return
             s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your ${s.provider.name.lowercase()} API key first.") }; return }
             s.model.isBlank() -> { _state.update { it.copy(notice = "Choose a model first (tap List models).") }; return }
+            s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model) -> { _state.update { it.copy(notice = "Choose a recovery model different from the planning/default model.") }; return }
             s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use.") }; return }
             s.goal.isBlank() -> return
         }
@@ -323,6 +343,8 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             putExtra(AgentTaskService.EXTRA_GOAL, s.goal)
             putExtra(AgentTaskService.EXTRA_MODEL, s.model)
             putExtra(AgentTaskService.EXTRA_PROVIDER, s.provider.name)
+            putExtra(AgentTaskService.EXTRA_AUTOMATIC_MODEL_ROUTING, s.automaticModelRouting)
+            putExtra(AgentTaskService.EXTRA_RECOVERY_MODEL, s.recoveryModel)
             putExtra(AgentTaskService.EXTRA_DRY_RUN, s.dryRun)
             putExtra(AgentTaskService.EXTRA_MANUAL, s.manualMode)
             putExtra(AgentTaskService.EXTRA_SEND_CONTENTS, s.sendFileContents)
@@ -372,6 +394,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val KEY_NAME = "gemini_api_key"
+        fun recoveryModelPreference(provider: ProviderChoice) = "recovery_model_${provider.name.lowercase()}"
         fun secretKey(provider: ProviderChoice) = when (provider) {
             ProviderChoice.GEMINI -> KEY_NAME
             ProviderChoice.OPENAI -> "openai_api_key"

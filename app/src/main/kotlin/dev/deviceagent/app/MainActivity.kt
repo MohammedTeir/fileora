@@ -91,15 +91,30 @@ private fun Screen(vm: AgentViewModel) {
             }
             OutlinedTextField(
                 value = modelInput, onValueChange = { modelInput = it; vm.setModel(it) },
-                label = { Text("Model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Planning / default model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { vm.refreshModels() }, enabled = s.apiKeyMask != null) { Text("List models") }
                 OutlinedButton(onClick = { vm.testConnection() }, enabled = s.apiKeyMask != null) { Text("Test connection") }
             }
             s.availableModels.take(30).forEach { id ->
-                TextButton(onClick = { vm.setModel(id) }) { Text(id, fontSize = 13.sp) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { vm.setModel(id) }, modifier = Modifier.weight(1f)) { Text("Default: $id", fontSize = 13.sp) }
+                    TextButton(onClick = { vm.setRecoveryModel(id) }) { Text("Recovery", fontSize = 12.sp) }
+                }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = s.automaticModelRouting, onCheckedChange = vm::setAutomaticModelRouting)
+                Text("  Automatically route failed turns to recovery model")
+            }
+            OutlinedTextField(
+                value = s.recoveryModel,
+                onValueChange = vm::setRecoveryModel,
+                label = { Text(if (s.automaticModelRouting) "Recovery model" else "Recovery model (optional)") },
+                supportingText = { Text(if (s.automaticModelRouting) "Required for routing. Used only after a failed tool turn; select from the current provider's list and ensure it supports tool calls." else "Optional. If configured and routing is enabled, this must be from the selected provider and support tool calls.") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         // ── 2. Folders ──
@@ -158,7 +173,7 @@ private fun Screen(vm: AgentViewModel) {
         }
 
         Section("Scheduled task") {
-            Text("Schedules use the current goal, model, and approved folders. They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
+            Text("Schedules retain the current goal, provider/models, routing choice, and approved folders. They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(value = intervalInput, onValueChange = { intervalInput = it.filter(Char::isDigit) }, label = { Text("Repeat every N hours") })
             Button(onClick = { intervalInput.toLongOrNull()?.let(vm::scheduleCurrent) }) { Text("Schedule current task") }
             s.scheduledTasks.forEach { task ->

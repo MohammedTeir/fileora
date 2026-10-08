@@ -134,6 +134,8 @@ class AgentTaskService : Service() {
                     model = intent.getStringExtra(EXTRA_MODEL).orEmpty(),
                     privacyMode = if (intent.getBooleanExtra(EXTRA_SEND_CONTENTS, false)) PrivacyMode.CONTENTS_ALLOWED else PrivacyMode.NAMES_ONLY,
                     dryRun = intent.getBooleanExtra(EXTRA_DRY_RUN, false),
+                    automaticModelRouting = intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false),
+                    recoveryModel = intent.getStringExtra(EXTRA_RECOVERY_MODEL),
                     initialMessages = ConversationCheckpointCodec.decode(intent.getStringExtra(EXTRA_MESSAGES)),
                     onCheckpoint = { messages -> saveConversationCheckpoint(ConversationCheckpointCodec.encode(messages)) },
                 ),
@@ -222,6 +224,8 @@ class AgentTaskService : Service() {
             .putString(KEY_GOAL, intent.getStringExtra(EXTRA_GOAL).orEmpty())
             .putString(KEY_MODEL, intent.getStringExtra(EXTRA_MODEL).orEmpty())
             .putString(KEY_PROVIDER, intent.getStringExtra(EXTRA_PROVIDER).orEmpty())
+            .putBoolean(KEY_AUTOMATIC_MODEL_ROUTING, intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false))
+            .putString(KEY_RECOVERY_MODEL, intent.getStringExtra(EXTRA_RECOVERY_MODEL).orEmpty())
             .putBoolean(KEY_DRY_RUN, intent.getBooleanExtra(EXTRA_DRY_RUN, false))
             .putBoolean(KEY_MANUAL, intent.getBooleanExtra(EXTRA_MANUAL, false))
             .putBoolean(KEY_SEND_CONTENTS, intent.getBooleanExtra(EXTRA_SEND_CONTENTS, false))
@@ -262,6 +266,8 @@ class AgentTaskService : Service() {
         const val EXTRA_GOAL = "goal"
         const val EXTRA_MODEL = "model"
         const val EXTRA_PROVIDER = "provider"
+        const val EXTRA_AUTOMATIC_MODEL_ROUTING = "automatic_model_routing"
+        const val EXTRA_RECOVERY_MODEL = "recovery_model"
         const val EXTRA_DRY_RUN = "dry_run"
         const val EXTRA_MANUAL = "manual"
         const val EXTRA_SEND_CONTENTS = "send_contents"
@@ -292,6 +298,8 @@ class AgentTaskService : Service() {
         private const val KEY_GOAL = "goal"
         private const val KEY_MODEL = "model"
         private const val KEY_PROVIDER = "provider"
+        private const val KEY_AUTOMATIC_MODEL_ROUTING = "automatic_model_routing"
+        private const val KEY_RECOVERY_MODEL = "recovery_model"
         private const val KEY_DRY_RUN = "dry_run"
         private const val KEY_MANUAL = "manual"
         private const val KEY_SEND_CONTENTS = "send_contents"
@@ -308,6 +316,8 @@ class AgentTaskService : Service() {
             goal: String,
             model: String,
             provider: String = ProviderChoice.GEMINI.name,
+            automaticModelRouting: Boolean = false,
+            recoveryModel: String? = null,
             dryRun: Boolean,
             manual: Boolean,
             sendContents: Boolean,
@@ -318,6 +328,8 @@ class AgentTaskService : Service() {
             putExtra(EXTRA_GOAL, goal)
             putExtra(EXTRA_MODEL, model)
             putExtra(EXTRA_PROVIDER, provider)
+            putExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, automaticModelRouting)
+            putExtra(EXTRA_RECOVERY_MODEL, recoveryModel)
             putExtra(EXTRA_DRY_RUN, dryRun)
             putExtra(EXTRA_MANUAL, manual)
             putExtra(EXTRA_SEND_CONTENTS, sendContents)
@@ -340,6 +352,8 @@ class AgentTaskService : Service() {
                 putExtra(EXTRA_GOAL, p.getString(KEY_GOAL, ""))
                 putExtra(EXTRA_MODEL, p.getString(KEY_MODEL, ""))
                 putExtra(EXTRA_PROVIDER, p.getString(KEY_PROVIDER, ProviderChoice.GEMINI.name))
+                putExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, p.getBoolean(KEY_AUTOMATIC_MODEL_ROUTING, false))
+                putExtra(EXTRA_RECOVERY_MODEL, p.getString(KEY_RECOVERY_MODEL, ""))
                 putExtra(EXTRA_DRY_RUN, p.getBoolean(KEY_DRY_RUN, false))
                 putExtra(EXTRA_MANUAL, p.getBoolean(KEY_MANUAL, false))
                 putExtra(EXTRA_SEND_CONTENTS, p.getBoolean(KEY_SEND_CONTENTS, false))
