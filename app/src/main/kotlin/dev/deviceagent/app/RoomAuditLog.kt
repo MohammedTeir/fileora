@@ -106,7 +106,7 @@ abstract class AgentDatabase : RoomDatabase() {
                 context.applicationContext,
                 AgentDatabase::class.java,
                 "device-agent.db",
-            }.addMigrations(object : androidx.room.migration.Migration(1, 2) {
+            ).addMigrations(object : androidx.room.migration.Migration(1, 2) {
                 override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                     db.execSQL("CREATE TABLE IF NOT EXISTS scheduled_tasks (id TEXT NOT NULL PRIMARY KEY, goal TEXT NOT NULL, model TEXT NOT NULL, rootNames TEXT NOT NULL, rootUris TEXT NOT NULL, intervalHours INTEGER NOT NULL, sendContents INTEGER NOT NULL, dryRun INTEGER NOT NULL, manual INTEGER NOT NULL)")
                 }
