@@ -129,7 +129,7 @@ private fun Screen(vm: AgentViewModel) {
             Section("Activity") { s.log.takeLast(40).forEach { Text(it, fontFamily = FontFamily.Monospace, fontSize = 12.sp) } }
         }
         s.outcome?.let { o ->
-            Section("Result: ${o.status.name}") {
+            Section("Result: ${statusLabel(o.status)}") {
                 // The engine's own facts come first; the model's words are secondary.
                 Text(o.report, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                 o.modelMessage?.let { Text("\nAssistant says:\n$it") }
@@ -142,6 +142,12 @@ private fun Screen(vm: AgentViewModel) {
 
     s.pendingConfirmation?.let { ConfirmDialog(it, vm::answerConfirmation) }
     s.pendingQuestion?.let { q -> QuestionDialog(q, vm::answerQuestion) }
+}
+
+/** Plain-language label; PLAN_ONLY must read as "nothing was changed", never as a success. */
+private fun statusLabel(status: dev.deviceagent.core.agent.TaskStatus): String = when (status) {
+    dev.deviceagent.core.agent.TaskStatus.PLAN_ONLY -> "PLAN ONLY (nothing was changed)"
+    else -> status.name
 }
 
 @Composable
