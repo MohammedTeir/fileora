@@ -14,7 +14,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, Gemini/OpenAI-compatible providers | Done (91 tests pass locally) |
+| Core agent loop, policy, verification, recovery, undo, Gemini/OpenAI/Claude providers | Done (92 tests pass locally) |
 | Android app: UI, Keystore, SAF, Room history | Written, compiles, runs on Redmi Note 8 Pro |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
@@ -52,7 +52,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [~] #15 Media tools — provider-neutral `media.probe` / `media.convert` plus a no-shell JVM FFmpeg/FFprobe backend with output verification; Android native/SAF backend and remaining media tools remain
 - [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
 - [~] #17 Scheduled tasks — `ScheduledTasks.schedule/cancel/list`, Room persistence/migration, `ScheduledTaskWorker`, and Compose schedule/cancel controls implemented with manual-mode-by-default execution; device validation remains
-- [~] #18 More providers — OpenAI-compatible adapter and shared error/tool-call contract tests implemented; Claude, provider UI, and device validation remain
+- [~] #18 More providers — OpenAI-compatible and Claude adapters plus shared error/tool-call contract tests implemented; provider UI and device validation remain
 - [ ] #19 Model routing
 
 ## 4. P3 — Advanced (ROADMAP)

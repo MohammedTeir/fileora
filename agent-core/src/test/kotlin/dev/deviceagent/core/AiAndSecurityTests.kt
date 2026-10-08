@@ -18,6 +18,7 @@ import dev.deviceagent.core.ai.gemini.GeminiProvider
 import dev.deviceagent.core.ai.gemini.HttpRequest
 import dev.deviceagent.core.ai.gemini.HttpResponse
 import dev.deviceagent.core.ai.gemini.HttpTransport
+import dev.deviceagent.core.ai.claude.ClaudeProvider
 import dev.deviceagent.core.ai.openai.OpenAIProvider
 import dev.deviceagent.core.history.InMemoryAuditLog
 import dev.deviceagent.core.security.Redactor
@@ -62,6 +63,7 @@ private val TOOLS = listOf(ToolDeclaration("file.copy", "Copy", listOf(ParamSpec
 
 private fun gemini(t: HttpTransport) = GeminiProvider({ KEY }, t, "https://example.test")
 private fun openai(t: HttpTransport) = OpenAIProvider({ KEY }, t, "https://example.test/v1")
+private fun claude(t: HttpTransport) = ClaudeProvider({ KEY }, t, "https://example.test/v1")
 
 private fun okBody(parts: String, extra: String = "") =
     HttpResponse(200, """{"candidates":[{"content":{"role":"model","parts":$parts},"finishReason":"STOP"}]$extra}""")
@@ -212,6 +214,19 @@ fun registerAiAndSecurityTests() {
         val auth = FakeTransport { HttpResponse(401, """{"error":{"message":"bad key"}}""") }
         try { openai(auth).generate(req("gpt-test")); throw TestFailure("auth should fail") }
         catch (e: ProviderException) { eq(ProviderErrorKind.INVALID_CREDENTIALS, e.kind, "auth") }
+    }
+
+    test("claude: Messages API maps tool use, usage, and required headers") {
+        val t = FakeTransport {
+            check(it.headers["x-api-key"] == KEY)
+            check(it.headers["anthropic-version"] == "2023-06-01")
+            HttpResponse(200, """{"content":[{"type":"text","text":"Inspecting"},{"type":"tool_use","id":"tu_1","name":"file.copy","input":{"source":"/a"}}],"stop_reason":"tool_use","usage":{"input_tokens":8,"output_tokens":3}}""")
+        }
+        val response = claude(t).generate(GenerateRequest("claude-test", "sys", listOf(Message.User("copy")), TOOLS))
+        eq("Inspecting", response.text, "text")
+        eq("file.copy", response.toolCalls.single().name, "tool name")
+        eq(8, response.usage!!.inputTokens, "input usage")
+        check(t.sent.single().body!!.contains("input_schema"))
     }
 
     // ───────── secrets ─────────
