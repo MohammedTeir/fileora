@@ -136,6 +136,7 @@ class AgentTaskService : Service() {
                     dryRun = intent.getBooleanExtra(EXTRA_DRY_RUN, false),
                     automaticModelRouting = intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false),
                     recoveryModel = intent.getStringExtra(EXTRA_RECOVERY_MODEL),
+                    mediaBackend = SafMediaBackend(this@AgentTaskService, fs),
                     initialMessages = ConversationCheckpointCodec.decode(intent.getStringExtra(EXTRA_MESSAGES)),
                     onCheckpoint = { messages -> saveConversationCheckpoint(ConversationCheckpointCodec.encode(messages)) },
                 ),

@@ -20,7 +20,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
 | Checkpoints | Implemented: exact provider-neutral conversation and latest progress persist after tool-result turns; Resume/Discard implemented. Device validation remains |
 | Privacy toggles, cost limits | Implemented in core/UI; device verification still pending |
-| Media/FFmpeg | Core probe/convert contracts and JVM FFmpeg backend implemented; Android/SAF backend, ABI packaging, and remaining media tools pending |
+| Media/FFmpeg | Core probe/convert/extract-audio contracts and JVM FFmpeg backend implemented; Android SAF local probe/MP4 remux/M4A extraction implemented; arbitrary FFmpeg processing and remaining media tools pending device validation |
 
 Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because no shell tool exists yet), **Phases 2, 4, 5, 6, 7, 8: 0–10%**.
 
@@ -47,9 +47,9 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 
 ## 3. P2 — More capability (ROADMAP)
 
-- [ ] #13 Optional "All files access" mode (`MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem`)
+- [ ] #13 Optional "All files access" mode (`MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem`) — gated on P0 physical-device verification of real run, confirmation, undo, and delete-to-restorable-trash
 - [~] #14 Archive tools — `file.compress` / `file.extract` implemented with ZIP entry/path/expanded-size limits, no-overwrite behavior, undo, and core round-trip/zip-slip tests; Android/SAF validation remains
-- [~] #15 Media tools — provider-neutral `media.probe` / `media.convert` plus a no-shell JVM FFmpeg/FFprobe backend with output verification; Android native/SAF backend and remaining media tools remain
+- [~] #15 Media tools — core `media.probe` / `media.convert` / `media.extract_audio`, JVM FFmpeg backend, and SAF-local Android probe/MP4 remux/M4A extraction are implemented; full Android FFmpeg, remaining media tools, and device validation remain
 - [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
 - [~] #17 Scheduled tasks — `ScheduledTasks.schedule/cancel/list`, Room persistence/migration, `ScheduledTaskWorker`, and Compose schedule/cancel controls implemented with manual-mode-by-default execution; device validation remains
 - [~] #18 More providers — Gemini, OpenAI-compatible, and Claude adapters, provider-specific Keystore keys, Compose provider selection, foreground/scheduled wiring, and shared tests implemented; device/live-provider validation remains
@@ -110,7 +110,7 @@ File tools:
 Other groups:
 - [~] System: only `system.storage` (no free-space under SAF)
 - [ ] System: `info`, `memory`, `cpu`, `battery`, `network`, `processes`, `environment`, `permissions`, `logs`
-- [ ] Media: all 11 tools (`probe`, `convert`, `extract_audio`, `extract_frames`, `thumbnail`, `resize`, `compress`, `concat`, `split`, `normalize_audio`, `transcode`)
+- [~] Media: `probe`, `convert`, and `extract_audio` are implemented; remaining 8 of 11 tools (`extract_frames`, `thumbnail`, `resize`, `compress`, `concat`, `split`, `normalize_audio`, `transcode`) are pending
 - [ ] Linux tools (`shell`, `process`, `package`, …)
 - [ ] Development tools (`git.*`, `python.run`, `node.run`, `gradle.build`, …)
 - [ ] Android tools (`apps`, `app_info`, `open_app`, `intent`, `settings`, `package_install/uninstall`, …)
@@ -180,4 +180,4 @@ Other groups:
 2. **P0 #5** — run GitHub CI/release with Android SDK and signing secrets; tag only after green verification
 3. **P1 #10** — exact provider conversation/tool-step checkpoint restore
 4. **P1 #9** — physical-device validation of service, notification actions, and WorkManager recovery
-5. Then remaining P2 validation/implementation: #13 All-files access only after the roadmap's SAF/device safety gate; #15 Android/SAF media backend. #19 routing code is implemented; validate it on Android/device.
+5. Then remaining P2 validation/implementation: #13 All-files access only after the roadmap's SAF/device safety gate; #15 full Android FFmpeg/AAR build, eight remaining media tools, and device validation. #19 is implemented; validate routing on Android/device.

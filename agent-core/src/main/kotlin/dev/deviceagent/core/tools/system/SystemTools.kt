@@ -24,6 +24,7 @@ import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
 import dev.deviceagent.core.tools.file.FileWriteTool
 import dev.deviceagent.core.tools.media.MediaConvertTool
+import dev.deviceagent.core.tools.media.MediaExtractAudioTool
 import dev.deviceagent.core.tools.media.MediaProbeTool
 import dev.deviceagent.core.util.jsonObjectOf
 import dev.deviceagent.core.util.str
@@ -63,7 +64,7 @@ object DefaultTools {
     fun all(): List<Tool> = listOf(
         FileListTool(), FileSearchTool(), FileStatTool(), FileHashTool(), FileReadTool(),
         FileMkdirTool(), FileCopyTool(), FileWriteTool(), FileAppendTool(), FileMoveTool(), FileRenameTool(), FileDeleteTool(),
-        FileCompressTool(), FileExtractTool(), FileContentSearchTool(), MediaProbeTool(), MediaConvertTool(),
+        FileCompressTool(), FileExtractTool(), FileContentSearchTool(), MediaProbeTool(), MediaConvertTool(), MediaExtractAudioTool(),
         SystemStorageTool(),
     )
 }

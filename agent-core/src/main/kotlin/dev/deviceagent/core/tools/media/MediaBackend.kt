@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit
 interface MediaBackend {
     fun probe(path: String): MediaProbe
     fun convert(source: String, destination: String, format: String?): MediaConversion
+    fun extractAudio(source: String, destination: String, format: String?): MediaConversion =
+        throw UnsupportedOperationException("Audio extraction is not supported by this media backend")
 }
 
 data class MediaProbe(
@@ -42,12 +44,32 @@ class JvmFfmpegBackend(
     }
 
     override fun convert(source: String, destination: String, format: String?): MediaConversion {
-        run(listOf("ffmpeg", "-v", "error", "-nostdin", "-y", "-i", source) + listOfNotNull(format?.let { "-f" }, format) + destination)
+        run(listOf("ffmpeg", "-v", "error", "-nostdin", "-n", "-i", source) + listOfNotNull(format?.let { "-f" }, format) + destination)
         val info = fs.stat(destination) ?: error("FFmpeg output was not created")
         require(!info.isDirectory && info.size > 0) { "FFmpeg output is empty" }
         val probe = probe(destination)
         require(probe.playable) { "FFmpeg output failed media verification" }
         return MediaConversion(probe.format, true, info.size)
+    }
+
+    override fun extractAudio(source: String, destination: String, format: String?): MediaConversion {
+        val requested = (format ?: fs.name(destination).substringAfterLast('.', "")).lowercase()
+        val encoding = when (requested) {
+            "mp3" -> "mp3" to "libmp3lame"
+            "m4a" -> "ipod" to "aac"
+            "aac" -> "adts" to "aac"
+            "wav" -> "wav" to "pcm_s16le"
+            "flac" -> "flac" to "flac"
+            "ogg" -> "ogg" to "libvorbis"
+            "opus" -> "opus" to "libopus"
+            else -> throw IllegalArgumentException("Unsupported audio format '$requested'")
+        }
+        run(listOf("ffmpeg", "-v", "error", "-nostdin", "-n", "-i", source, "-map", "0:a:0", "-vn", "-c:a", encoding.second, "-f", encoding.first, destination))
+        val info = fs.stat(destination) ?: error("FFmpeg output was not created")
+        require(!info.isDirectory && info.size > 0) { "FFmpeg output is empty" }
+        val probe = probe(destination)
+        require(probe.playable) { "FFmpeg audio output failed media verification" }
+        return MediaConversion(requested, true, info.size)
     }
 
     private fun run(command: List<String>): String {

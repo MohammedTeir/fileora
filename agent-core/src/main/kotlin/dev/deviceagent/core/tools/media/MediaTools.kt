@@ -43,11 +43,11 @@ class MediaProbeTool : Tool {
 class MediaConvertTool : Tool {
     override val spec = ToolSpec(
         "media.convert",
-        "Convert one media file with the host FFmpeg backend. The destination must be new and is verified playable and non-empty.",
+        "Convert or remux one media file with the host media backend. Android SAF currently remuxes supported tracks to MP4; the JVM backend uses FFmpeg. The new destination is verified playable and non-empty.",
         listOf(
             ParamSpec("source", STRING, "Absolute source media path"),
             ParamSpec("destination", STRING, "Absolute new output path"),
-            ParamSpec("format", STRING, "Optional FFmpeg output format", required = false),
+            ParamSpec("format", STRING, "Optional output format supported by the current host backend", required = false),
         ),
         RiskLevel.MODERATE,
     )
@@ -74,6 +74,47 @@ class MediaConvertTool : Tool {
             ToolResult.success(jsonObjectOf("source" to source, "destination" to destination, "format" to result.format, "playable" to result.playable, "bytes" to result.bytesWritten), listOf(UndoAction.DeleteCreated(destination)))
         } catch (e: Exception) {
             ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Media conversion failed: ${e.message ?: "unknown error"}", destination)
+        }
+    }
+}
+
+class MediaExtractAudioTool : Tool {
+    override val spec = ToolSpec(
+        "media.extract_audio",
+        "Extract the first audio track into a new audio file. The host backend determines supported output formats; the source is never sent to the model.",
+        listOf(
+            ParamSpec("source", STRING, "Absolute source audio/video path"),
+            ParamSpec("destination", STRING, "Absolute new output path"),
+            ParamSpec("format", STRING, "Optional output format (mp3, m4a, aac, wav, flac, ogg, or opus for the JVM FFmpeg backend)", required = false),
+        ),
+        RiskLevel.MODERATE,
+    )
+
+    override suspend fun plan(args: JsonObject, ctx: ToolContext) = mediaGuardedPlan("Extract audio from ${args.str("source")} → ${args.str("destination")}") {
+        val source = args.str("source")!!
+        val destination = args.str("destination")!!
+        val sourceInfo = ctx.fs.stat(source) ?: return@mediaGuardedPlan Plan("Extract audio from $source → $destination", error = dev.deviceagent.core.tools.ToolError(ErrorKind.NOT_FOUND, "No such source", source))
+        if (sourceInfo.isDirectory) return@mediaGuardedPlan Plan("Extract audio from $source → $destination", error = dev.deviceagent.core.tools.ToolError(ErrorKind.INVALID_ARGUMENTS, "Source is a directory", source))
+        if (ctx.fs.stat(destination) != null) return@mediaGuardedPlan Plan("Extract audio from $source → $destination", error = dev.deviceagent.core.tools.ToolError(ErrorKind.ALREADY_EXISTS, "Destination already exists", destination))
+        Plan("Extract audio from $source → $destination", reads = listOf(source), writes = listOf(destination), bytes = sourceInfo.size)
+    }
+
+    override suspend fun execute(args: JsonObject, ctx: ToolContext) = mediaGuarded {
+        val source = args.str("source")!!
+        val destination = args.str("destination")!!
+        val sourceInfo = ctx.fs.stat(source) ?: return@mediaGuarded ToolResult.failure(ErrorKind.NOT_FOUND, "No such source", source)
+        if (sourceInfo.isDirectory) return@mediaGuarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Source is a directory", source)
+        if (ctx.fs.stat(destination) != null) return@mediaGuarded ToolResult.failure(ErrorKind.ALREADY_EXISTS, "Destination already exists", destination)
+        val backend = ctx.mediaBackend ?: return@mediaGuarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Media backend is unavailable on this host", destination)
+        try {
+            ctx.fs.parent(destination)?.let { ctx.fs.mkdirs(it) }
+            val result = backend.extractAudio(source, destination, args.str("format"))
+            ToolResult.success(
+                jsonObjectOf("source" to source, "destination" to destination, "format" to result.format, "playable" to result.playable, "bytes" to result.bytesWritten),
+                listOf(UndoAction.DeleteCreated(destination)),
+            )
+        } catch (e: Exception) {
+            ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Audio extraction failed: ${e.message ?: "unknown error"}", destination)
         }
     }
 }

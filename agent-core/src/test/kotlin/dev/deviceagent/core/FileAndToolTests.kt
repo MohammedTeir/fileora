@@ -23,6 +23,7 @@ import dev.deviceagent.core.tools.file.WRITE_MAX_BYTES
 import dev.deviceagent.core.tools.media.MediaBackend
 import dev.deviceagent.core.tools.media.MediaConversion
 import dev.deviceagent.core.tools.media.MediaConvertTool
+import dev.deviceagent.core.tools.media.MediaExtractAudioTool
 import dev.deviceagent.core.tools.media.MediaProbe
 import dev.deviceagent.core.tools.media.MediaProbeTool
 import dev.deviceagent.core.tools.system.DefaultTools
@@ -147,6 +148,10 @@ fun registerFileAndToolTests() {
                     f.fs.writeBytes(destination, "converted".toByteArray())
                     return MediaConversion(format ?: "fake", playable = true, bytesWritten = 9)
                 }
+                override fun extractAudio(source: String, destination: String, format: String?): MediaConversion {
+                    f.fs.writeBytes(destination, "audio".toByteArray())
+                    return MediaConversion(format ?: "m4a", playable = true, bytesWritten = 5)
+                }
             }
             val t = ToolContext("media", f.fs, mediaBackend = backend)
             val probe = MediaProbeTool().execute(args("path" to source), t)
@@ -154,6 +159,14 @@ fun registerFileAndToolTests() {
             val converted = MediaConvertTool().execute(args("source" to source, "destination" to f.p("output.media"), "format" to "fake"), t)
             check(converted.ok) { converted.error.toString() }
             check(f.exists("output.media")); eq(1, converted.undo.size, "output undo")
+            val extracted = MediaExtractAudioTool().execute(args("source" to source, "destination" to f.p("audio.m4a")), t)
+            check(extracted.ok) { extracted.error.toString() }
+            eq("m4a", extracted.data.str("format"), "audio format")
+            eq(1, extracted.undo.size, "audio output undo")
+            check(f.exists("audio.m4a"))
+            val duplicate = MediaExtractAudioTool().execute(args("source" to source, "destination" to f.p("audio.m4a")), t)
+            eq(ErrorKind.ALREADY_EXISTS, duplicate.error!!.kind, "existing audio output")
+            eq("audio", f.read("audio.m4a"), "existing audio output untouched")
         }
     }
 

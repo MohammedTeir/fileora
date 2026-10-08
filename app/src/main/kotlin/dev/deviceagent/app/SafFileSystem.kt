@@ -9,6 +9,7 @@ import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
 import dev.deviceagent.core.tools.ErrorKind
 import java.io.FileNotFoundException
+import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 
@@ -107,6 +108,34 @@ class SafFileSystem(private val context: Context, safRoots: List<SafRoot>) : Fil
     // ───────── FileSystem operations ─────────
 
     override fun stat(path: String): FileInfo? = io(path) { doc(path)?.let { info(path, it) } }
+
+    /** Resolve only a path inside a user-granted root to its content URI. */
+    internal fun contentUri(path: String): Uri = io(path) { mustDoc(path).uri }
+
+    /** Import a completed app-private output without buffering the media in memory or overwriting. */
+    internal fun copyFromLocalFile(source: File, destination: String): Long = io(destination) {
+        if (!source.isFile) throw FsException(ErrorKind.NOT_FOUND, "Temporary media output does not exist", destination)
+        val parentPath = parent(destination)
+            ?: throw FsException(ErrorKind.INVALID_ARGUMENTS, "Destination has no parent folder", destination)
+        val parentDoc = doc(parentPath)
+            ?: throw FsException(ErrorKind.NOT_FOUND, "Destination folder does not exist", parentPath)
+        if (!parentDoc.isDirectory) throw FsException(ErrorKind.INVALID_ARGUMENTS, "Destination parent is not a folder", parentPath)
+        val newName = name(destination)
+        if (parentDoc.findFile(newName) != null) throw FsException(ErrorKind.ALREADY_EXISTS, "Already exists", destination)
+        val created = parentDoc.createFile("application/octet-stream", newName)
+            ?: throw FsException(ErrorKind.IO, "Could not create the destination file", destination)
+        try {
+            if (created.name != newName && !created.renameTo(newName)) {
+                throw FsException(ErrorKind.IO, "Could not give the media output its exact name", destination)
+            }
+            val output = resolver.openOutputStream(created.uri, "w")
+                ?: throw FsException(ErrorKind.IO, "Could not open the media destination", destination)
+            source.inputStream().use { input -> output.use { input.copyTo(it, 64 * 1024) } }
+        } catch (e: Throwable) {
+            created.delete()
+            throw e
+        }
+    }
 
     override fun list(path: String): List<FileInfo> = io(path) {
         val d = mustDoc(path)
