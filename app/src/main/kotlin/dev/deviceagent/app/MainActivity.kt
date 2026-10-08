@@ -138,6 +138,12 @@ private fun Screen(vm: AgentViewModel) {
                 if (o.canUndo || s.restorableUndoTaskId != null) OutlinedButton(onClick = vm::undoLastTask) { Text("Undo this task") }
             }
         }
+        if (s.outcome == null && s.restorableUndoTaskId != null) {
+            Section("Recover previous task") {
+                Text("A reversible task from an earlier app session is available.")
+                OutlinedButton(onClick = vm::undoLastTask) { Text("Undo previous task") }
+            }
+        }
         if (s.history.isNotEmpty()) {
             Section("History") {
                 s.history.take(20).forEach { entry ->
