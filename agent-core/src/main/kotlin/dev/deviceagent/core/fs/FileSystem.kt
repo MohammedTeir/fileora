@@ -46,6 +46,10 @@ interface FileSystem {
     fun delete(path: String)
 
     fun sha256(path: String): String
+
+    /** Reads at most [maxBytes] bytes from the START of a file. Fails with NOT_FOUND / OUTSIDE_SANDBOX like every other call. */
+    fun readBytes(path: String, maxBytes: Int): ByteArray
+
     /** Free bytes at [path], or null when the storage cannot say (e.g. Storage Access Framework). */
     fun freeSpaceBytes(path: String): Long?
 }
