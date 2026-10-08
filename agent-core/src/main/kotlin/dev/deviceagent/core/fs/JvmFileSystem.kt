@@ -148,6 +148,24 @@ class JvmFileSystem(rootPaths: List<String>) : FileSystem {
         }
     }
 
+    override fun readBytes(path: String, maxBytes: Int): ByteArray {
+        val p = guard(path)
+        return io(path) {
+            Files.newInputStream(p).use { input ->
+                val out = java.io.ByteArrayOutputStream()
+                val buf = ByteArray(8 * 1024)
+                var left = maxBytes
+                while (left > 0) {
+                    val n = input.read(buf, 0, minOf(buf.size, left))
+                    if (n < 0) break
+                    out.write(buf, 0, n)
+                    left -= n
+                }
+                out.toByteArray()
+            }
+        }
+    }
+
     override fun freeSpaceBytes(path: String): Long {
         var p: Path = guard(path)
         while (!Files.exists(p)) p = p.parent ?: break
