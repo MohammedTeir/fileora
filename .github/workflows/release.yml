@@ -58,7 +58,11 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
+      # GitHub's ubuntu runners already include the Android SDK ($ANDROID_HOME). We only accept
+      # the licenses so Gradle can download the platform/build-tools it needs.
+      # (android-actions/setup-android@v3 was removed: it runs `sdkmanager tools`, which no longer exists.)
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       # Refuse to run if gradle-wrapper.jar is not an official Gradle release (supply-chain check).
       - uses: gradle/actions/wrapper-validation@v4
