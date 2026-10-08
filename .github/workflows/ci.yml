@@ -29,9 +29,9 @@ jobs:
           java-version: "17"
 
       # Refuse to run if gradle-wrapper.jar is not an official Gradle release (supply-chain check).
-      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/wrapper-validation@v6
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # Runs the agent-core test suite (see agent-core/build.gradle.kts: runAgentTests).
       - name: Run agent-core tests
@@ -55,9 +55,9 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       # Refuse to run if gradle-wrapper.jar is not an official Gradle release (supply-chain check).
-      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/wrapper-validation@v6
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build debug APKs
         run: ./gradlew :app:assembleDebug --stacktrace
