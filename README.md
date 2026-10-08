@@ -29,7 +29,7 @@ Guarantees, each covered by a test:
 - **The AI proposes, the engine authorizes.** The model never touches storage directly.
 - **Sandbox.** Only user-granted folders; `..` and symlink escapes are rejected.
 - **Verification is mandatory.** A copy that "succeeds" but leaves an empty file is caught, rolled back and reported.
-- **Honest final state.** `SUCCESS`, `SUCCESS_AFTER_RECOVERY`, `PARTIAL_SUCCESS`, `WAITING_FOR_*`, `BLOCKED`, `UNSAFE_TO_CONTINUE`, `FAILED_AFTER_INVESTIGATION`, `CANCELLED` are computed from what actually happened, not from what the model says ("All done!" with one failed item is `PARTIAL_SUCCESS`).
+- **Honest final state.** `SUCCESS`, `PLAN_ONLY` (dry run: nothing changed), `SUCCESS_AFTER_RECOVERY`, `PARTIAL_SUCCESS`, `WAITING_FOR_*`, `BLOCKED`, `UNSAFE_TO_CONTINUE`, `FAILED_AFTER_INVESTIGATION`, `CANCELLED` are computed from what actually happened, not from what the model says ("All done!" with one failed item is `PARTIAL_SUCCESS`).
 - **Bounded recovery.** At most 3 retries per item; an identical failing call is refused unless something changed; step, failure and file limits per task.
 - **Risk-based confirmation.** Reads and low-risk copies run; moves ask; deletes always ask and can never be "allowed for the whole task"; protected locations are refused outright.
 - **Dry run and manual mode.** Plan the whole job, change nothing.
