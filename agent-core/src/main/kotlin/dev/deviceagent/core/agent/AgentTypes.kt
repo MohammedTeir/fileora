@@ -5,6 +5,8 @@ import dev.deviceagent.core.tools.Plan
 /** Every task ends in exactly one of these (spec section 12). Computed from facts, not from what the model claims. */
 enum class TaskStatus {
     SUCCESS, SUCCESS_AFTER_RECOVERY, PARTIAL_SUCCESS,
+    /** Dry run finished: the job was planned, nothing on the device was changed. Never reported as SUCCESS. */
+    PLAN_ONLY,
     WAITING_FOR_USER, WAITING_FOR_PERMISSION, WAITING_FOR_RESOURCE,
     BLOCKED, UNSAFE_TO_CONTINUE, FAILED_AFTER_INVESTIGATION, CANCELLED,
 }
