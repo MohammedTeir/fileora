@@ -51,7 +51,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [~] #14 Archive tools — `file.compress` / `file.extract` implemented with ZIP entry/path/expanded-size limits, no-overwrite behavior, undo, and core round-trip/zip-slip tests; Android/SAF validation remains
 - [~] #15 Media tools — provider-neutral `media.probe` / `media.convert` plus a no-shell JVM FFmpeg/FFprobe backend with output verification; Android native/SAF backend and remaining media tools remain
 - [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
-- [ ] #17 Scheduled tasks (WorkManager)
+- [~] #17 Scheduled tasks — `ScheduledTasks.schedule/cancel` and `ScheduledTaskWorker` implemented with persisted WorkManager intervals and manual-mode-by-default execution; UI, Room listing/editing, and device validation remain
 - [ ] #18 More providers (Claude / OpenAI) + shared contract tests
 - [ ] #19 Model routing
 

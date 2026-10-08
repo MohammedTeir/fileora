@@ -288,6 +288,26 @@ class AgentTaskService : Service() {
         private const val ROOT_SEPARATOR = "\u001f"
         private const val RECOVERY_WORK = "agent-task-recovery"
 
+        fun createStartIntent(
+            context: android.content.Context,
+            goal: String,
+            model: String,
+            dryRun: Boolean,
+            manual: Boolean,
+            sendContents: Boolean,
+            rootNames: List<String>,
+            rootUris: List<String>,
+        ): Intent = Intent(context, AgentTaskService::class.java).apply {
+            action = ACTION_START
+            putExtra(EXTRA_GOAL, goal)
+            putExtra(EXTRA_MODEL, model)
+            putExtra(EXTRA_DRY_RUN, dryRun)
+            putExtra(EXTRA_MANUAL, manual)
+            putExtra(EXTRA_SEND_CONTENTS, sendContents)
+            putStringArrayListExtra(EXTRA_ROOT_NAMES, ArrayList(rootNames))
+            putStringArrayListExtra(EXTRA_ROOT_URIS, ArrayList(rootUris))
+        }
+
         fun hasCheckpoint(context: android.content.Context): Boolean =
             context.getSharedPreferences(CHECKPOINT_PREFS, MODE_PRIVATE).getBoolean(KEY_ACTIVE, false)
 
