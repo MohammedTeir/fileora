@@ -39,7 +39,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
 
-private const val ASK_USER = "agent.ask_user"
+internal const val ASK_USER = "agent.ask_user"
+internal const val ASK_USER_DESCRIPTION = "Ask the user a question when the request is ambiguous or a decision is theirs. Use sparingly."
 
 /**
  * The observe → diagnose → recover loop.
@@ -90,10 +91,10 @@ class AgentEngine(
         val run = Run(taskId, ToolContext(taskId, fs))
         val declarations = registry.specs().map { ToolDeclaration(it.name, it.description, it.params) } + ToolDeclaration(
             ASK_USER,
-            "Ask the user a question when the request is ambiguous or a decision is theirs. Use sparingly.",
+            ASK_USER_DESCRIPTION,
             listOf(ParamSpec("question", ParamType.STRING, "A precise question")),
         )
-        val system = SystemPrompt.build(fs.roots, config.dryRun, policy.config.mode)
+        val system = SystemPrompt.build(fs.roots, config.dryRun, policy.config.mode, registry.specs())
         val messages = ArrayList<Message>().apply { add(Message.User(goal)) }
         audit.record(taskId, "task_start", jsonObjectOf("goal" to goal, "model" to config.model, "dry_run" to config.dryRun, "mode" to policy.config.mode.name))
         log("Task $taskId started")
@@ -128,7 +129,7 @@ class AgentEngine(
             messages += Message.ToolResults(replies)
         }
 
-        val status = determineStatus(run, stopped, providerError)
+        val status = determineStatus(run, stopped, providerError, config.dryRun)
         val report = buildReport(run, status, stopped, providerError)
         audit.record(taskId, "task_end", jsonObjectOf("status" to status.name, "failures" to run.failures, "tool_calls" to run.toolCalls))
         log("Task $taskId finished: $status")
@@ -344,7 +345,7 @@ class AgentEngine(
         return out
     }
 
-    private fun determineStatus(run: Run, stopped: String?, providerError: ProviderException?): TaskStatus {
+    private fun determineStatus(run: Run, stopped: String?, providerError: ProviderException?, dryRun: Boolean): TaskStatus {
         if (run.cancelled) return TaskStatus.CANCELLED
         if (providerError != null) {
             return when (providerError.kind) {
@@ -357,6 +358,7 @@ class AgentEngine(
         if (open.isEmpty()) {
             return when {
                 stopped != null -> if (run.mutatingSuccesses > 0) TaskStatus.PARTIAL_SUCCESS else TaskStatus.FAILED_AFTER_INVESTIGATION
+                dryRun -> TaskStatus.PLAN_ONLY
                 run.proposals.isNotEmpty() && policy.config.mode == dev.deviceagent.core.policy.InteractionMode.MANUAL -> TaskStatus.WAITING_FOR_USER
                 run.failures > 0 -> TaskStatus.SUCCESS_AFTER_RECOVERY
                 else -> TaskStatus.SUCCESS
