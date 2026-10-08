@@ -26,9 +26,9 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | # | Task | Acceptance criteria |
 |---|---|---|
 | 1 | Verify real run on device | With dry run off: create folder + move shows a confirmation with the full real paths; result says "2 changes completed and verified"; Undo restores the file; delete always asks and lands in `.agent_trash` (restorable). Fix anything that fails. |
-| 2 | `PLAN_ONLY` status | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
-| 3 | Exact tool list in system prompt | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
-| 4 | Reduce request count | Dry run of "create folder and move file" took 7 AI requests / 10.7K tokens. Find why (log requests), aim for 3 or fewer. Add a test with a fake provider that counts calls. |
+| 2 | `PLAN_ONLY` status — **done in code, not yet run** | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
+| 3 | Exact tool list in system prompt — **done in code, not yet run** | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
+| 4 | Reduce request count — **prompt batching guidance + tests added; real request count on device not yet measured** | Dry run of "create folder and move file" took 7 AI requests / 10.7K tokens. Find why (log requests), aim for 3 or fewer. Add a test with a fake provider that counts calls. |
 | 5 | Green CI | `ci.yml` passes on a branch. Bump `gradle/libs.versions.toml` to current stable versions (unverified now). Then tag `v0.1.0` and confirm `release.yml` produces signed APKs (`apksigner verify` passes). Needs the secrets in `docs/RELEASING.md`. |
 
 ## P1: make it usable
