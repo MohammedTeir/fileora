@@ -109,6 +109,18 @@ private fun Screen(vm: AgentViewModel) {
 
         // ── 3. Task ──
         Section("3. What should I do?") {
+            if (s.checkpointAvailable && !s.running) {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Interrupted task", style = MaterialTheme.typography.titleSmall)
+                        Text(s.checkpointDescription, style = MaterialTheme.typography.bodySmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = vm::resumeTask) { Text("Resume") }
+                            OutlinedButton(onClick = vm::discardCheckpoint) { Text("Discard") }
+                        }
+                    }
+                }
+            }
             OutlinedTextField(
                 value = s.goal, onValueChange = vm::setGoal, modifier = Modifier.fillMaxWidth(), minLines = 3,
                 label = { Text("e.g. Copy every .mp4 from Download into Music/Lessons") },
@@ -121,7 +133,21 @@ private fun Screen(vm: AgentViewModel) {
                 Switch(checked = s.manualMode, onCheckedChange = vm::setManualMode)
                 Text("  Manual mode: propose only, never execute")
             }
-            Button(onClick = vm::runTask, enabled = !s.running && s.goal.isNotBlank()) { Text(if (s.running) "Working…" else "Run") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = s.sendFileContents, onCheckedChange = vm::setSendFileContents)
+                Text("  Allow file contents to be sent to Gemini")
+            }
+            Text(
+                if (s.sendFileContents)
+                    "Sending preview: goal, folder names, file metadata, and text requested through file.read."
+                else
+                    "Sending preview: goal, folder names, and file metadata only. File contents are blocked.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = vm::runTask, enabled = !s.running && s.goal.isNotBlank()) { Text(if (s.running) "Working…" else "Run") }
+                if (s.running) OutlinedButton(onClick = vm::cancelTask) { Text("Cancel") }
+            }
         }
 
         // ── 4. Progress / result ──

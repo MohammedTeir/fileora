@@ -1,7 +1,7 @@
 # Device Agent — Task List (done vs. not done)
 
 Compared: `README.md`, `ROADMAP.md`, `docs/SPEC.md` (identical to the "full idea v4" file) and the actual code in the zip.
-Date of review: 2026-10-08. I read the code; I did **not** run the tests or the app.
+Date of review: 2026-10-08. The core suite was run locally; the Android APK build could not proceed because this sandbox has no Android SDK.
 
 **Legend**
 - `[x]` Done and covered by tests (agent-core) or confirmed on a real device
@@ -14,10 +14,12 @@ Date of review: 2026-10-08. I read the code; I did **not** run the tests or the 
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, Gemini | Done (80 tests, per README) |
+| Core agent loop, policy, verification, recovery, undo, Gemini | Done (83 tests pass locally) |
 | Android app: UI, Keystore, SAF, Room history | Written, compiles, runs on Redmi Note 8 Pro |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
-| Background execution, checkpoints, privacy toggles, cost limits | Not started |
+| Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
+| Checkpoints | Implemented: exact provider-neutral conversation and latest progress persist after tool-result turns; Resume/Discard implemented. Device validation remains |
+| Privacy toggles, cost limits | Implemented in core/UI; device verification still pending |
 | Media (FFmpeg), Linux runtime, packages, Android tools, root | Not started (spec phases 2, 4–8) |
 
 Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because no shell tool exists yet), **Phases 2, 4, 5, 6, 7, 8: 0–10%**.
@@ -41,10 +43,10 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [~] **#6 `file.read`** — implemented with size cap, untrusted_data wrapping, tests; not run on device
 - [x] **#7 `file.write` / `file.append`** — done (100 KiB cap, confirmation, undo of old version, SHA-256 verify)
 - [x] **#8 Persistent history (Room)** — `RoomAuditLog`, `RoomUndoStore`, history list in UI, latest task undoable after restart
-- [ ] **#9 Background execution** — foreground service + notification + WorkManager; no service in manifest, nothing in code
-- [ ] **#10 Checkpoint and resume** — nothing persisted per step
-- [~] **#11 Usage and cost limits** — usage is **tracked and shown** (`UsageTracker`, `usageSummary`), but there is **no per-task token/request budget with hard stop** (only `maxSteps = 40`)
-- [ ] **#12 Privacy toggles** — no "names only vs contents" setting, no "what will be sent" preview. `file.read` can currently send any file in a granted folder to Gemini
+- [~] **#9 Background execution** — foreground `AgentTaskService` owns runs when the screen is off, shows progress/confirmation notifications, supports cancellation, and delivers progress/results to the UI. A delayed unique `AgentTaskRecoveryWorker` relaunches a checkpointed task after process death; device verification remains.
+- [~] **#10 Checkpoint and resume** — foreground service persists task inputs, provider-neutral messages after each tool-result turn, and latest progress; after process death the app offers Resume or Discard. Core coverage passes; device validation remains.
+- [~] **#11 Usage and cost limits** — per-task request, input-token, and output-token budgets now hard-stop with `BLOCKED`; actual task usage is returned in `TaskOutcome` and shown in `usageSummary`, with core regression coverage. Not yet verified on device; provider usage is unavailable when an adapter omits usage metadata.
+- [~] **#12 Privacy toggles** — names-only is the default; the user can explicitly allow file contents, the task screen shows a "what will be sent" preview, and `file.read` enforces the setting. Core tests pass; device verification remains.
 
 ## 3. P2 — More capability (ROADMAP)
 
@@ -164,24 +166,21 @@ Other groups:
 
 ## 6. Repo hygiene / inconsistencies found
 
-- [ ] README "Status" table says **history in Room: not started**, and "Known limits" says **audit log and undo are in memory** — but ROADMAP #8 and the code (`RoomAuditLog.kt`, `RoomUndoStore`) say it is done. Update README.
-- [ ] README says SAF write support and Room are "included" in one row and "not started" in another — same fix.
-- [ ] `ci.yml` comment says "56-test suite"; README/ROADMAP say 80 tests. Update the comment.
+- [x] README status table and known limits now reflect Room history, SAF writes, and the 82-test baseline.
+- [x] CI/release action references are pinned to immutable commit SHAs.
 - [ ] README says "Written; device build/run reported by the owner" while ROADMAP says "compiles and runs on a real device" — pick one wording.
-- [ ] README "Not yet built" list still mentions "history in Room" under Not started in the table.
-- [ ] `libs.versions.toml` header still says versions could not be resolved.
+- [x] README no longer lists background execution/checkpoints as not started.
+- [~] `libs.versions.toml` retains the generated-version note; Android dependency resolution still needs a GitHub/Android-SDK build.
 - [ ] Tests use a custom harness (no JUnit); fine for now, but consider JUnit 5 so IDE/CI report per-test results.
 - [ ] Add a live Gemini contract test (opt-in, needs key) so API-shape changes are caught.
-- [ ] Add a README note on **privacy risk of `file.read`** until task #12 ships (already listed under "Known limits" — keep until fixed).
+- [x] Privacy risk is documented and protected by names-only default plus explicit content opt-in.
 
 ---
 
 ## 7. Suggested next order
 
-1. **P0 #1** — verify real run, confirmation, undo, trash on the phone; fix what breaks
-2. **P0 #4** — measure real request count on device
-3. **P1 #12** — privacy toggles (closes the `file.read` leak risk)
-4. **P1 #11** — hard per-task token/request budget with `BLOCKED`
-5. **P1 #9 → #10** — foreground service, then checkpoint/resume
-6. README/CI doc fixes (section 6)
-7. Then P2: archive tools → All-files access → media (FFmpeg) → more providers/routing
+1. **P0 #1 and #4** — verify the real run and measure request count on the phone
+2. **P0 #5** — run GitHub CI/release with Android SDK and signing secrets; tag only after green verification
+3. **P1 #10** — exact provider conversation/tool-step checkpoint restore
+4. **P1 #9** — physical-device validation of service, notification actions, and WorkManager recovery
+5. Then P2: archive tools → All-files access → media (FFmpeg) → more providers/routing

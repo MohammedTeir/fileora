@@ -4,7 +4,7 @@ Two workflows live in `.github/workflows/`:
 
 | Workflow | When it runs | What it does |
 |---|---|---|
-| `ci.yml` | every push to `main` and every pull request | runs the 56 core tests, builds debug APKs, uploads them as a 7-day artifact. Uses no secrets. |
+| `ci.yml` | every push to `main` and every pull request | runs the 83 core tests, builds debug APKs, uploads them as a 7-day artifact. Uses no secrets. |
 | `release.yml` | you push a tag like `v0.1.0`, or run it by hand | runs the tests again, builds **signed** release APKs for `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` plus a universal APK, verifies the signatures, writes `SHA256SUMS.txt`, and (for tags) publishes a GitHub Release |
 
 > The app is pure Kotlin right now, so the per-architecture APKs are functionally identical. They start to differ when native libraries (FFmpeg, proot) are added. Most phones need `arm64-v8a`; the universal APK works everywhere but is larger.
@@ -55,9 +55,9 @@ The workflow publishes a Release containing the APKs and `SHA256SUMS.txt`. `vers
 
 - **Protect the `main` branch and tags**: require pull-request review, and restrict who can push `v*` tags. Anyone who can push a tag can trigger a signed release.
 - **Use an environment with required approval**: put the four signing secrets in a GitHub Environment named `release` with "required reviewers", then add `environment: release` to the `build-and-sign` job. Releases then need a human click.
-- **Pin actions to commit SHAs** instead of `@v4` once you have chosen versions you trust (`dependabot.yml` will keep them updated). A compromised action in a job that holds your signing key is the main risk of this pipeline.
+- **Action pinning:** CI and release workflow actions are pinned to immutable commit SHAs with version comments. Review and update them deliberately when Dependabot proposes a newer trusted release.
 - The workflow decodes the keystore to the runner's temp folder (outside the workspace) and deletes it at the end of the job, even on failure.
 
 ## What has and has not been verified
 
-The workflow files pass `actionlint` and are valid YAML, but they have **never run**: the Gradle build behind them (Android plugin versions, the `app` module) has not been compiled yet. Expect to fix compile errors in `app/` and bump the versions in `gradle/libs.versions.toml` before the first green run. Start with `ci.yml` on a branch; only create a tag once CI is green.
+The workflow files are valid YAML and actions are pinned, but the Android workflow has **not run in this sandbox** because no Android SDK is installed. Run `ci.yml` on GitHub before creating a release tag; only create a tag once CI is green.

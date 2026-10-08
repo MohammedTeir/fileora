@@ -1,6 +1,7 @@
 package dev.deviceagent.core.tools.file
 
 import dev.deviceagent.core.fs.FileInfo
+import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
 import dev.deviceagent.core.tools.ErrorKind
@@ -273,6 +274,14 @@ class FileReadTool : Tool {
         val path = args.str("path")!!
         val info = ctx.fs.stat(path) ?: return@guarded ToolResult.failure(ErrorKind.NOT_FOUND, "No such file", path)
         if (info.isDirectory) return@guarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Path is a directory; list it instead of reading it", path)
+        if (ctx.privacyMode == PrivacyMode.NAMES_ONLY) {
+            return@guarded ToolResult.success(
+                jsonObjectOf(
+                    "path" to path, "size" to info.size, "content_omitted" to true,
+                    "privacy" to "names_and_metadata_only",
+                ),
+            )
+        }
         val limit = (args.long("max_bytes") ?: READ_DEFAULT_BYTES.toLong()).coerceIn(1L, READ_MAX_BYTES.toLong()).toInt()
         val bytes = ctx.fs.readBytes(path, limit)
         val truncated = info.size > bytes.size

@@ -8,7 +8,10 @@ object SystemPrompt {
      * [tools] is the registry's exact tool list: the prompt describes only what is registered (plus the
      * built-in ask_user), so the model cannot be told about, or claim, abilities it does not have.
      */
-    fun build(roots: List<String>, dryRun: Boolean, mode: InteractionMode, tools: List<ToolSpec>): String = buildString {
+    fun build(
+        roots: List<String>, dryRun: Boolean, mode: InteractionMode, tools: List<ToolSpec>,
+        privacyMode: PrivacyMode = PrivacyMode.NAMES_ONLY,
+    ): String = buildString {
         appendLine("You are the planning brain of an Android device agent. You operate the user's storage ONLY through the typed tools you are given.")
         appendLine()
         appendLine("Accessible folders (you cannot touch anything outside them):")
@@ -18,6 +21,7 @@ object SystemPrompt {
         tools.forEach { appendLine("- ${it.name} [${if (it.mutating) "changes the device" else "read-only"}]: ${it.description}") }
         appendLine("- $ASK_USER [asks the user]: $ASK_USER_DESCRIPTION")
         appendLine("If the user asks for something these tools cannot do, say so plainly. Do not pretend, and do not claim abilities that are not listed.")
+        appendLine("Privacy: ${if (privacyMode == PrivacyMode.CONTENTS_ALLOWED) "file contents may be sent when file.read is used" else "names and metadata only; file contents are blocked from cloud responses"}.")
         appendLine()
         appendLine("How to work:")
         val readOnly = tools.filter { !it.mutating }.joinToString { it.name }

@@ -3,6 +3,9 @@ package dev.deviceagent.core
 import dev.deviceagent.core.agent.AgentConfig
 import dev.deviceagent.core.agent.SystemPrompt
 import dev.deviceagent.core.agent.TaskStatus
+import dev.deviceagent.core.ai.GenerateResponse
+import dev.deviceagent.core.ai.Message
+import dev.deviceagent.core.ai.Usage
 import dev.deviceagent.core.policy.ConfirmationResponse
 import dev.deviceagent.core.policy.InteractionMode
 import dev.deviceagent.core.tools.ParamSpec
@@ -49,14 +52,49 @@ fun registerPromptAndCostTests() {
         }
     }
 
-    test("dry run that hit the request limit is not reported as a finished plan") {
+    test("request budget stops the task with BLOCKED, not a false success or plan") {
         fx { f ->
             f.provider
                 .calls("file.list" to args("path" to f.root.toString()))
                 .calls("file.list" to args("path" to f.root.toString()))
             val out = f.run(config = AgentConfig("m", dryRun = true, maxSteps = 2))
             check(out.status != TaskStatus.PLAN_ONLY) { "an interrupted dry run is not a complete plan, got ${out.status}" }
-            eq(TaskStatus.FAILED_AFTER_INVESTIGATION, out.status, "status")
+            eq(TaskStatus.BLOCKED, out.status, "status")
+            check(out.stoppedReason!!.contains("AI requests")) { "request budget reason missing" }
+        }
+    }
+
+    test("input token budget stops before another provider request and reports usage") {
+        fx { f ->
+            f.provider.then {
+                GenerateResponse(
+                    text = null,
+                    toolCalls = listOf(dev.deviceagent.core.tools.ToolCall("c1", "file.list", args("path" to f.root.toString()))),
+                    usage = Usage(inputTokens = 10, outputTokens = 3),
+                )
+            }
+            val out = f.run(config = AgentConfig("m", maxInputTokens = 10, maxOutputTokens = 100))
+            eq(TaskStatus.BLOCKED, out.status, "status")
+            eq(10L, out.inputTokens, "input tokens")
+            eq(3L, out.outputTokens, "output tokens")
+            eq(1, f.provider.requests.size, "provider requests")
+            check(out.report.contains("input-token limit")) { "token budget reason missing from report" }
+        }
+    }
+
+    test("checkpoint: engine persists each tool-result turn and resumes from supplied messages") {
+        fx { f ->
+            f.provider.calls("file.list" to args("path" to f.root.toString())).says("done")
+            val snapshots = mutableListOf<List<Message>>()
+            val first = f.run(config = AgentConfig("m", onCheckpoint = { snapshots += it }))
+            eq(TaskStatus.SUCCESS, first.status, "first status")
+            check(snapshots.size >= 2) { "expected initial and post-tool checkpoints" }
+            check(snapshots.last().last() is Message.ToolResults) { "last checkpoint must include tool results" }
+
+            f.provider.says("resumed")
+            val restored = listOf(Message.User("original goal"), snapshots.last().last())
+            f.run(config = AgentConfig("m", initialMessages = restored))
+            eq(restored, f.provider.requests.last().messages, "restored conversation")
         }
     }
 

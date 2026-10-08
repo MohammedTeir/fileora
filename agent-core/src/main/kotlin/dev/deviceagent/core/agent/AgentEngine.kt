@@ -70,6 +70,8 @@ class AgentEngine(
 
     private class Run(val taskId: String, val ctx: ToolContext) {
         var steps = 0
+        var inputTokens = 0L
+        var outputTokens = 0L
         var toolCalls = 0
         var failures = 0
         var stateVersion = 0
@@ -78,6 +80,7 @@ class AgentEngine(
         var mutatingSuccesses = 0
         var unverified = 0
         var cancelled = false
+        var budgetBlocked: String? = null
         val grants = HashSet<String>()
         val failedAt = HashMap<String, Int>()
         val attemptsPerItem = HashMap<String, Int>()
@@ -88,14 +91,17 @@ class AgentEngine(
 
     suspend fun run(goal: String, config: AgentConfig): TaskOutcome {
         val taskId = newTaskId()
-        val run = Run(taskId, ToolContext(taskId, fs))
+        val run = Run(taskId, ToolContext(taskId, fs, config.privacyMode))
         val declarations = registry.specs().map { ToolDeclaration(it.name, it.description, it.params) } + ToolDeclaration(
             ASK_USER,
             ASK_USER_DESCRIPTION,
             listOf(ParamSpec("question", ParamType.STRING, "A precise question")),
         )
-        val system = SystemPrompt.build(fs.roots, config.dryRun, policy.config.mode, registry.specs())
-        val messages = ArrayList<Message>().apply { add(Message.User(goal)) }
+        val system = SystemPrompt.build(fs.roots, config.dryRun, policy.config.mode, registry.specs(), config.privacyMode)
+        val messages = ArrayList<Message>().apply {
+            if (config.initialMessages.isEmpty()) add(Message.User(goal)) else addAll(config.initialMessages)
+        }
+        config.onCheckpoint?.invoke(messages.toList())
         audit.record(taskId, "task_start", jsonObjectOf("goal" to goal, "model" to config.model, "dry_run" to config.dryRun, "mode" to policy.config.mode.name))
         log("Task $taskId started")
 
@@ -105,7 +111,21 @@ class AgentEngine(
 
         while (true) {
             if (run.cancelled) { stopped = "cancelled by the user"; break }
-            if (run.steps >= config.maxSteps) { stopped = "the limit of ${config.maxSteps} AI requests for one task was reached"; break }
+            if (run.steps >= config.maxSteps) {
+                run.budgetBlocked = "the limit of ${config.maxSteps} AI requests for one task was reached"
+                stopped = run.budgetBlocked
+                break
+            }
+            if (run.inputTokens >= config.maxInputTokens) {
+                run.budgetBlocked = "the input-token limit of ${config.maxInputTokens} for one task was reached"
+                stopped = run.budgetBlocked
+                break
+            }
+            if (run.outputTokens >= config.maxOutputTokens) {
+                run.budgetBlocked = "the output-token limit of ${config.maxOutputTokens} for one task was reached"
+                stopped = run.budgetBlocked
+                break
+            }
             if (run.failures >= config.maxTotalFailures) { stopped = "too many failed operations (${run.failures})"; break }
             run.steps++
             val response = try {
@@ -115,6 +135,10 @@ class AgentEngine(
                 providerError = e
                 audit.record(taskId, "provider_error", jsonObjectOf("kind" to e.kind.name, "message" to e.message))
                 break
+            }
+            response.usage?.let {
+                run.inputTokens += it.inputTokens.toLong().coerceAtLeast(0)
+                run.outputTokens += it.outputTokens.toLong().coerceAtLeast(0)
             }
             if (response.toolCalls.isEmpty()) { finalText = response.text ?: ""; break }
             response.text?.takeIf { it.isNotBlank() }?.let { log("AI: $it") }
@@ -127,6 +151,7 @@ class AgentEngine(
                 replies += ToolResponse(call.id, call.name, content)
             }
             messages += Message.ToolResults(replies)
+            config.onCheckpoint?.invoke(messages.toList())
         }
 
         val status = determineStatus(run, stopped, providerError, config.dryRun)
@@ -135,7 +160,8 @@ class AgentEngine(
         log("Task $taskId finished: $status")
         return TaskOutcome(
             taskId = taskId, status = status, modelMessage = finalText?.takeIf { it.isNotBlank() }, report = report,
-            steps = run.steps, toolCalls = run.toolCalls, failures = run.failures, attempts = run.attemptLog.toList(),
+            steps = run.steps, inputTokens = run.inputTokens, outputTokens = run.outputTokens,
+            toolCalls = run.toolCalls, failures = run.failures, attempts = run.attemptLog.toList(),
             proposals = run.proposals.toList(), canUndo = undoManager.hasUndo(taskId), unverifiedChanges = run.unverified,
             stoppedReason = stopped, providerError = providerError?.let { "${it.kind}: ${it.message}" },
         )
@@ -354,6 +380,7 @@ class AgentEngine(
                 else -> if (run.mutatingSuccesses > 0) TaskStatus.PARTIAL_SUCCESS else TaskStatus.FAILED_AFTER_INVESTIGATION
             }
         }
+        if (run.budgetBlocked != null) return TaskStatus.BLOCKED
         val open = run.issues
         if (open.isEmpty()) {
             return when {

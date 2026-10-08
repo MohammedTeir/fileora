@@ -6,12 +6,12 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 80 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 83 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
-| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, and restart-safe undo storage in Room. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
-| Gradle build files / dependency versions | **Unresolved**: versions in `gradle/libs.versions.toml` are starting points; bump to current stable on first sync |
+| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, restart-safe undo storage in Room, and task request/token usage reporting. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
+| Gradle build files / dependency versions | **Configured**: Android/WorkManager dependencies are declared; full Android compilation still needs GitHub CI or an Android SDK |
 | GitHub Actions (`ci.yml`, `release.yml`) | **CI is green and the release workflow builds signed APKs** (reported by the owner; `apksigner verify` output not yet seen). See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
-| Media (FFmpeg), Linux runtime, packages, root, scheduling, background execution, checkpoints | Not started (spec phases 2 and 4 to 8; `ROADMAP.md` P1 #9 and #10) |
+| Media (FFmpeg), Linux runtime, packages, root, scheduling | Not started (spec phases 2 and 4 to 8) |
 
 ## What the MVP does (spec phases 1 and 3)
 
@@ -75,10 +75,14 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 
 ## Known limits and decisions to make
 
-- **`file.read` sends file contents to the cloud model.** Reads are READ risk and never ask for confirmation, and the privacy toggle (roadmap task 12) does not exist yet. Until it does, any file inside a granted folder can be read and sent to Gemini.
+- **Privacy default:** file contents are blocked from cloud responses by default. The user can explicitly opt in to sending text requested through `file.read`; the task screen shows a "what will be sent" preview.
 - **Result size.** `file.read` defaults to 8,000 bytes (hard cap 100 KB), but the engine cuts any tool result above `maxResultChars` (12,000), so larger reads reach the model as a truncated preview.
 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
-- **Not yet built:** background execution (foreground service + WorkManager), checkpoints/resume, privacy toggles for what is sent to the AI, model routing, media tools.
-- **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, and undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each). AI usage totals (`UsageTracker`) are still in memory only, and an in-flight task cannot be resumed after the process dies (no checkpointing yet).
+- **Not yet built:** model routing and media tools. Background execution and task checkpoints are implemented, but still need physical-device validation.
+- **Usage limits:** each task now has hard request, input-token, and output-token budgets; reaching one stops the task with `BLOCKED`. Provider-reported usage is shown for the current task; usage history is still in memory only.
+- **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each), and AI usage totals (`UsageTracker`) are still in memory only.
+- **Checkpointing:** an interrupted foreground-service task persists its request, exact provider-neutral conversation, and latest progress, then offers Resume or Discard on the next app launch. Physical-device validation remains.
+- **Exact conversation checkpoints:** the core now persists provider-neutral messages after each tool-result turn and the Android service restores them after process death. Device validation remains required.
+- **WorkManager recovery:** a unique delayed watchdog relaunches a checkpointed task only when the foreground service is no longer alive, preventing duplicate execution during normal runs. Android background-start behavior still needs validation on a physical device.

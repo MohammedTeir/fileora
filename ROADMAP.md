@@ -4,11 +4,12 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 80 tests pass (`./gradlew :agent-core:check`).
+- `agent-core` (pure Kotlin/JVM): 83 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
 - CI: green, and the release workflow builds signed APKs (reported by the owner; `apksigner verify` output not seen by me).
+- Local validation: the core suite passes; the sandbox Android build is blocked by the missing Android SDK, not a reported source error.
 
 ## Rules for any contributor (do not break these)
 
@@ -29,7 +30,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 2 | `PLAN_ONLY` status — **done in code, not yet run** | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
 | 3 | Exact tool list in system prompt — **done in code, not yet run** | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
 | 4 | Reduce request count — **prompt batching guidance + tests added; real request count on device not yet measured** | Dry run of "create folder and move file" took 7 AI requests / 10.7K tokens. Find why (log requests), aim for 3 or fewer. Add a test with a fake provider that counts calls. |
-| 5 | Green CI — **done (reported by owner: CI green, signed APKs build)** | `ci.yml` passes on a branch. Bump `gradle/libs.versions.toml` to current stable versions (unverified now). Then tag `v0.1.0` and confirm `release.yml` produces signed APKs (`apksigner verify` passes). Needs the secrets in `docs/RELEASING.md`. |
+| 5 | Green CI/release — **workflow hardening implemented; GitHub run and signing verification remain** | CI/release workflows now pin actions to immutable SHAs and run core tests, Android builds, signature checks, and checksums. Run them on GitHub with Android SDK/signing secrets, then tag `v0.1.0`; the sandbox cannot perform this external verification. |
 
 ## P1: make it usable
 
@@ -38,10 +39,10 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 6 | `file.read` tool — **done in code, not yet run** | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
 | 7 | `file.write` / `file.append` — **done** | Creates or edits bounded UTF-8 text files (100 KiB cap). Moderate-risk writes require confirmation, old versions are saved for undo, and the verifier checks the resulting size and SHA-256. JVM and SAF implementations are covered by core tests where possible. |
 | 8 | Persistent history (Room) — **done** | `RoomAuditLog` persists redacted audit entries, `RoomUndoStore` persists move/delete/restore actions, the app shows recent history, and the latest persisted task remains undoable after process restart. |
-| 9 | Background execution | Foreground service with notification + WorkManager. Task keeps running when the screen is off. Cancel button works. Confirmation requests arrive as notifications. |
-| 10 | Checkpoint and resume | After each completed step, persist state. After app kill, offer to resume or roll back. |
-| 11 | Usage and cost limits | Per-task token and request budget, hard stop with status `BLOCKED`, UI shows usage. |
-| 12 | Privacy toggles | User chooses what the model sees: names only (default), or contents. Show a "what will be sent" preview. |
+| 9 | Background execution — **implemented; device verification remains** | Foreground service owns the run with a notification, cancellation, confirmation actions, progress broadcasts, and result delivery to the UI. A delayed unique WorkManager watchdog relaunches a checkpointed task only after the service process has died. |
+| 10 | Checkpoint and resume — **implemented; device validation remains** | The service persists task inputs, provider-neutral messages, and latest progress after each tool-result turn; Resume restores the conversation and Discard clears it. |
+| 11 | Usage and cost limits — **implemented in core/UI, not yet verified on device** | Per-task request, input-token, and output-token budgets hard-stop with status `BLOCKED`; current-task usage is shown in the UI. |
+| 12 | Privacy toggles — **implemented in core/UI, not yet verified on device** | User chooses what the model sees: names only (default), or contents. The task screen shows a "what will be sent" preview, and `file.read` enforces the choice. |
 
 ## P2: more capability
 

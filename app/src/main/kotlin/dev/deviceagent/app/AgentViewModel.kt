@@ -1,15 +1,19 @@
 package dev.deviceagent.app
 
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.deviceagent.core.agent.AgentConfig
 import dev.deviceagent.core.agent.AgentEngine
+import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.agent.TaskOutcome
+import dev.deviceagent.core.agent.TaskStatus
 import dev.deviceagent.core.ai.ResilientProvider
 import dev.deviceagent.core.ai.UsageTracker
 import dev.deviceagent.core.ai.gemini.GeminiProvider
@@ -51,7 +55,10 @@ data class UiState(
     val goal: String = "",
     val dryRun: Boolean = false,
     val manualMode: Boolean = false,
+    val sendFileContents: Boolean = false,
     val running: Boolean = false,
+    val checkpointAvailable: Boolean = false,
+    val checkpointDescription: String = "",
     val log: List<String> = emptyList(),
     val outcome: TaskOutcome? = null,
     val pendingConfirmation: ConfirmationRequest? = null,
@@ -77,6 +84,47 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     private var pendingConfirm: CompletableDeferred<ConfirmationResponse>? = null
     private var pendingAnswer: CompletableDeferred<String?>? = null
     private var lastTaskFs: SafFileSystem? = null
+    private val taskReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == AgentTaskService.ACTION_PROGRESS) {
+                val line = intent.getStringExtra(AgentTaskService.EXTRA_PROGRESS).orEmpty()
+                if (line.isNotBlank()) _state.update { it.copy(log = (it.log + redactor.redact(line)).takeLast(200)) }
+                return
+            }
+            if (intent.action != AgentTaskService.ACTION_RESULT) return
+            val status = intent.getStringExtra(AgentTaskService.EXTRA_STATUS).orEmpty()
+            val report = intent.getStringExtra(AgentTaskService.EXTRA_REPORT).orEmpty()
+            _state.update {
+                it.copy(
+                    running = false,
+                    checkpointAvailable = false,
+                    checkpointDescription = "",
+                    outcome = TaskOutcome(
+                        taskId = intent.getStringExtra(AgentTaskService.EXTRA_TASK_ID).orEmpty(),
+                        status = runCatching { TaskStatus.valueOf(status) }.getOrDefault(TaskStatus.FAILED_AFTER_INVESTIGATION),
+                        modelMessage = intent.getStringExtra(AgentTaskService.EXTRA_MODEL_MESSAGE),
+                        report = report,
+                        steps = intent.getIntExtra(AgentTaskService.EXTRA_STEPS, 0),
+                        inputTokens = intent.getLongExtra(AgentTaskService.EXTRA_INPUT_TOKENS, 0L),
+                        outputTokens = intent.getLongExtra(AgentTaskService.EXTRA_OUTPUT_TOKENS, 0L),
+                        toolCalls = intent.getIntExtra(AgentTaskService.EXTRA_TOOL_CALLS, 0),
+                        failures = intent.getIntExtra(AgentTaskService.EXTRA_FAILURES, 0),
+                        attempts = emptyList(),
+                        proposals = emptyList(),
+                        canUndo = intent.getBooleanExtra(AgentTaskService.EXTRA_CAN_UNDO, false),
+                        unverifiedChanges = intent.getIntExtra(AgentTaskService.EXTRA_UNVERIFIED, 0),
+                        stoppedReason = intent.getStringExtra(AgentTaskService.EXTRA_STOPPED_REASON),
+                        providerError = intent.getStringExtra(AgentTaskService.EXTRA_PROVIDER_ERROR),
+                    ),
+                    usageSummary = "${intent.getIntExtra(AgentTaskService.EXTRA_STEPS, 0)} AI request(s), " +
+                        "${intent.getLongExtra(AgentTaskService.EXTRA_INPUT_TOKENS, 0L)} tokens in / " +
+                        "${intent.getLongExtra(AgentTaskService.EXTRA_OUTPUT_TOKENS, 0L)} out",
+                    notice = if (report.isBlank()) "Background task: $status" else "Background task $status: $report",
+                )
+            }
+            refreshHistory()
+        }
+    }
 
     init {
         val key = secrets.get(KEY_NAME)
@@ -85,10 +133,22 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 apiKeyMask = key?.let(::maskSecret),
                 model = prefs.getString("model", "") ?: "",
+                sendFileContents = prefs.getBoolean("send_file_contents", false),
                 roots = loadRoots(),
+                checkpointAvailable = AgentTaskService.hasCheckpoint(app),
+                checkpointDescription = if (AgentTaskService.hasCheckpoint(app)) AgentTaskService.checkpointDescription(app) else "",
             )
         }
         refreshHistory()
+        val filter = IntentFilter().apply {
+            addAction(AgentTaskService.ACTION_RESULT)
+            addAction(AgentTaskService.ACTION_PROGRESS)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            app.registerReceiver(taskReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION") app.registerReceiver(taskReceiver, filter)
+        }
     }
 
     private fun refreshHistory() = viewModelScope.launch(Dispatchers.IO) {
@@ -170,6 +230,10 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun setGoal(goal: String) = _state.update { it.copy(goal = goal) }
     fun setDryRun(on: Boolean) = _state.update { it.copy(dryRun = on) }
     fun setManualMode(on: Boolean) = _state.update { it.copy(manualMode = on) }
+    fun setSendFileContents(on: Boolean) {
+        prefs.edit().putBoolean("send_file_contents", on).apply()
+        _state.update { it.copy(sendFileContents = on) }
+    }
     fun dismissNotice() = _state.update { it.copy(notice = null) }
 
     // ───────── running a task ─────────
@@ -214,43 +278,44 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use.") }; return }
             s.goal.isBlank() -> return
         }
-        val fs = SafFileSystem(getApplication(), s.roots.map { SafRoot(it.name, Uri.parse(it.uri)) })
-        lastTaskFs = fs
-        val engine = AgentEngine(
-            provider = provider(),
-            registry = ToolRegistry(DefaultTools.all()),
-            fs = fs,
-            policy = PolicyEngine(PolicyConfig(mode = if (s.manualMode) InteractionMode.MANUAL else InteractionMode.NORMAL)),
-            user = channel,
-            undoManager = undoManager,
-            redactor = redactor,
-            audit = audit,
-            log = { line -> _state.update { st -> st.copy(log = (st.log + redactor.redact(line)).takeLast(200)) } },
-        )
-        _state.update { it.copy(running = true, outcome = null, log = emptyList()) }
-        // Default dispatcher: verification may hash large files and must never run on the main thread.
-        viewModelScope.launch(Dispatchers.Default) {
-            val outcome: TaskOutcome? = try {
-                engine.run(s.goal, AgentConfig(model = s.model, dryRun = s.dryRun))
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // Never crash the app on an unexpected failure; report it instead (redacted).
-                _state.update { it.copy(notice = "The task stopped unexpectedly: ${redactor.redact(e.message ?: e.javaClass.simpleName)}") }
-                null
-            } finally {
-                _state.update { it.copy(running = false) }
-            }
-            if (outcome != null) {
-                _state.update {
-                    it.copy(
-                        outcome = outcome,
-                        usageSummary = "${usage.requestCount} AI request(s), ${usage.inputTokens} tokens in / ${usage.outputTokens} out, ${usage.errorCount} error(s)",
-                    )
-                }
-                refreshHistory()
-            }
+        val intent = Intent(getApplication(), AgentTaskService::class.java).apply {
+            action = AgentTaskService.ACTION_START
+            putExtra(AgentTaskService.EXTRA_GOAL, s.goal)
+            putExtra(AgentTaskService.EXTRA_MODEL, s.model)
+            putExtra(AgentTaskService.EXTRA_DRY_RUN, s.dryRun)
+            putExtra(AgentTaskService.EXTRA_MANUAL, s.manualMode)
+            putExtra(AgentTaskService.EXTRA_SEND_CONTENTS, s.sendFileContents)
+            putStringArrayListExtra(AgentTaskService.EXTRA_ROOT_NAMES, ArrayList(s.roots.map { it.name }))
+            putStringArrayListExtra(AgentTaskService.EXTRA_ROOT_URIS, ArrayList(s.roots.map { it.uri }))
         }
+        _state.update { it.copy(running = true, outcome = null, log = emptyList()) }
+        if (android.os.Build.VERSION.SDK_INT >= 26) getApplication<Application>().startForegroundService(intent)
+        else getApplication<Application>().startService(intent)
+    }
+
+    fun cancelTask() {
+        getApplication<Application>().startService(Intent(getApplication(), AgentTaskService::class.java).setAction(AgentTaskService.ACTION_CANCEL))
+    }
+
+    fun resumeTask() {
+        if (_state.value.running) return
+        val intent = AgentTaskService.resumeIntent(getApplication()) ?: run {
+            _state.update { it.copy(checkpointAvailable = false) }
+            return
+        }
+        _state.update { it.copy(running = true, checkpointAvailable = false, outcome = null, log = emptyList(), notice = "Resuming the interrupted task…") }
+        if (android.os.Build.VERSION.SDK_INT >= 26) getApplication<Application>().startForegroundService(intent)
+        else getApplication<Application>().startService(intent)
+    }
+
+    fun discardCheckpoint() {
+        getApplication<Application>().startService(Intent(getApplication(), AgentTaskService::class.java).setAction(AgentTaskService.ACTION_DISCARD_CHECKPOINT))
+        _state.update { it.copy(checkpointAvailable = false, checkpointDescription = "") }
+    }
+
+    override fun onCleared() {
+        runCatching { getApplication<Application>().unregisterReceiver(taskReceiver) }
+        super.onCleared()
     }
 
     fun undoLastTask() {

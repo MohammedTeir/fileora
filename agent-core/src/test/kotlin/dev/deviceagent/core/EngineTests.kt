@@ -326,7 +326,7 @@ fun registerEngineTests() {
         fx { f ->
             repeat(10) { i -> f.provider.calls("file.list" to args("path" to f.root.toString(), "limit" to i + 1)) }
             val out = f.run(config = AgentConfig("m", maxSteps = 3))
-            eq(3, out.steps, "steps"); check(out.stoppedReason != null); eq(TaskStatus.FAILED_AFTER_INVESTIGATION, out.status, "status")
+            eq(3, out.steps, "steps"); check(out.stoppedReason != null); eq(TaskStatus.BLOCKED, out.status, "status")
         }
     }
 
