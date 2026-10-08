@@ -2,12 +2,14 @@ package dev.deviceagent.core
 
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
+import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.tools.ErrorKind
 import dev.deviceagent.core.tools.ToolContext
 import dev.deviceagent.core.tools.ToolRegistry
 import dev.deviceagent.core.tools.file.FileCopyTool
 import dev.deviceagent.core.tools.file.FileCompressTool
+import dev.deviceagent.core.tools.file.FileContentSearchTool
 import dev.deviceagent.core.tools.file.FileAppendTool
 import dev.deviceagent.core.tools.file.FileDeleteTool
 import dev.deviceagent.core.tools.file.FileExtractTool
@@ -101,6 +103,33 @@ fun registerFileAndToolTests() {
             eq(1, sub.data["matches"]!!.jsonArray.size, "directory-only matches")
             val capped = FileSearchTool().execute(args("root" to f.root.toString(), "pattern" to "*", "max_results" to 2), t)
             check(capped.data["truncated"].toString() == "true") { "should report truncation" }
+        }
+    }
+
+    test("file.search_content finds text lines, skips binary files, and reports bounds") {
+        fx { f ->
+            f.file("docs/a.txt", "first\nNeedle appears here\nlast")
+            f.file("docs/b.txt", "needle again")
+            Files.write(f.root.resolve("docs/image.bin"), byteArrayOf(0, 1, 2, 3))
+            val result = FileContentSearchTool().execute(
+                args("root" to f.p("docs"), "query" to "NEEDLE"),
+                ToolContext("t", f.fs, PrivacyMode.CONTENTS_ALLOWED),
+            )
+            check(result.ok) { result.error.toString() }
+            eq(2, result.data["matches"]!!.jsonArray.size, "content matches")
+            eq(1L, result.data.long("skipped_binary"), "binary count")
+        }
+    }
+
+    test("file.search_content is blocked by names-only privacy mode") {
+        fx { f ->
+            f.file("private.txt", "secret needle")
+            val result = FileContentSearchTool().execute(
+                args("root" to f.root.toString(), "query" to "needle"),
+                ToolContext("t", f.fs, PrivacyMode.NAMES_ONLY),
+            )
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "privacy block")
+            check(!result.ok)
         }
     }
 

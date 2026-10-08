@@ -6,7 +6,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 85 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 87 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
 | `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, restart-safe undo storage in Room, and task request/token usage reporting. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
 | Gradle build files / dependency versions | **Configured**: Android/WorkManager dependencies are declared; full Android compilation still needs GitHub CI or an Android SDK |
@@ -15,7 +15,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 ## What the MVP does (spec phases 1 and 3)
 
-Tools: `file.list`, `file.search`, `file.stat`, `file.hash`, `file.read`, `file.write`, `file.append`, `file.mkdir`, `file.copy`, `file.move`, `file.rename`, `file.delete` (to a restorable trash), `file.compress`, `file.extract`, `system.storage`, plus `agent.ask_user`.
+Tools: `file.list`, `file.search`, `file.search_content`, `file.stat`, `file.hash`, `file.read`, `file.write`, `file.append`, `file.mkdir`, `file.copy`, `file.move`, `file.rename`, `file.delete` (to a restorable trash), `file.compress`, `file.extract`, `system.storage`, plus `agent.ask_user`.
 
 The loop for every model-proposed call:
 

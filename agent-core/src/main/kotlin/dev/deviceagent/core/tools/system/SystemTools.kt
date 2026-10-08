@@ -12,6 +12,7 @@ import dev.deviceagent.core.tools.file.FileDeleteTool
 import dev.deviceagent.core.tools.file.FileAppendTool
 import dev.deviceagent.core.tools.file.FileCopyTool
 import dev.deviceagent.core.tools.file.FileCompressTool
+import dev.deviceagent.core.tools.file.FileContentSearchTool
 import dev.deviceagent.core.tools.file.FileHashTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMkdirTool
@@ -60,7 +61,7 @@ object DefaultTools {
     fun all(): List<Tool> = listOf(
         FileListTool(), FileSearchTool(), FileStatTool(), FileHashTool(), FileReadTool(),
         FileMkdirTool(), FileCopyTool(), FileWriteTool(), FileAppendTool(), FileMoveTool(), FileRenameTool(), FileDeleteTool(),
-        FileCompressTool(), FileExtractTool(),
+        FileCompressTool(), FileExtractTool(), FileContentSearchTool(),
         SystemStorageTool(),
     )
 }

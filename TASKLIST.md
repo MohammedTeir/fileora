@@ -14,7 +14,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, Gemini | Done (85 tests pass locally) |
+| Core agent loop, policy, verification, recovery, undo, Gemini | Done (87 tests pass locally) |
 | Android app: UI, Keystore, SAF, Room history | Written, compiles, runs on Redmi Note 8 Pro |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
@@ -50,7 +50,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [ ] #13 Optional "All files access" mode (`MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem`)
 - [~] #14 Archive tools — `file.compress` / `file.extract` implemented with ZIP entry/path/expanded-size limits, no-overwrite behavior, undo, and core round-trip/zip-slip tests; Android/SAF validation remains
 - [ ] #15 Media tools (FFmpeg)
-- [ ] #16 Search by content (indexing approved folders)
+- [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
 - [ ] #17 Scheduled tasks (WorkManager)
 - [ ] #18 More providers (Claude / OpenAI) + shared contract tests
 - [ ] #19 Model routing
@@ -105,7 +105,7 @@ File tools:
 - [x] `file.delete` (to restorable `.agent_trash`)
 - [x] `agent.ask_user`
 - [ ] `file.restore` as a tool (restore exists only through Undo)
-- [ ] `file.compare`, `file.compress`, `file.extract`, `file.watch`, `file.permissions`
+- [ ] `file.compare`, `file.watch`, `file.permissions`
 
 Other groups:
 - [~] System: only `system.storage` (no free-space under SAF)
