@@ -241,7 +241,7 @@ fun registerEngineTests() {
             val out = f.run(config = AgentConfig("m", dryRun = true))
             check(f.exists("a.txt") && f.exists("b.txt") && f.exists("c.txt")) { "nothing may change" }
             check(!f.exists("o")) { "no folders may be created" }
-            eq(3, out.proposals.size, "proposals"); eq(0, f.user.confirmations.size, "confirmations"); eq(TaskStatus.SUCCESS, out.status, "status")
+            eq(3, out.proposals.size, "proposals"); eq(0, f.user.confirmations.size, "confirmations"); eq(TaskStatus.PLAN_ONLY, out.status, "a dry run must never report SUCCESS")
             check(out.report.contains("NOT executed")) { "report must say nothing was executed" }
             check(f.provider.requests[0].system.contains("DRY RUN"))
         }
