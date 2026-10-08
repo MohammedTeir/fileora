@@ -206,6 +206,22 @@ class SafFileSystem(private val context: Context, safRoots: List<SafRoot>) : Fil
         md.digest().joinToString("") { "%02x".format(it) }
     }
 
+    override fun readBytes(path: String, maxBytes: Int): ByteArray = io(path) {
+        val d = mustDoc(path)
+        (resolver.openInputStream(d.uri) ?: throw FsException(ErrorKind.IO, "Could not open the file", path)).use { input ->
+            val out = java.io.ByteArrayOutputStream()
+            val buf = ByteArray(8 * 1024)
+            var left = maxBytes
+            while (left > 0) {
+                val n = input.read(buf, 0, minOf(buf.size, left))
+                if (n < 0) break
+                out.write(buf, 0, n)
+                left -= n
+            }
+            out.toByteArray()
+        }
+    }
+
     /** SAF offers no free-space query. */
     override fun freeSpaceBytes(path: String): Long? = null
 }
