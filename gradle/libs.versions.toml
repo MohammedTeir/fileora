@@ -3,7 +3,7 @@
 # the current stable releases when you first sync in Android Studio.
 [versions]
 kotlin = "2.0.21"
-agp = "8.7.3"
+agp = "9.4.1"
 coroutines = "1.9.0"
 serializationJson = "1.7.3"
 composeBom = "2024.12.01"
