@@ -20,7 +20,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
 | Checkpoints | Implemented: exact provider-neutral conversation and latest progress persist after tool-result turns; Resume/Discard implemented. Device validation remains |
 | Privacy toggles, cost limits | Implemented in core/UI; device verification still pending |
-| Media (FFmpeg), Linux runtime, packages, Android tools, root | Not started (spec phases 2, 4–8) |
+| Media/FFmpeg | Core probe/convert contracts and JVM FFmpeg backend implemented; Android/SAF backend, ABI packaging, and remaining media tools pending |
 
 Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because no shell tool exists yet), **Phases 2, 4, 5, 6, 7, 8: 0–10%**.
 

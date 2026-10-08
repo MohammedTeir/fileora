@@ -80,7 +80,8 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
-- **Not yet built:** model routing and media tools. Background execution and task checkpoints are implemented, but still need physical-device validation.
+- **Media/FFmpeg status:** the core has tested `media.probe` and `media.convert` contracts plus a no-shell JVM `JvmFfmpegBackend` with playable-output verification. The Android/SAF native FFmpeg backend, ABI packaging, and the remaining media tools are not yet built or device-verified.
+- **Not yet built:** model routing and the Android/SAF media backend. Background execution and task checkpoints are implemented, but still need physical-device validation.
 - **Usage limits:** each task now has hard request, input-token, and output-token budgets; reaching one stops the task with `BLOCKED`. Provider-reported usage is shown for the current task; usage history is still in memory only.
 - **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each), and AI usage totals (`UsageTracker`) are still in memory only.
 - **Checkpointing:** an interrupted foreground-service task persists its request, exact provider-neutral conversation, and latest progress, then offers Resume or Discard on the next app launch. Physical-device validation remains.
