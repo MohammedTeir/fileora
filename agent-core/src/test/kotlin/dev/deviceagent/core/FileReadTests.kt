@@ -11,7 +11,7 @@ import dev.deviceagent.core.util.long
 import dev.deviceagent.core.util.str
 import java.nio.file.Files
 
-private suspend fun Fx.read(path: String, maxBytes: Long? = null): ToolResult {
+private suspend fun Fx.readTool(path: String, maxBytes: Long? = null): ToolResult {
     val a = if (maxBytes == null) args("path" to path) else args("path" to path, "max_bytes" to maxBytes)
     return FileReadTool().execute(a, ToolContext("t1", fs))
 }
@@ -55,10 +55,10 @@ fun registerFileReadTests() {
     test("file.read: respects max_bytes and reports truncation") {
         fx { f ->
             val p = f.bytes("big.txt", ByteArray(5000) { 'a'.code.toByte() })
-            val r = f.read(p, 1000)
+            val r = f.readTool(p, 1000)
             check(r.ok) { "${r.error}" }
             eq(1000L, r.data.long("bytes_read"), "bytes_read"); eq(true, r.data.bool("truncated"), "truncated"); eq(1000, r.data.str("content")!!.length, "chars")
-            val whole = f.read(p, 5000)
+            val whole = f.readTool(p, 5000)
             eq(false, whole.data.bool("truncated"), "a file that fits is not truncated")
         }
     }
@@ -66,7 +66,7 @@ fun registerFileReadTests() {
     test("file.read: the hard cap cannot be raised by the model") {
         fx { f ->
             val p = f.bytes("huge.txt", ByteArray(READ_MAX_BYTES + 5000) { 'b'.code.toByte() })
-            val r = f.read(p, 10_000_000)
+            val r = f.readTool(p, 10_000_000)
             check(r.ok) { "${r.error}" }
             eq(READ_MAX_BYTES.toLong(), r.data.long("bytes_read"), "bytes_read"); eq(true, r.data.bool("truncated"), "truncated")
         }
@@ -74,7 +74,7 @@ fun registerFileReadTests() {
 
     test("file.read: binary content is refused") {
         fx { f ->
-            val r = f.read(f.bytes("blob.bin", byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0, 0, 1, 2, 3, 0)))
+            val r = f.readTool(f.bytes("blob.bin", byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0, 0, 1, 2, 3, 0)))
             check(!r.ok); eq(ErrorKind.INVALID_ARGUMENTS, r.error!!.kind, "kind"); check(r.data.isEmpty()) { "no content may leak from a refused file" }
         }
     }
@@ -82,14 +82,14 @@ fun registerFileReadTests() {
     test("file.read: control-character-heavy non-UTF-8 data is binary, not Latin-1 text") {
         fx { f ->
             val noise = ByteArray(200) { i -> if (i % 2 == 0) 0x81.toByte() else 0x02 }
-            check(!f.read(f.bytes("noise.dat", noise)).ok) { "must be refused" }
+            check(!f.readTool(f.bytes("noise.dat", noise)).ok) { "must be refused" }
         }
     }
 
     test("file.read: a multi-byte character cut at the byte limit is not an error") {
         fx { f ->
             val p = f.bytes("accents.txt", "éééééééééé".toByteArray(Charsets.UTF_8)) // 20 bytes
-            val r = f.read(p, 5)
+            val r = f.readTool(p, 5)
             check(r.ok) { "${r.error}" }
             eq("éé", r.data.str("content"), "only whole characters are returned"); eq(true, r.data.bool("truncated"), "truncated")
         }
@@ -97,7 +97,7 @@ fun registerFileReadTests() {
 
     test("file.read: a genuinely broken last character in a complete file is not silently accepted as UTF-8") {
         fx { f ->
-            val r = f.read(f.bytes("cut.txt", "ok".toByteArray() + byteArrayOf(0xC3.toByte())))
+            val r = f.readTool(f.bytes("cut.txt", "ok".toByteArray() + byteArrayOf(0xC3.toByte())))
             check(r.ok) { "legacy text fallback expected: ${r.error}" }
             check(r.data.str("encoding")!!.startsWith("ISO-8859-1")) { "must say it guessed the encoding: ${r.data.str("encoding")}" }
         }
@@ -106,23 +106,23 @@ fun registerFileReadTests() {
     test("file.read: detects UTF-8 BOM, UTF-16 BOMs and Latin-1") {
         fx { f ->
             val utf8bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + "héllo".toByteArray(Charsets.UTF_8)
-            val a = f.read(f.bytes("a.txt", utf8bom)); eq("héllo", a.data.str("content"), "utf-8 bom stripped")
+            val a = f.readTool(f.bytes("a.txt", utf8bom)); eq("héllo", a.data.str("content"), "utf-8 bom stripped")
             val le = byteArrayOf(0xFF.toByte(), 0xFE.toByte()) + "hi ☃".toByteArray(Charsets.UTF_16LE)
-            val b = f.read(f.bytes("b.txt", le)); eq("hi ☃", b.data.str("content"), "utf-16le"); eq("UTF-16LE", b.data.str("encoding"), "encoding")
+            val b = f.readTool(f.bytes("b.txt", le)); eq("hi ☃", b.data.str("content"), "utf-16le"); eq("UTF-16LE", b.data.str("encoding"), "encoding")
             val be = byteArrayOf(0xFE.toByte(), 0xFF.toByte()) + "hi ☃".toByteArray(Charsets.UTF_16BE)
-            val c = f.read(f.bytes("c.txt", be)); eq("hi ☃", c.data.str("content"), "utf-16be")
-            val d = f.read(f.bytes("d.txt", "café".toByteArray(Charsets.ISO_8859_1))); eq("café", d.data.str("content"), "latin-1")
+            val c = f.readTool(f.bytes("c.txt", be)); eq("hi ☃", c.data.str("content"), "utf-16be")
+            val d = f.readTool(f.bytes("d.txt", "café".toByteArray(Charsets.ISO_8859_1))); eq("café", d.data.str("content"), "latin-1")
         }
     }
 
     test("file.read: empty file, directory, missing file and a path outside the sandbox") {
         fx { f ->
-            eq("", f.read(f.file("empty.txt", "")).data.str("content"), "empty content")
+            eq("", f.readTool(f.file("empty.txt", "")).data.str("content"), "empty content")
             f.dir("folder")
-            eq(ErrorKind.INVALID_ARGUMENTS, f.read(f.p("folder")).error!!.kind, "directory")
-            eq(ErrorKind.NOT_FOUND, f.read(f.p("nope.txt")).error!!.kind, "missing")
+            eq(ErrorKind.INVALID_ARGUMENTS, f.readTool(f.p("folder")).error!!.kind, "directory")
+            eq(ErrorKind.NOT_FOUND, f.readTool(f.p("nope.txt")).error!!.kind, "missing")
             val secret = f.outside.resolve("secret.txt"); Files.writeString(secret, "top secret")
-            val r = f.read(secret.toString())
+            val r = f.readTool(secret.toString())
             check(!r.ok); eq(ErrorKind.OUTSIDE_SANDBOX, r.error!!.kind, "kind"); check(!r.toString().contains("top secret")) { "content must not leak" }
         }
     }
@@ -132,7 +132,7 @@ fun registerFileReadTests() {
             val secret = f.outside.resolve("s.txt"); Files.writeString(secret, "outside data")
             val link = f.root.resolve("link.txt")
             try { Files.createSymbolicLink(link, secret) } catch (e: Exception) { return@fx } // platform without symlinks
-            val r = f.read(link.toString())
+            val r = f.readTool(link.toString())
             check(!r.ok) { "symlink escape must be rejected" }; eq(ErrorKind.OUTSIDE_SANDBOX, r.error!!.kind, "kind")
         }
     }
