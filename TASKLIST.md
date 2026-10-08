@@ -14,7 +14,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, Gemini | Done (83 tests pass locally) |
+| Core agent loop, policy, verification, recovery, undo, Gemini | Done (85 tests pass locally) |
 | Android app: UI, Keystore, SAF, Room history | Written, compiles, runs on Redmi Note 8 Pro |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
@@ -33,10 +33,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [~] **#2 `PLAN_ONLY` status** — in code (`TaskStatus.PLAN_ONLY`, `determineStatus`), not run on device
 - [~] **#3 Exact tool list in system prompt** — generated from `ToolRegistry`; not run on device
 - [~] **#4 Reduce AI request count** (was 7 requests / 10.7K tokens, target ≤ 3) — prompt batching guidance + tests added; **real count on device not measured**
-- [x] **#5 Green CI + signed APKs** — reported by owner (`apksigner verify` output not seen)
-  - [ ] Bump `gradle/libs.versions.toml` to current stable (file still says "starting points", Kotlin 2.0.21, AGP 8.7.3, Compose BOM 2024.12.01)
-  - [ ] Pin GitHub Actions to commit SHAs
-  - [ ] Tag `v0.1.0` and confirm release workflow output
+- [~] **#5 Green CI + signed APKs** — CI passed on `main`; Android/signing verification and release tag remain external checks. Version catalog and workflow action references are hardened in code.
 
 ## 2. P1 — Make it usable (ROADMAP)
 
@@ -51,7 +48,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 ## 3. P2 — More capability (ROADMAP)
 
 - [ ] #13 Optional "All files access" mode (`MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem`)
-- [ ] #14 Archive tools (zip/unzip, zip-slip and zip-bomb protection)
+- [~] #14 Archive tools — `file.compress` / `file.extract` implemented with ZIP entry/path/expanded-size limits, no-overwrite behavior, undo, and core round-trip/zip-slip tests; Android/SAF validation remains
 - [ ] #15 Media tools (FFmpeg)
 - [ ] #16 Search by content (indexing approved folders)
 - [ ] #17 Scheduled tasks (WorkManager)

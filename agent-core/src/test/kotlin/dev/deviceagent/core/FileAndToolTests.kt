@@ -7,8 +7,10 @@ import dev.deviceagent.core.tools.ErrorKind
 import dev.deviceagent.core.tools.ToolContext
 import dev.deviceagent.core.tools.ToolRegistry
 import dev.deviceagent.core.tools.file.FileCopyTool
+import dev.deviceagent.core.tools.file.FileCompressTool
 import dev.deviceagent.core.tools.file.FileAppendTool
 import dev.deviceagent.core.tools.file.FileDeleteTool
+import dev.deviceagent.core.tools.file.FileExtractTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMoveTool
 import dev.deviceagent.core.tools.file.FileRenameTool
@@ -193,6 +195,36 @@ fun registerFileAndToolTests() {
             f.file("src/a.txt")
             val plan = FileCopyTool().plan(args("source" to f.p("src"), "destination" to f.p("src/inner")), ToolContext("t", f.fs))
             eq(ErrorKind.INVALID_ARGUMENTS, plan.error!!.kind)
+        }
+    }
+
+    test("file.compress and file.extract round-trip a folder with bounded archive output") {
+        fx { f ->
+            f.file("source/a.txt", "alpha")
+            f.file("source/sub/b.txt", "beta")
+            val t = ToolContext("archive", f.fs)
+            val zip = f.p("bundle.zip").toString()
+            val compressed = FileCompressTool().execute(args("source" to f.p("source"), "destination" to zip), t)
+            check(compressed.ok) { "compression failed: ${compressed.error}" }
+            check(f.exists("bundle.zip")) { "archive was not created" }
+            val extracted = FileExtractTool().execute(args("archive" to zip, "destination" to f.p("out")), t)
+            check(extracted.ok) { "extraction failed: ${extracted.error}" }
+            check(f.exists("out/source/a.txt") && f.exists("out/source/sub/b.txt")) { "extracted files missing" }
+            eq("alpha", Files.readString(f.root.resolve("out/source/a.txt")), "extracted content")
+        }
+    }
+
+    test("file.extract rejects zip-slip entries before writing outside destination") {
+        fx { f ->
+            val zipPath = f.root.resolve("unsafe.zip")
+            java.util.zip.ZipOutputStream(Files.newOutputStream(zipPath)).use { zip ->
+                zip.putNextEntry(java.util.zip.ZipEntry("../../escaped.txt"))
+                zip.write("nope".toByteArray())
+                zip.closeEntry()
+            }
+            val result = FileExtractTool().execute(args("archive" to zipPath.toString(), "destination" to f.p("out")), ToolContext("archive", f.fs))
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "zip-slip error")
+            check(!f.exists("out/escaped.txt")) { "unsafe entry was written" }
         }
     }
 
