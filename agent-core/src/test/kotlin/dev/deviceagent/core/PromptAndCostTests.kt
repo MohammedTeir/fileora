@@ -29,7 +29,7 @@ private class DemoTool(name: String, mutating: Boolean) : Tool {
     override suspend fun execute(args: JsonObject, ctx: ToolContext) = ToolResult.success()
 }
 
-private val TOOL_NAME_PATTERN = Regex("""\b(?:file|system|agent|demo)\.[a-z_]+\b""")
+private val TOOL_NAME_PATTERN = Regex("""\b(?:file|system|media|agent|demo)\.[a-z_]+\b""")
 
 fun registerPromptAndCostTests() {
     // ───────── PLAN_ONLY ─────────

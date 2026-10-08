@@ -2,13 +2,17 @@ package dev.deviceagent.core
 
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
+import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.tools.ErrorKind
 import dev.deviceagent.core.tools.ToolContext
 import dev.deviceagent.core.tools.ToolRegistry
 import dev.deviceagent.core.tools.file.FileCopyTool
+import dev.deviceagent.core.tools.file.FileCompressTool
+import dev.deviceagent.core.tools.file.FileContentSearchTool
 import dev.deviceagent.core.tools.file.FileAppendTool
 import dev.deviceagent.core.tools.file.FileDeleteTool
+import dev.deviceagent.core.tools.file.FileExtractTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMoveTool
 import dev.deviceagent.core.tools.file.FileRenameTool
@@ -16,6 +20,11 @@ import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
 import dev.deviceagent.core.tools.file.FileWriteTool
 import dev.deviceagent.core.tools.file.WRITE_MAX_BYTES
+import dev.deviceagent.core.tools.media.MediaBackend
+import dev.deviceagent.core.tools.media.MediaConversion
+import dev.deviceagent.core.tools.media.MediaConvertTool
+import dev.deviceagent.core.tools.media.MediaProbe
+import dev.deviceagent.core.tools.media.MediaProbeTool
 import dev.deviceagent.core.tools.system.DefaultTools
 import dev.deviceagent.core.util.long
 import dev.deviceagent.core.util.str
@@ -99,6 +108,60 @@ fun registerFileAndToolTests() {
             eq(1, sub.data["matches"]!!.jsonArray.size, "directory-only matches")
             val capped = FileSearchTool().execute(args("root" to f.root.toString(), "pattern" to "*", "max_results" to 2), t)
             check(capped.data["truncated"].toString() == "true") { "should report truncation" }
+        }
+    }
+
+    test("file.search_content finds text lines, skips binary files, and reports bounds") {
+        fx { f ->
+            f.file("docs/a.txt", "first\nNeedle appears here\nlast")
+            f.file("docs/b.txt", "needle again")
+            Files.write(f.root.resolve("docs/image.bin"), byteArrayOf(0, 1, 2, 3))
+            val result = FileContentSearchTool().execute(
+                args("root" to f.p("docs"), "query" to "NEEDLE"),
+                ToolContext("t", f.fs, PrivacyMode.CONTENTS_ALLOWED),
+            )
+            check(result.ok) { result.error.toString() }
+            eq(2, result.data["matches"]!!.jsonArray.size, "content matches")
+            eq(1L, result.data.long("skipped_binary"), "binary count")
+        }
+    }
+
+    test("file.search_content is blocked by names-only privacy mode") {
+        fx { f ->
+            f.file("private.txt", "secret needle")
+            val result = FileContentSearchTool().execute(
+                args("root" to f.root.toString(), "query" to "needle"),
+                ToolContext("t", f.fs, PrivacyMode.NAMES_ONLY),
+            )
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "privacy block")
+            check(!result.ok)
+        }
+    }
+
+    test("media tools use the host backend and verify a newly created output") {
+        fx { f ->
+            val source = f.file("input.media", "media")
+            val backend = object : MediaBackend {
+                override fun probe(path: String) = MediaProbe("fake", durationSeconds = 1.5, playable = true)
+                override fun convert(source: String, destination: String, format: String?): MediaConversion {
+                    f.fs.writeBytes(destination, "converted".toByteArray())
+                    return MediaConversion(format ?: "fake", playable = true, bytesWritten = 9)
+                }
+            }
+            val t = ToolContext("media", f.fs, mediaBackend = backend)
+            val probe = MediaProbeTool().execute(args("path" to source), t)
+            check(probe.ok); eq("fake", probe.data.str("format"), "format")
+            val converted = MediaConvertTool().execute(args("source" to source, "destination" to f.p("output.media"), "format" to "fake"), t)
+            check(converted.ok) { converted.error.toString() }
+            check(f.exists("output.media")); eq(1, converted.undo.size, "output undo")
+        }
+    }
+
+    test("media tools fail clearly when no host backend is available") {
+        fx { f ->
+            f.file("input.media", "media")
+            val result = MediaProbeTool().execute(args("path" to f.p("input.media")), ToolContext("media", f.fs))
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "backend unavailable")
         }
     }
 
@@ -193,6 +256,36 @@ fun registerFileAndToolTests() {
             f.file("src/a.txt")
             val plan = FileCopyTool().plan(args("source" to f.p("src"), "destination" to f.p("src/inner")), ToolContext("t", f.fs))
             eq(ErrorKind.INVALID_ARGUMENTS, plan.error!!.kind)
+        }
+    }
+
+    test("file.compress and file.extract round-trip a folder with bounded archive output") {
+        fx { f ->
+            f.file("source/a.txt", "alpha")
+            f.file("source/sub/b.txt", "beta")
+            val t = ToolContext("archive", f.fs)
+            val zip = f.p("bundle.zip").toString()
+            val compressed = FileCompressTool().execute(args("source" to f.p("source"), "destination" to zip), t)
+            check(compressed.ok) { "compression failed: ${compressed.error}" }
+            check(f.exists("bundle.zip")) { "archive was not created" }
+            val extracted = FileExtractTool().execute(args("archive" to zip, "destination" to f.p("out")), t)
+            check(extracted.ok) { "extraction failed: ${extracted.error}" }
+            check(f.exists("out/source/a.txt") && f.exists("out/source/sub/b.txt")) { "extracted files missing" }
+            eq("alpha", Files.readString(f.root.resolve("out/source/a.txt")), "extracted content")
+        }
+    }
+
+    test("file.extract rejects zip-slip entries before writing outside destination") {
+        fx { f ->
+            val zipPath = f.root.resolve("unsafe.zip")
+            java.util.zip.ZipOutputStream(Files.newOutputStream(zipPath)).use { zip ->
+                zip.putNextEntry(java.util.zip.ZipEntry("../../escaped.txt"))
+                zip.write("nope".toByteArray())
+                zip.closeEntry()
+            }
+            val result = FileExtractTool().execute(args("archive" to zipPath.toString(), "destination" to f.p("out")), ToolContext("archive", f.fs))
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "zip-slip error")
+            check(!f.exists("out/escaped.txt")) { "unsafe entry was written" }
         }
     }
 

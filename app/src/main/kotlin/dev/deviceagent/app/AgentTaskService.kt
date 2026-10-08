@@ -19,6 +19,8 @@ import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.ai.ResilientProvider
 import dev.deviceagent.core.ai.UsageTracker
 import dev.deviceagent.core.ai.gemini.GeminiProvider
+import dev.deviceagent.core.ai.openai.OpenAIProvider
+import dev.deviceagent.core.ai.claude.ClaudeProvider
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.policy.ConfirmationRequest
 import dev.deviceagent.core.policy.ConfirmationResponse
@@ -80,7 +82,13 @@ class AgentTaskService : Service() {
         val taskId = "service-task-${System.currentTimeMillis()}"
         currentTaskId = taskId
         val redactor = Redactor()
-        val apiKey = KeystoreSecretStore(this).get(KEY_NAME).orEmpty()
+        val providerChoice = intent.getStringExtra(EXTRA_PROVIDER).orEmpty().ifBlank { ProviderChoice.GEMINI.name }
+        val keyName = when (runCatching { ProviderChoice.valueOf(providerChoice) }.getOrDefault(ProviderChoice.GEMINI)) {
+            ProviderChoice.GEMINI -> KEY_NAME
+            ProviderChoice.OPENAI -> OPENAI_KEY_NAME
+            ProviderChoice.CLAUDE -> CLAUDE_KEY_NAME
+        }
+        val apiKey = KeystoreSecretStore(this).get(keyName).orEmpty()
         if (apiKey.isNotBlank()) redactor.addSecret(apiKey)
         val roots = intent.getStringArrayListExtra(EXTRA_ROOT_NAMES).orEmpty()
             .zip(intent.getStringArrayListExtra(EXTRA_ROOT_URIS).orEmpty())
@@ -102,10 +110,12 @@ class AgentTaskService : Service() {
                 return null
             }
         }
-        val trackerProvider = ResilientProvider(
-            GeminiProvider(apiKey = { apiKey }),
-            tracker = usage,
-        )
+        val provider = when (runCatching { ProviderChoice.valueOf(providerChoice) }.getOrDefault(ProviderChoice.GEMINI)) {
+            ProviderChoice.GEMINI -> GeminiProvider(apiKey = { apiKey })
+            ProviderChoice.OPENAI -> OpenAIProvider(apiKey = { apiKey })
+            ProviderChoice.CLAUDE -> ClaudeProvider(apiKey = { apiKey })
+        }
+        val trackerProvider = ResilientProvider(provider, tracker = usage)
         val engine = AgentEngine(
             provider = trackerProvider,
             registry = ToolRegistry(DefaultTools.all()),
@@ -124,6 +134,8 @@ class AgentTaskService : Service() {
                     model = intent.getStringExtra(EXTRA_MODEL).orEmpty(),
                     privacyMode = if (intent.getBooleanExtra(EXTRA_SEND_CONTENTS, false)) PrivacyMode.CONTENTS_ALLOWED else PrivacyMode.NAMES_ONLY,
                     dryRun = intent.getBooleanExtra(EXTRA_DRY_RUN, false),
+                    automaticModelRouting = intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false),
+                    recoveryModel = intent.getStringExtra(EXTRA_RECOVERY_MODEL),
                     initialMessages = ConversationCheckpointCodec.decode(intent.getStringExtra(EXTRA_MESSAGES)),
                     onCheckpoint = { messages -> saveConversationCheckpoint(ConversationCheckpointCodec.encode(messages)) },
                 ),
@@ -211,6 +223,9 @@ class AgentTaskService : Service() {
             .putBoolean(KEY_ACTIVE, true)
             .putString(KEY_GOAL, intent.getStringExtra(EXTRA_GOAL).orEmpty())
             .putString(KEY_MODEL, intent.getStringExtra(EXTRA_MODEL).orEmpty())
+            .putString(KEY_PROVIDER, intent.getStringExtra(EXTRA_PROVIDER).orEmpty())
+            .putBoolean(KEY_AUTOMATIC_MODEL_ROUTING, intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false))
+            .putString(KEY_RECOVERY_MODEL, intent.getStringExtra(EXTRA_RECOVERY_MODEL).orEmpty())
             .putBoolean(KEY_DRY_RUN, intent.getBooleanExtra(EXTRA_DRY_RUN, false))
             .putBoolean(KEY_MANUAL, intent.getBooleanExtra(EXTRA_MANUAL, false))
             .putBoolean(KEY_SEND_CONTENTS, intent.getBooleanExtra(EXTRA_SEND_CONTENTS, false))
@@ -250,6 +265,9 @@ class AgentTaskService : Service() {
         const val ACTION_PROGRESS = "dev.deviceagent.action.TASK_PROGRESS"
         const val EXTRA_GOAL = "goal"
         const val EXTRA_MODEL = "model"
+        const val EXTRA_PROVIDER = "provider"
+        const val EXTRA_AUTOMATIC_MODEL_ROUTING = "automatic_model_routing"
+        const val EXTRA_RECOVERY_MODEL = "recovery_model"
         const val EXTRA_DRY_RUN = "dry_run"
         const val EXTRA_MANUAL = "manual"
         const val EXTRA_SEND_CONTENTS = "send_contents"
@@ -273,10 +291,15 @@ class AgentTaskService : Service() {
         private const val CHANNEL_ID = "agent_tasks"
         private const val NOTIFICATION_ID = 7001
         private const val KEY_NAME = "gemini_api_key"
+        private const val OPENAI_KEY_NAME = "openai_api_key"
+        private const val CLAUDE_KEY_NAME = "claude_api_key"
         private const val CHECKPOINT_PREFS = "agent_checkpoint"
         private const val KEY_ACTIVE = "active"
         private const val KEY_GOAL = "goal"
         private const val KEY_MODEL = "model"
+        private const val KEY_PROVIDER = "provider"
+        private const val KEY_AUTOMATIC_MODEL_ROUTING = "automatic_model_routing"
+        private const val KEY_RECOVERY_MODEL = "recovery_model"
         private const val KEY_DRY_RUN = "dry_run"
         private const val KEY_MANUAL = "manual"
         private const val KEY_SEND_CONTENTS = "send_contents"
@@ -287,6 +310,32 @@ class AgentTaskService : Service() {
         private const val KEY_UPDATED_AT = "updated_at"
         private const val ROOT_SEPARATOR = "\u001f"
         private const val RECOVERY_WORK = "agent-task-recovery"
+
+        fun createStartIntent(
+            context: android.content.Context,
+            goal: String,
+            model: String,
+            provider: String = ProviderChoice.GEMINI.name,
+            automaticModelRouting: Boolean = false,
+            recoveryModel: String? = null,
+            dryRun: Boolean,
+            manual: Boolean,
+            sendContents: Boolean,
+            rootNames: List<String>,
+            rootUris: List<String>,
+        ): Intent = Intent(context, AgentTaskService::class.java).apply {
+            action = ACTION_START
+            putExtra(EXTRA_GOAL, goal)
+            putExtra(EXTRA_MODEL, model)
+            putExtra(EXTRA_PROVIDER, provider)
+            putExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, automaticModelRouting)
+            putExtra(EXTRA_RECOVERY_MODEL, recoveryModel)
+            putExtra(EXTRA_DRY_RUN, dryRun)
+            putExtra(EXTRA_MANUAL, manual)
+            putExtra(EXTRA_SEND_CONTENTS, sendContents)
+            putStringArrayListExtra(EXTRA_ROOT_NAMES, ArrayList(rootNames))
+            putStringArrayListExtra(EXTRA_ROOT_URIS, ArrayList(rootUris))
+        }
 
         fun hasCheckpoint(context: android.content.Context): Boolean =
             context.getSharedPreferences(CHECKPOINT_PREFS, MODE_PRIVATE).getBoolean(KEY_ACTIVE, false)
@@ -302,6 +351,9 @@ class AgentTaskService : Service() {
                 action = ACTION_START
                 putExtra(EXTRA_GOAL, p.getString(KEY_GOAL, ""))
                 putExtra(EXTRA_MODEL, p.getString(KEY_MODEL, ""))
+                putExtra(EXTRA_PROVIDER, p.getString(KEY_PROVIDER, ProviderChoice.GEMINI.name))
+                putExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, p.getBoolean(KEY_AUTOMATIC_MODEL_ROUTING, false))
+                putExtra(EXTRA_RECOVERY_MODEL, p.getString(KEY_RECOVERY_MODEL, ""))
                 putExtra(EXTRA_DRY_RUN, p.getBoolean(KEY_DRY_RUN, false))
                 putExtra(EXTRA_MANUAL, p.getBoolean(KEY_MANUAL, false))
                 putExtra(EXTRA_SEND_CONTENTS, p.getBoolean(KEY_SEND_CONTENTS, false))

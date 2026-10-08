@@ -18,6 +18,8 @@ import dev.deviceagent.core.ai.gemini.GeminiProvider
 import dev.deviceagent.core.ai.gemini.HttpRequest
 import dev.deviceagent.core.ai.gemini.HttpResponse
 import dev.deviceagent.core.ai.gemini.HttpTransport
+import dev.deviceagent.core.ai.claude.ClaudeProvider
+import dev.deviceagent.core.ai.openai.OpenAIProvider
 import dev.deviceagent.core.history.InMemoryAuditLog
 import dev.deviceagent.core.security.Redactor
 import dev.deviceagent.core.security.maskSecret
@@ -60,6 +62,8 @@ private const val KEY = "AIzaSyFAKE_KEY_FOR_TESTS_0123456789abcdefg"
 private val TOOLS = listOf(ToolDeclaration("file.copy", "Copy", listOf(ParamSpec("source", ParamType.STRING, "from"), ParamSpec("limit", ParamType.INTEGER, "n", required = false))))
 
 private fun gemini(t: HttpTransport) = GeminiProvider({ KEY }, t, "https://example.test")
+private fun openai(t: HttpTransport) = OpenAIProvider({ KEY }, t, "https://example.test/v1")
+private fun claude(t: HttpTransport) = ClaudeProvider({ KEY }, t, "https://example.test/v1")
 
 private fun okBody(parts: String, extra: String = "") =
     HttpResponse(200, """{"candidates":[{"content":{"role":"model","parts":$parts},"finishReason":"STOP"}]$extra}""")
@@ -189,6 +193,40 @@ fun registerAiAndSecurityTests() {
         try { g.generate(GenerateRequest("evil/../../x?key=1", "s", listOf(Message.User("a")))); throw TestFailure("accepted a malicious model id") }
         catch (e: ProviderException) { eq(ProviderErrorKind.BAD_REQUEST, e.kind, "a bad model name is a provider error, not a crash") }
         check(t.sent.isEmpty()) { "nothing may be sent for an invalid model name" }
+    }
+
+    test("openai: request uses bearer auth and maps tool calls and usage") {
+        val t = FakeTransport {
+            check(it.headers["Authorization"] == "Bearer $KEY")
+            check(!it.url.contains(KEY))
+            HttpResponse(200, """{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"file.copy","arguments":"{\"source\":\"/a\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":12,"completion_tokens":4}}""")
+        }
+        val response = openai(t).generate(GenerateRequest("gpt-test", "sys", listOf(Message.User("copy")), TOOLS))
+        eq("file.copy", response.toolCalls.single().name, "tool name")
+        eq(12, response.usage!!.inputTokens, "input usage")
+        check(t.sent.single().url.endsWith("/chat/completions"))
+    }
+
+    test("openai: rate limits and invalid credentials map to shared provider errors") {
+        val rate = FakeTransport { HttpResponse(429, """{"error":{"message":"slow"}}""", mapOf("retry-after" to "3")) }
+        try { openai(rate).generate(req("gpt-test")); throw TestFailure("rate limit should fail") }
+        catch (e: ProviderException) { eq(ProviderErrorKind.RATE_LIMITED, e.kind, "rate limit"); eq(3_000L, e.retryAfterMs, "retry delay") }
+        val auth = FakeTransport { HttpResponse(401, """{"error":{"message":"bad key"}}""") }
+        try { openai(auth).generate(req("gpt-test")); throw TestFailure("auth should fail") }
+        catch (e: ProviderException) { eq(ProviderErrorKind.INVALID_CREDENTIALS, e.kind, "auth") }
+    }
+
+    test("claude: Messages API maps tool use, usage, and required headers") {
+        val t = FakeTransport {
+            check(it.headers["x-api-key"] == KEY)
+            check(it.headers["anthropic-version"] == "2023-06-01")
+            HttpResponse(200, """{"content":[{"type":"text","text":"Inspecting"},{"type":"tool_use","id":"tu_1","name":"file.copy","input":{"source":"/a"}}],"stop_reason":"tool_use","usage":{"input_tokens":8,"output_tokens":3}}""")
+        }
+        val response = claude(t).generate(GenerateRequest("claude-test", "sys", listOf(Message.User("copy")), TOOLS))
+        eq("Inspecting", response.text, "text")
+        eq("file.copy", response.toolCalls.single().name, "tool name")
+        eq(8, response.usage!!.inputTokens, "input usage")
+        check(t.sent.single().body!!.contains("input_schema"))
     }
 
     // ───────── secrets ─────────

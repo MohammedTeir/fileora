@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 83 tests pass (`./gradlew :agent-core:check`).
+- `agent-core` (pure Kotlin/JVM): 98 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -49,12 +49,13 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | # | Task | Notes |
 |---|---|---|
 | 13 | Optional "All files access" mode | `MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem` behind an explicit opt-in screen. SAF cannot grant the storage root, Download, `Android/data` (Android 11+). Keep the protected-paths denylist and mandatory trash/undo. Not allowed on Play Store, fine for direct distribution. |
-| 14 | Archive tools | zip / unzip with zip-slip protection (reject `..` entries), size and entry-count limits (zip-bomb defense). |
-| 15 | Media tools | FFmpeg (compress/convert). First task that makes per-ABI APKs differ. Verify output is playable and non-empty. |
-| 16 | Search by content | Index only user-approved folders, bounded size. |
+| 14 | Archive tools — **implemented in core** | `file.compress` / `file.extract` use bounded ZIP archives, reject zip-slip paths, enforce entry and expanded-size limits, never overwrite, and record undo actions. Device/SAF validation remains. |
+| 15 | Media tools — **core foundation implemented** | `media.probe` / `media.convert` use an injected backend; `JvmFfmpegBackend` invokes FFmpeg/FFprobe without a shell and verifies non-empty playable output. Android native/SAF backend and remaining media operations remain. |
+| 17 | Scheduled tasks — **implemented** | Room-backed schedule definitions, WorkManager periodic scheduling, foreground-service launch, and Compose schedule/cancel controls are implemented. Scheduled runs default to manual mode; physical-device validation remains. |
+| 16 | Search by content — **implemented in core** | `file.search_content` searches approved roots with binary skipping, per-file/total byte bounds, result caps, short untrusted snippets, and names-only privacy blocking. Device/SAF validation remains. |
 | 17 | Scheduled tasks | WorkManager; scheduled tasks run in MANUAL or low-risk-only mode unless pre-approved. |
-| 18 | More providers | Implement `AIProvider` for Claude / OpenAI. Reuse `ResilientProvider`. Shared contract tests for every provider. |
-| 19 | Model routing | Cheap model for listing/planning, stronger model for hard recovery. |
+| 18 | More providers — **implemented** | Gemini, OpenAI-compatible, and Claude adapters reuse the shared contract; Compose selection, separate Keystore keys, foreground execution, and scheduled-task provider persistence are wired. Device/live-provider validation remains. |
+| 19 | Model routing — **implemented in code** | Default-off routing keeps the selected model for planning/normal turns; after a failed tool-result turn, it uses a user-selected, same-provider recovery model only if tool calling is supported. UI, foreground/resume, scheduled persistence, Room migration, and core tests are wired; Android/device validation remains. |
 
 ## P3: advanced (later, higher risk)
 

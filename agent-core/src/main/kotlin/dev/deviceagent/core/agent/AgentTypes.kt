@@ -2,6 +2,7 @@ package dev.deviceagent.core.agent
 
 import dev.deviceagent.core.ai.Message
 import dev.deviceagent.core.tools.Plan
+import dev.deviceagent.core.tools.media.MediaBackend
 
 /** Every task ends in exactly one of these (spec section 12). Computed from facts, not from what the model claims. */
 enum class TaskStatus {
@@ -33,10 +34,15 @@ data class AgentConfig(
     /** Show what would happen; never change anything. */
     val dryRun: Boolean = false,
     val temperature: Double = 0.2,
+    /** Route only failed tool-result turns to [recoveryModel]; disabled unless the user opts in. */
+    val automaticModelRouting: Boolean = false,
+    /** Optional recovery model on the same configured provider. */
+    val recoveryModel: String? = null,
     /** Provider-neutral conversation to continue after a process restart. */
     val initialMessages: List<Message> = emptyList(),
     /** Called after each completed model/tool turn so an app can persist an exact checkpoint. */
     val onCheckpoint: ((List<Message>) -> Unit)? = null,
+    val mediaBackend: MediaBackend? = null,
 )
 
 /** One failed try, kept for the audit trail and the final report. */

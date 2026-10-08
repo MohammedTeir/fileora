@@ -2,6 +2,7 @@ package dev.deviceagent.core.tools
 
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.agent.PrivacyMode
+import dev.deviceagent.core.tools.media.MediaBackend
 import dev.deviceagent.core.util.bool
 import dev.deviceagent.core.util.long
 import dev.deviceagent.core.util.str
@@ -96,6 +97,7 @@ class ToolContext(
     val taskId: String,
     val fs: FileSystem,
     val privacyMode: PrivacyMode = PrivacyMode.CONTENTS_ALLOWED,
+    val mediaBackend: MediaBackend? = null,
 ) {
     private val counter = AtomicInteger()
     fun nextId(): Int = counter.incrementAndGet()

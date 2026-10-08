@@ -3,6 +3,7 @@ package dev.deviceagent.core.agent
 import dev.deviceagent.core.ai.AIProvider
 import dev.deviceagent.core.ai.GenerateRequest
 import dev.deviceagent.core.ai.Message
+import dev.deviceagent.core.ai.ModelRouter
 import dev.deviceagent.core.ai.ProviderErrorKind
 import dev.deviceagent.core.ai.ProviderException
 import dev.deviceagent.core.ai.ToolDeclaration
@@ -91,7 +92,7 @@ class AgentEngine(
 
     suspend fun run(goal: String, config: AgentConfig): TaskOutcome {
         val taskId = newTaskId()
-        val run = Run(taskId, ToolContext(taskId, fs, config.privacyMode))
+        val run = Run(taskId, ToolContext(taskId, fs, config.privacyMode, config.mediaBackend))
         val declarations = registry.specs().map { ToolDeclaration(it.name, it.description, it.params) } + ToolDeclaration(
             ASK_USER,
             ASK_USER_DESCRIPTION,
@@ -130,7 +131,11 @@ class AgentEngine(
             run.steps++
             val response = try {
                 // snapshot: a provider must never see the history mutate after it was handed over
-                provider.generate(GenerateRequest(config.model, system, messages.toList(), declarations, config.temperature))
+                val route = ModelRouter.select(provider, config.model, config.recoveryModel, config.automaticModelRouting, messages)
+                if (config.automaticModelRouting) {
+                    audit.record(taskId, "model_route", jsonObjectOf("model" to route.model, "phase" to route.phase.name, "reason" to route.reason))
+                }
+                provider.generate(GenerateRequest(route.model, system, messages.toList(), declarations, config.temperature))
             } catch (e: ProviderException) {
                 providerError = e
                 audit.record(taskId, "provider_error", jsonObjectOf("kind" to e.kind.name, "message" to e.message))

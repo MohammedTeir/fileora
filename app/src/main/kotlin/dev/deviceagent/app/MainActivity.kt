@@ -54,6 +54,7 @@ private fun Screen(vm: AgentViewModel) {
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) vm.addRoot(uri) }
     var keyInput by remember { mutableStateOf("") }
     var modelInput by remember(s.model) { mutableStateOf(s.model) }
+    var intervalInput by remember { mutableStateOf("24") }
 
     Column(
         Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -71,28 +72,49 @@ private fun Screen(vm: AgentViewModel) {
         }
 
         // ── 1. AI provider ──
-        Section("1. AI provider (Gemini)") {
+        Section("1. AI provider (${s.provider.name.lowercase()})") {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ProviderChoice.values().forEach { choice ->
+                    if (choice == s.provider) Button(onClick = {}) { Text(choice.name) }
+                    else OutlinedButton(onClick = { vm.setProvider(choice) }) { Text(choice.name) }
+                }
+            }
             if (s.apiKeyMask != null) {
                 Text("API key: ${s.apiKeyMask}")
                 OutlinedButton(onClick = vm::removeApiKey) { Text("Remove key") }
             } else {
                 OutlinedTextField(
-                    value = keyInput, onValueChange = { keyInput = it }, label = { Text("Gemini API key") },
+                    value = keyInput, onValueChange = { keyInput = it }, label = { Text("${s.provider.name.lowercase()} API key") },
                     visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth(),
                 )
                 Button(onClick = { vm.saveApiKey(keyInput); keyInput = "" }, enabled = keyInput.isNotBlank()) { Text("Save key") }
             }
             OutlinedTextField(
                 value = modelInput, onValueChange = { modelInput = it; vm.setModel(it) },
-                label = { Text("Model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                label = { Text("Planning / default model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { vm.refreshModels() }, enabled = s.apiKeyMask != null) { Text("List models") }
                 OutlinedButton(onClick = { vm.testConnection() }, enabled = s.apiKeyMask != null) { Text("Test connection") }
             }
             s.availableModels.take(30).forEach { id ->
-                TextButton(onClick = { vm.setModel(id) }) { Text(id, fontSize = 13.sp) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { vm.setModel(id) }, modifier = Modifier.weight(1f)) { Text("Default: $id", fontSize = 13.sp) }
+                    TextButton(onClick = { vm.setRecoveryModel(id) }) { Text("Recovery", fontSize = 12.sp) }
+                }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = s.automaticModelRouting, onCheckedChange = vm::setAutomaticModelRouting)
+                Text("  Automatically route failed turns to recovery model")
+            }
+            OutlinedTextField(
+                value = s.recoveryModel,
+                onValueChange = vm::setRecoveryModel,
+                label = { Text(if (s.automaticModelRouting) "Recovery model" else "Recovery model (optional)") },
+                supportingText = { Text(if (s.automaticModelRouting) "Required for routing. Used only after a failed tool turn; select from the current provider's list and ensure it supports tool calls." else "Optional. If configured and routing is enabled, this must be from the selected provider and support tool calls.") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         // ── 2. Folders ──
@@ -147,6 +169,18 @@ private fun Screen(vm: AgentViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = vm::runTask, enabled = !s.running && s.goal.isNotBlank()) { Text(if (s.running) "Working…" else "Run") }
                 if (s.running) OutlinedButton(onClick = vm::cancelTask) { Text("Cancel") }
+            }
+        }
+
+        Section("Scheduled task") {
+            Text("Schedules retain the current goal, provider/models, routing choice, and approved folders. They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(value = intervalInput, onValueChange = { intervalInput = it.filter(Char::isDigit) }, label = { Text("Repeat every N hours") })
+            Button(onClick = { intervalInput.toLongOrNull()?.let(vm::scheduleCurrent) }) { Text("Schedule current task") }
+            s.scheduledTasks.forEach { task ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${task.id}: every ${task.intervalHours}h (manual)", Modifier.weight(1f), fontSize = 12.sp)
+                    TextButton(onClick = { vm.cancelScheduledTask(task.id) }) { Text("Cancel") }
+                }
             }
         }
 

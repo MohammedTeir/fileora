@@ -5,6 +5,8 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Upsert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
@@ -49,6 +51,29 @@ data class UndoEntity(
     val existed: Boolean = false,
 )
 
+@Entity(tableName = "scheduled_tasks")
+data class ScheduledTaskEntity(
+    @PrimaryKey val id: String,
+    val goal: String,
+    val model: String,
+    val rootNames: String,
+    val rootUris: String,
+    val intervalHours: Long,
+    val sendContents: Boolean,
+    val dryRun: Boolean,
+    val manual: Boolean,
+    val provider: String = "GEMINI",
+    val automaticModelRouting: Boolean = false,
+    val recoveryModel: String? = null,
+)
+
+@Dao
+interface ScheduledTaskDao {
+    @Upsert fun upsert(task: ScheduledTaskEntity)
+    @Query("SELECT * FROM scheduled_tasks ORDER BY id ASC") fun all(): List<ScheduledTaskEntity>
+    @Query("DELETE FROM scheduled_tasks WHERE id = :id") fun delete(id: String)
+}
+
 @Dao
 interface UndoDao {
     @Insert
@@ -67,10 +92,11 @@ interface UndoDao {
     fun latestTaskId(): String?
 }
 
-@Database(entities = [AuditEntity::class, UndoEntity::class], version = 1, exportSchema = false)
+@Database(entities = [AuditEntity::class, UndoEntity::class, ScheduledTaskEntity::class], version = 4, exportSchema = false)
 abstract class AgentDatabase : RoomDatabase() {
     abstract fun auditDao(): AuditDao
     abstract fun undoDao(): UndoDao
+    abstract fun scheduledTaskDao(): ScheduledTaskDao
 
     companion object {
         @Volatile private var instance: AgentDatabase? = null
@@ -80,7 +106,20 @@ abstract class AgentDatabase : RoomDatabase() {
                 context.applicationContext,
                 AgentDatabase::class.java,
                 "device-agent.db",
-            ).build().also { instance = it }
+            }.addMigrations(object : androidx.room.migration.Migration(1, 2) {
+                override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("CREATE TABLE IF NOT EXISTS scheduled_tasks (id TEXT NOT NULL PRIMARY KEY, goal TEXT NOT NULL, model TEXT NOT NULL, rootNames TEXT NOT NULL, rootUris TEXT NOT NULL, intervalHours INTEGER NOT NULL, sendContents INTEGER NOT NULL, dryRun INTEGER NOT NULL, manual INTEGER NOT NULL)")
+                }
+            }, object : androidx.room.migration.Migration(2, 3) {
+                override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN provider TEXT NOT NULL DEFAULT 'GEMINI'")
+                }
+            }, object : androidx.room.migration.Migration(3, 4) {
+                override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN automaticModelRouting INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN recoveryModel TEXT")
+                }
+            }).build().also { instance = it }
         }
     }
 }
