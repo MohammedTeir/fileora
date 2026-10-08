@@ -20,6 +20,11 @@ import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
 import dev.deviceagent.core.tools.file.FileWriteTool
 import dev.deviceagent.core.tools.file.WRITE_MAX_BYTES
+import dev.deviceagent.core.tools.media.MediaBackend
+import dev.deviceagent.core.tools.media.MediaConversion
+import dev.deviceagent.core.tools.media.MediaConvertTool
+import dev.deviceagent.core.tools.media.MediaProbe
+import dev.deviceagent.core.tools.media.MediaProbeTool
 import dev.deviceagent.core.tools.system.DefaultTools
 import dev.deviceagent.core.util.long
 import dev.deviceagent.core.util.str
@@ -130,6 +135,33 @@ fun registerFileAndToolTests() {
             )
             eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "privacy block")
             check(!result.ok)
+        }
+    }
+
+    test("media tools use the host backend and verify a newly created output") {
+        fx { f ->
+            val source = f.file("input.media", "media")
+            val backend = object : MediaBackend {
+                override fun probe(path: String) = MediaProbe("fake", durationSeconds = 1.5, playable = true)
+                override fun convert(source: String, destination: String, format: String?): MediaConversion {
+                    f.fs.writeBytes(destination, "converted".toByteArray())
+                    return MediaConversion(format ?: "fake", playable = true, bytesWritten = 9)
+                }
+            }
+            val t = ToolContext("media", f.fs, mediaBackend = backend)
+            val probe = MediaProbeTool().execute(args("path" to source), t)
+            check(probe.ok); eq("fake", probe.data.str("format"), "format")
+            val converted = MediaConvertTool().execute(args("source" to source, "destination" to f.p("output.media"), "format" to "fake"), t)
+            check(converted.ok) { converted.error.toString() }
+            check(f.exists("output.media")); eq(1, converted.undo.size, "output undo")
+        }
+    }
+
+    test("media tools fail clearly when no host backend is available") {
+        fx { f ->
+            f.file("input.media", "media")
+            val result = MediaProbeTool().execute(args("path" to f.p("input.media")), ToolContext("media", f.fs))
+            eq(ErrorKind.INVALID_ARGUMENTS, result.error!!.kind, "backend unavailable")
         }
     }
 
