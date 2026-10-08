@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 89 tests pass (`./gradlew :agent-core:check`).
+- `agent-core` (pure Kotlin/JVM): 91 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -54,7 +54,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 17 | Scheduled tasks — **implemented** | Room-backed schedule definitions, WorkManager periodic scheduling, foreground-service launch, and Compose schedule/cancel controls are implemented. Scheduled runs default to manual mode; physical-device validation remains. |
 | 16 | Search by content — **implemented in core** | `file.search_content` searches approved roots with binary skipping, per-file/total byte bounds, result caps, short untrusted snippets, and names-only privacy blocking. Device/SAF validation remains. |
 | 17 | Scheduled tasks | WorkManager; scheduled tasks run in MANUAL or low-risk-only mode unless pre-approved. |
-| 18 | More providers | Implement `AIProvider` for Claude / OpenAI. Reuse `ResilientProvider`. Shared contract tests for every provider. |
+| 18 | More providers — **OpenAI-compatible adapter implemented** | `OpenAIProvider` reuses the shared HTTP transport and `AIProvider` contract, supports Chat Completions tool calls/usage, and maps shared retry errors. Claude, provider selection UI, and device validation remain. |
 | 19 | Model routing | Cheap model for listing/planning, stronger model for hard recovery. |
 
 ## P3: advanced (later, higher risk)

@@ -6,7 +6,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 89 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini/OpenAI-compatible adapters) | **Built and tested**: 91 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
 | `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, restart-safe undo storage in Room, and task request/token usage reporting. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
 | Gradle build files / dependency versions | **Configured**: Android/WorkManager dependencies are declared; full Android compilation still needs GitHub CI or an Android SDK |
@@ -81,7 +81,7 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
 - **Media/FFmpeg status:** the core has tested `media.probe` and `media.convert` contracts plus a no-shell JVM `JvmFfmpegBackend` with playable-output verification. The Android/SAF native FFmpeg backend, ABI packaging, and the remaining media tools are not yet built or device-verified.
-- **Not yet built:** model routing and the Android/SAF media backend. Background execution and task checkpoints are implemented, but still need physical-device validation.
+- **Not yet built:** model routing, Claude adapter, and the Android/SAF media backend. Background execution and task checkpoints are implemented, but still need physical-device validation.
 - **Usage limits:** each task now has hard request, input-token, and output-token budgets; reaching one stops the task with `BLOCKED`. Provider-reported usage is shown for the current task; usage history is still in memory only.
 - **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each), and AI usage totals (`UsageTracker`) are still in memory only.
 - **Checkpointing:** an interrupted foreground-service task persists its request, exact provider-neutral conversation, and latest progress, then offers Resume or Discard on the next app launch. Physical-device validation remains.
