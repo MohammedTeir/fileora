@@ -52,7 +52,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [~] #15 Media tools — provider-neutral `media.probe` / `media.convert` plus a no-shell JVM FFmpeg/FFprobe backend with output verification; Android native/SAF backend and remaining media tools remain
 - [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
 - [~] #17 Scheduled tasks — `ScheduledTasks.schedule/cancel/list`, Room persistence/migration, `ScheduledTaskWorker`, and Compose schedule/cancel controls implemented with manual-mode-by-default execution; device validation remains
-- [~] #18 More providers — OpenAI-compatible and Claude adapters plus shared error/tool-call contract tests implemented; provider UI and device validation remain
+- [~] #18 More providers — Gemini, OpenAI-compatible, and Claude adapters, provider-specific Keystore keys, Compose provider selection, foreground/scheduled wiring, and shared tests implemented; device/live-provider validation remains
 - [ ] #19 Model routing
 
 ## 4. P3 — Advanced (ROADMAP)
@@ -88,7 +88,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 - [x] Fallback model support in `ResilientProvider` (core only)
 - [~] Fallback model **not exposed in UI** (`AgentViewModel` builds `ResilientProvider(gemini, tracker = usage)` only)
 - [~] Usage tracking: provider, model, tokens, latency, errors recorded in memory; **no cost estimate, no usage screen, lost on restart**
-- [ ] Multiple providers / "Add provider / Edit provider" UI
+- [~] Multiple providers / provider selection UI — Gemini, OpenAI-compatible, and Claude choices use separate Keystore entries; adding custom providers remains future work
 - [ ] Per-task models (planning / simple / recovery / vision / coding)
 - [ ] Model capability registry (tool calling, vision, context, streaming…) — only token limits in `ModelInfo`
 - [ ] Automatic model routing + user switch to disable it

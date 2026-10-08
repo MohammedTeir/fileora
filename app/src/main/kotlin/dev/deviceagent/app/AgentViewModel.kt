@@ -17,6 +17,8 @@ import dev.deviceagent.core.agent.TaskStatus
 import dev.deviceagent.core.ai.ResilientProvider
 import dev.deviceagent.core.ai.UsageTracker
 import dev.deviceagent.core.ai.gemini.GeminiProvider
+import dev.deviceagent.core.ai.openai.OpenAIProvider
+import dev.deviceagent.core.ai.claude.ClaudeProvider
 import dev.deviceagent.core.history.AuditEntry
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.policy.ConfirmationRequest
@@ -46,8 +48,10 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 data class RootUi(val name: String, val uri: String)
+enum class ProviderChoice { GEMINI, OPENAI, CLAUDE }
 
 data class UiState(
+    val provider: ProviderChoice = ProviderChoice.GEMINI,
     val apiKeyMask: String? = null,
     val model: String = "",
     val availableModels: List<String> = emptyList(),
@@ -128,10 +132,12 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     init {
-        val key = secrets.get(KEY_NAME)
+        val choice = runCatching { ProviderChoice.valueOf(prefs.getString("provider", ProviderChoice.GEMINI.name) ?: ProviderChoice.GEMINI.name) }.getOrDefault(ProviderChoice.GEMINI)
+        val key = secrets.get(secretKey(choice))
         key?.let { redactor.addSecret(it) }
         _state.update {
             it.copy(
+                provider = choice,
                 apiKeyMask = key?.let(::maskSecret),
                 model = prefs.getString("model", "") ?: "",
                 sendFileContents = prefs.getBoolean("send_file_contents", false),
@@ -163,14 +169,20 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun saveApiKey(key: String) {
         val k = key.trim()
         if (k.isEmpty()) return
-        secrets.put(KEY_NAME, k)
+        secrets.put(secretKey(_state.value.provider), k)
         redactor.addSecret(k)
         _state.update { it.copy(apiKeyMask = maskSecret(k), notice = "API key saved securely on this device.") }
     }
 
     fun removeApiKey() {
-        secrets.remove(KEY_NAME)
+        secrets.remove(secretKey(_state.value.provider))
         _state.update { it.copy(apiKeyMask = null, availableModels = emptyList(), notice = "API key removed.") }
+    }
+
+    fun setProvider(provider: ProviderChoice) {
+        prefs.edit().putString("provider", provider.name).apply()
+        val key = secrets.get(secretKey(provider))
+        _state.update { it.copy(provider = provider, apiKeyMask = key?.let(::maskSecret), availableModels = emptyList()) }
     }
 
     fun setModel(model: String) {
@@ -246,7 +258,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true)
+                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name)
                 ScheduledTasks.schedule(getApplication(), task)
                 _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled every $intervalHours hour(s) in manual mode.") }
             }.onFailure { e -> _state.update { it.copy(notice = e.message ?: "Could not schedule task.") } }
@@ -261,8 +273,14 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     // ───────── running a task ─────────
 
     private fun provider(): ResilientProvider {
-        val gemini = GeminiProvider(apiKey = { secrets.get(KEY_NAME) ?: "" })
-        return ResilientProvider(gemini, tracker = usage)
+        val choice = _state.value.provider
+        val key = { secrets.get(secretKey(choice)) ?: "" }
+        val selected = when (choice) {
+            ProviderChoice.GEMINI -> GeminiProvider(apiKey = key)
+            ProviderChoice.OPENAI -> OpenAIProvider(apiKey = key)
+            ProviderChoice.CLAUDE -> ClaudeProvider(apiKey = key)
+        }
+        return ResilientProvider(selected, tracker = usage)
     }
 
     private val channel = object : UserChannel {
@@ -295,7 +313,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         when {
             s.running -> return
-            s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your Gemini API key first.") }; return }
+            s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your ${s.provider.name.lowercase()} API key first.") }; return }
             s.model.isBlank() -> { _state.update { it.copy(notice = "Choose a model first (tap List models).") }; return }
             s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use.") }; return }
             s.goal.isBlank() -> return
@@ -304,6 +322,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             action = AgentTaskService.ACTION_START
             putExtra(AgentTaskService.EXTRA_GOAL, s.goal)
             putExtra(AgentTaskService.EXTRA_MODEL, s.model)
+            putExtra(AgentTaskService.EXTRA_PROVIDER, s.provider.name)
             putExtra(AgentTaskService.EXTRA_DRY_RUN, s.dryRun)
             putExtra(AgentTaskService.EXTRA_MANUAL, s.manualMode)
             putExtra(AgentTaskService.EXTRA_SEND_CONTENTS, s.sendFileContents)
@@ -353,5 +372,10 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val KEY_NAME = "gemini_api_key"
+        fun secretKey(provider: ProviderChoice) = when (provider) {
+            ProviderChoice.GEMINI -> KEY_NAME
+            ProviderChoice.OPENAI -> "openai_api_key"
+            ProviderChoice.CLAUDE -> "claude_api_key"
+        }
     }
 }

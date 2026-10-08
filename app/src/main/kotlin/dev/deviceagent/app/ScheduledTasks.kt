@@ -21,6 +21,7 @@ data class ScheduledTask(
     val sendContents: Boolean = false,
     val dryRun: Boolean = false,
     val manual: Boolean = true,
+    val provider: String = ProviderChoice.GEMINI.name,
 )
 
 object ScheduledTasks {
@@ -32,6 +33,7 @@ object ScheduledTasks {
     private const val KEY_SEND_CONTENTS = "send_contents"
     private const val KEY_DRY_RUN = "dry_run"
     private const val KEY_MANUAL = "manual"
+    private const val KEY_PROVIDER = "provider"
 
     fun schedule(context: Context, task: ScheduledTask) {
         require(task.id.matches(Regex("[A-Za-z0-9_-]{1,80}"))) { "Invalid scheduled task id" }
@@ -47,6 +49,7 @@ object ScheduledTasks {
             .putBoolean(KEY_DRY_RUN, task.dryRun)
             // Explicit opt-in is required for non-manual execution; the public data class defaults true.
             .putBoolean(KEY_MANUAL, task.manual)
+            .putString(KEY_PROVIDER, task.provider)
             .build()
         val request = PeriodicWorkRequestBuilder<ScheduledTaskWorker>(task.intervalHours, TimeUnit.HOURS)
             .setInputData(input)
@@ -63,14 +66,15 @@ object ScheduledTasks {
     fun list(context: Context): List<ScheduledTask> = AgentDatabase.get(context).scheduledTaskDao().all().map { it.toTask() }
 
     private const val SEPARATOR = "\u001f"
-    private fun ScheduledTask.toEntity() = ScheduledTaskEntity(id, goal, model, rootNames.joinToString(SEPARATOR), rootUris.joinToString(SEPARATOR), intervalHours, sendContents, dryRun, manual)
-    private fun ScheduledTaskEntity.toTask() = ScheduledTask(id, goal, model, rootNames.split(SEPARATOR).filter(String::isNotEmpty), rootUris.split(SEPARATOR).filter(String::isNotEmpty), intervalHours, sendContents, dryRun, manual)
+    private fun ScheduledTask.toEntity() = ScheduledTaskEntity(id, goal, model, rootNames.joinToString(SEPARATOR), rootUris.joinToString(SEPARATOR), intervalHours, sendContents, dryRun, manual, provider)
+    private fun ScheduledTaskEntity.toTask() = ScheduledTask(id, goal, model, rootNames.split(SEPARATOR).filter(String::isNotEmpty), rootUris.split(SEPARATOR).filter(String::isNotEmpty), intervalHours, sendContents, dryRun, manual, provider)
 }
 
 class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
         val goal = inputData.getString("goal") ?: return Result.failure()
         val model = inputData.getString("model") ?: return Result.failure()
+        val provider = inputData.getString("provider") ?: ProviderChoice.GEMINI.name
         val names = inputData.getStringArray("root_names")?.toList().orEmpty()
         val uris = inputData.getStringArray("root_uris")?.toList().orEmpty()
         if (names.isEmpty() || names.size != uris.size) return Result.failure()
@@ -78,6 +82,7 @@ class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : Corou
             applicationContext,
             goal = goal,
             model = model,
+            provider = provider,
             dryRun = inputData.getBoolean("dry_run", false),
             manual = inputData.getBoolean("manual", true), // default is manual; non-manual requires explicit caller opt-in
             sendContents = inputData.getBoolean("send_contents", false),

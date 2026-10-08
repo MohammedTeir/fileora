@@ -62,6 +62,7 @@ data class ScheduledTaskEntity(
     val sendContents: Boolean,
     val dryRun: Boolean,
     val manual: Boolean,
+    val provider: String = "GEMINI",
 )
 
 @Dao
@@ -89,7 +90,7 @@ interface UndoDao {
     fun latestTaskId(): String?
 }
 
-@Database(entities = [AuditEntity::class, UndoEntity::class, ScheduledTaskEntity::class], version = 2, exportSchema = false)
+@Database(entities = [AuditEntity::class, UndoEntity::class, ScheduledTaskEntity::class], version = 3, exportSchema = false)
 abstract class AgentDatabase : RoomDatabase() {
     abstract fun auditDao(): AuditDao
     abstract fun undoDao(): UndoDao
@@ -106,6 +107,10 @@ abstract class AgentDatabase : RoomDatabase() {
             }.addMigrations(object : androidx.room.migration.Migration(1, 2) {
                 override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                     db.execSQL("CREATE TABLE IF NOT EXISTS scheduled_tasks (id TEXT NOT NULL PRIMARY KEY, goal TEXT NOT NULL, model TEXT NOT NULL, rootNames TEXT NOT NULL, rootUris TEXT NOT NULL, intervalHours INTEGER NOT NULL, sendContents INTEGER NOT NULL, dryRun INTEGER NOT NULL, manual INTEGER NOT NULL)")
+                }
+            }, object : androidx.room.migration.Migration(2, 3) {
+                override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE scheduled_tasks ADD COLUMN provider TEXT NOT NULL DEFAULT 'GEMINI'")
                 }
             }).build().also { instance = it }
         }

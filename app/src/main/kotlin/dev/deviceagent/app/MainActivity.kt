@@ -72,13 +72,19 @@ private fun Screen(vm: AgentViewModel) {
         }
 
         // ── 1. AI provider ──
-        Section("1. AI provider (Gemini)") {
+        Section("1. AI provider (${s.provider.name.lowercase()})") {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ProviderChoice.values().forEach { choice ->
+                    if (choice == s.provider) Button(onClick = {}) { Text(choice.name) }
+                    else OutlinedButton(onClick = { vm.setProvider(choice) }) { Text(choice.name) }
+                }
+            }
             if (s.apiKeyMask != null) {
                 Text("API key: ${s.apiKeyMask}")
                 OutlinedButton(onClick = vm::removeApiKey) { Text("Remove key") }
             } else {
                 OutlinedTextField(
-                    value = keyInput, onValueChange = { keyInput = it }, label = { Text("Gemini API key") },
+                    value = keyInput, onValueChange = { keyInput = it }, label = { Text("${s.provider.name.lowercase()} API key") },
                     visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth(),
                 )
                 Button(onClick = { vm.saveApiKey(keyInput); keyInput = "" }, enabled = keyInput.isNotBlank()) { Text("Save key") }

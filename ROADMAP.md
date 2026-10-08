@@ -54,7 +54,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 17 | Scheduled tasks — **implemented** | Room-backed schedule definitions, WorkManager periodic scheduling, foreground-service launch, and Compose schedule/cancel controls are implemented. Scheduled runs default to manual mode; physical-device validation remains. |
 | 16 | Search by content — **implemented in core** | `file.search_content` searches approved roots with binary skipping, per-file/total byte bounds, result caps, short untrusted snippets, and names-only privacy blocking. Device/SAF validation remains. |
 | 17 | Scheduled tasks | WorkManager; scheduled tasks run in MANUAL or low-risk-only mode unless pre-approved. |
-| 18 | More providers — **OpenAI-compatible and Claude adapters implemented** | `OpenAIProvider` and `ClaudeProvider` reuse the shared HTTP transport and `AIProvider` contract, support tool calls/usage, and map shared retry errors. Provider selection UI and device validation remain. |
+| 18 | More providers — **implemented** | Gemini, OpenAI-compatible, and Claude adapters reuse the shared contract; Compose selection, separate Keystore keys, foreground execution, and scheduled-task provider persistence are wired. Device/live-provider validation remains. |
 | 19 | Model routing | Cheap model for listing/planning, stronger model for hard recovery. |
 
 ## P3: advanced (later, higher risk)
