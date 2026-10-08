@@ -37,7 +37,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 |---|---|---|
 | 6 | `file.read` tool — **done in code, not yet run** | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
 | 7 | `file.write` / `file.append` — **done** | Creates or edits bounded UTF-8 text files (100 KiB cap). Moderate-risk writes require confirmation, old versions are saved for undo, and the verifier checks the resulting size and SHA-256. JVM and SAF implementations are covered by core tests where possible. |
-| 8 | Persistent history (Room) | Replace `InMemoryAuditLog` and in-memory `UndoManager` data with Room. Survives process death. History screen in UI. Secrets redacted before writing. |
+| 8 | Persistent history (Room) — **done** | `RoomAuditLog` persists redacted audit entries, `RoomUndoStore` persists move/delete/restore actions, the app shows recent history, and the latest persisted task remains undoable after process restart. |
 | 9 | Background execution | Foreground service with notification + WorkManager. Task keeps running when the screen is off. Cancel button works. Confirmation requests arrive as notifications. |
 | 10 | Checkpoint and resume | After each completed step, persist state. After app kill, offer to resume or roll back. |
 | 11 | Usage and cost limits | Per-task token and request budget, hard stop with status `BLOCKED`, UI shows usage. |

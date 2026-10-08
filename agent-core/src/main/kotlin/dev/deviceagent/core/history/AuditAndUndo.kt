@@ -15,6 +15,14 @@ interface AuditLog {
     fun entries(taskId: String? = null): List<AuditEntry>
 }
 
+/** Durable storage for reversible actions. Android supplies a Room implementation; core stays platform-neutral. */
+interface UndoStore {
+    fun append(taskId: String, actions: List<UndoAction>)
+    fun load(taskId: String): List<UndoAction>
+    fun clear(taskId: String)
+    fun latestTaskId(): String? = null
+}
+
 /** Everything is redacted before it is stored. The app swaps in a Room-backed implementation. */
 class InMemoryAuditLog(
     private val redactor: Redactor,
@@ -32,19 +40,22 @@ class InMemoryAuditLog(
 data class UndoReport(val reverted: Int, val notes: List<String>)
 
 /** Keeps the reversible actions of each task and applies them newest-first. */
-class UndoManager {
+class UndoManager(private val store: UndoStore? = null) {
     private val transactions = ConcurrentHashMap<String, MutableList<UndoAction>>()
 
     fun record(taskId: String, actions: List<UndoAction>) {
         if (actions.isEmpty()) return
         transactions.getOrPut(taskId) { CopyOnWriteArrayList() }.addAll(actions)
+        store?.append(taskId, actions)
     }
 
-    fun hasUndo(taskId: String) = transactions[taskId]?.isNotEmpty() == true
-    fun pending(taskId: String): List<UndoAction> = transactions[taskId]?.toList() ?: emptyList()
+    fun hasUndo(taskId: String) = transactions[taskId]?.isNotEmpty() == true || store?.load(taskId)?.isNotEmpty() == true
+    fun pending(taskId: String): List<UndoAction> = transactions[taskId]?.toList() ?: store?.load(taskId).orEmpty()
 
     fun undo(taskId: String, fs: FileSystem): UndoReport {
-        val actions = transactions.remove(taskId) ?: return UndoReport(0, listOf("Nothing to undo"))
+        val actions = transactions.remove(taskId) ?: store?.load(taskId).orEmpty()
+        if (actions.isEmpty()) return UndoReport(0, listOf("Nothing to undo"))
+        store?.clear(taskId)
         return revert(actions, fs)
     }
 

@@ -13,7 +13,7 @@ import dev.deviceagent.core.agent.TaskOutcome
 import dev.deviceagent.core.ai.ResilientProvider
 import dev.deviceagent.core.ai.UsageTracker
 import dev.deviceagent.core.ai.gemini.GeminiProvider
-import dev.deviceagent.core.history.InMemoryAuditLog
+import dev.deviceagent.core.history.AuditEntry
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.policy.ConfirmationRequest
 import dev.deviceagent.core.policy.ConfirmationResponse
@@ -58,14 +58,17 @@ data class UiState(
     val pendingQuestion: String? = null,
     val notice: String? = null,
     val usageSummary: String = "",
+    val history: List<AuditEntry> = emptyList(),
+    val restorableUndoTaskId: String? = null,
 )
 
 class AgentViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("agent", Context.MODE_PRIVATE)
     private val secrets = KeystoreSecretStore(app)
     private val redactor = Redactor()
-    private val undoManager = UndoManager()
-    private val audit = InMemoryAuditLog(redactor) // TODO: Room-backed implementation for history that survives restarts
+    private val undoStore = RoomUndoStore(AgentDatabase.get(app).undoDao())
+    private val undoManager = UndoManager(undoStore)
+    private val audit = RoomAuditLog(AgentDatabase.get(app).auditDao(), redactor)
     private val usage = UsageTracker()
 
     private val _state = MutableStateFlow(UiState())
@@ -85,6 +88,12 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 roots = loadRoots(),
             )
         }
+        refreshHistory()
+    }
+
+    private fun refreshHistory() = viewModelScope.launch(Dispatchers.IO) {
+        val rows = audit.entries().takeLast(100).reversed()
+        _state.update { it.copy(history = rows, restorableUndoTaskId = undoStore.latestTaskId()) }
     }
 
     // ───────── settings ─────────
@@ -239,17 +248,19 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                         usageSummary = "${usage.requestCount} AI request(s), ${usage.inputTokens} tokens in / ${usage.outputTokens} out, ${usage.errorCount} error(s)",
                     )
                 }
+                refreshHistory()
             }
         }
     }
 
     fun undoLastTask() {
-        val outcome = _state.value.outcome ?: return
-        val fs = lastTaskFs ?: return
+        val current = _state.value
+        val taskId = current.outcome?.taskId ?: current.restorableUndoTaskId ?: return
+        val fs = lastTaskFs ?: SafFileSystem(getApplication(), current.roots.map { SafRoot(it.name, Uri.parse(it.uri)) })
         viewModelScope.launch(Dispatchers.IO) {
-            val report = undoManager.undo(outcome.taskId, fs)
+            val report = undoManager.undo(taskId, fs)
             val extra = if (report.notes.isEmpty()) "" else " (" + report.notes.joinToString("; ") + ")"
-            _state.update { it.copy(notice = "Undo: reverted ${report.reverted} change(s)$extra", outcome = it.outcome?.copy(canUndo = false)) }
+            _state.update { it.copy(notice = "Undo: reverted ${report.reverted} change(s)$extra", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
         }
     }
 

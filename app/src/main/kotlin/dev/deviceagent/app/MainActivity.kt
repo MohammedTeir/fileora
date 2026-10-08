@@ -135,7 +135,18 @@ private fun Screen(vm: AgentViewModel) {
                 o.modelMessage?.let { Text("\nAssistant says:\n$it") }
                 if (o.unverifiedChanges > 0) Text("\n${o.unverifiedChanges} change(s) could not be verified automatically.")
                 if (s.usageSummary.isNotEmpty()) Text("\n${s.usageSummary}", style = MaterialTheme.typography.bodySmall)
-                if (o.canUndo) OutlinedButton(onClick = vm::undoLastTask) { Text("Undo this task") }
+                if (o.canUndo || s.restorableUndoTaskId != null) OutlinedButton(onClick = vm::undoLastTask) { Text("Undo this task") }
+            }
+        }
+        if (s.history.isNotEmpty()) {
+            Section("History") {
+                s.history.take(20).forEach { entry ->
+                    Text(
+                        "${entry.kind} · ${entry.taskId}\n${entry.details}",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                    )
+                }
             }
         }
     }

@@ -8,7 +8,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 |---|---|
 | `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 80 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Not run.** Tested only against a fake transport shaped from the public docs. Do a real call first |
-| `app` module (Compose UI, Keystore, SAF filesystem) | **Written; device build/run reported by the owner.** SAF write support is now included for `file.write` and `file.append` |
+| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Written; device build/run reported by the owner.** SAF write support, redacted audit history, and restart-safe undo storage are included |
 | Gradle build files / dependency versions | **Unresolved**: versions in `gradle/libs.versions.toml` are starting points; bump to current stable on first sync |
 | GitHub Actions (`ci.yml`, `release.yml`) | **Linted with actionlint, never run.** See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
 | Media (FFmpeg), Linux runtime, packages, root, scheduling, history in Room | Not started (spec phases 2 and 4 to 8) |
@@ -80,5 +80,5 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
-- **Not yet built:** persistent history (Room), background execution (foreground service + WorkManager), checkpoints/resume, privacy toggles for what is sent to the AI, model routing, media tools.
+- **Not yet built:** background execution (foreground service + WorkManager), checkpoints/resume, privacy toggles for what is sent to the AI, model routing, media tools.
 - Audit log and undo history are in memory: they are lost when the app process dies.
