@@ -14,6 +14,7 @@ import dev.deviceagent.core.tools.file.FileHashTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMkdirTool
 import dev.deviceagent.core.tools.file.FileMoveTool
+import dev.deviceagent.core.tools.file.FileReadTool
 import dev.deviceagent.core.tools.file.FileRenameTool
 import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
@@ -53,7 +54,7 @@ class SystemStorageTool : Tool {
 
 object DefaultTools {
     fun all(): List<Tool> = listOf(
-        FileListTool(), FileSearchTool(), FileStatTool(), FileHashTool(),
+        FileListTool(), FileSearchTool(), FileStatTool(), FileHashTool(), FileReadTool(),
         FileMkdirTool(), FileCopyTool(), FileMoveTool(), FileRenameTool(), FileDeleteTool(),
         SystemStorageTool(),
     )
