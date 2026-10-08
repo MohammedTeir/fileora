@@ -35,7 +35,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 | # | Task | Acceptance criteria |
 |---|---|---|
-| 6 | `file.read` tool | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
+| 6 | `file.read` tool — **done in code, not yet run** | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
 | 7 | `file.write` / `file.append` | Create or edit text files. Risk MEDIUM, overwrite needs confirmation, old version saved for undo, verifier re-reads and compares. |
 | 8 | Persistent history (Room) | Replace `InMemoryAuditLog` and in-memory `UndoManager` data with Room. Survives process death. History screen in UI. Secrets redacted before writing. |
 | 9 | Background execution | Foreground service with notification + WorkManager. Task keeps running when the screen is off. Cancel button works. Confirmation requests arrive as notifications. |
