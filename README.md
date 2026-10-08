@@ -7,11 +7,11 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 | Part | State |
 |---|---|
 | `agent-core` (loop, tools, policy, verification, recovery, undo, Gemini adapter) | **Built and tested**: 80 tests pass; 8 deliberate bugs were injected and all were caught |
-| Gemini adapter against the **live** API | **Not run.** Tested only against a fake transport shaped from the public docs. Do a real call first |
-| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Written; device build/run reported by the owner.** SAF write support, redacted audit history, and restart-safe undo storage are included |
+| Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
+| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, and restart-safe undo storage in Room. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
 | Gradle build files / dependency versions | **Unresolved**: versions in `gradle/libs.versions.toml` are starting points; bump to current stable on first sync |
-| GitHub Actions (`ci.yml`, `release.yml`) | **Linted with actionlint, never run.** See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
-| Media (FFmpeg), Linux runtime, packages, root, scheduling, history in Room | Not started (spec phases 2 and 4 to 8) |
+| GitHub Actions (`ci.yml`, `release.yml`) | **CI is green and the release workflow builds signed APKs** (reported by the owner; `apksigner verify` output not yet seen). See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
+| Media (FFmpeg), Linux runtime, packages, root, scheduling, background execution, checkpoints | Not started (spec phases 2 and 4 to 8; `ROADMAP.md` P1 #9 and #10) |
 
 ## What the MVP does (spec phases 1 and 3)
 
@@ -81,4 +81,4 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
 - **Not yet built:** background execution (foreground service + WorkManager), checkpoints/resume, privacy toggles for what is sent to the AI, model routing, media tools.
-- Audit log and undo history are in memory: they are lost when the app process dies.
+- **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, and undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each). AI usage totals (`UsageTracker`) are still in memory only, and an in-flight task cannot be resumed after the process dies (no checkpointing yet).
