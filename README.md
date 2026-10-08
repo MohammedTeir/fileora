@@ -15,7 +15,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 ## What the MVP does (spec phases 1 and 3)
 
-Tools: `file.list`, `file.search`, `file.stat`, `file.hash`, `file.mkdir`, `file.copy`, `file.move`, `file.rename`, `file.delete` (to a restorable trash), `system.storage`, plus `agent.ask_user`.
+Tools: `file.list`, `file.search`, `file.stat`, `file.hash`, `file.read`, `file.mkdir`, `file.copy`, `file.move`, `file.rename`, `file.delete` (to a restorable trash), `system.storage`, plus `agent.ask_user`.
 
 The loop for every model-proposed call:
 
@@ -74,6 +74,9 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 3. Verify the Gemini adapter on a real key before trusting it (a failure there will show up as a clear provider error, not a crash).
 
 ## Known limits and decisions to make
+
+- **`file.read` sends file contents to the cloud model.** Reads are READ risk and never ask for confirmation, and the privacy toggle (roadmap task 12) does not exist yet. Until it does, any file inside a granted folder can be read and sent to Gemini.
+- **Result size.** `file.read` defaults to 8,000 bytes (hard cap 100 KB), but the engine cuts any tool result above `maxResultChars` (12,000), so larger reads reach the model as a truncated preview.
 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
