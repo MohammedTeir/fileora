@@ -25,7 +25,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
-androidx-documentfile = { module = "androidx.documentfile:documentfile", version = "1.0.1" }
+androidx-documentfile = { module = "androidx.documentfile:documentfile", version = "1.1.0" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
