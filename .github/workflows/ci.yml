@@ -50,8 +50,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Installs the Android command-line tools and accepts the SDK licenses.
-      - uses: android-actions/setup-android@v3
+      # The runner already includes the Android SDK; just accept licenses so Gradle can download what it needs.
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       # Refuse to run if gradle-wrapper.jar is not an official Gradle release (supply-chain check).
       - uses: gradle/actions/wrapper-validation@v4
