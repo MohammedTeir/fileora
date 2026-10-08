@@ -45,6 +45,9 @@ sealed interface UndoAction {
 
     /** Remove something the task created (a file, or a directory if it is empty). */
     data class DeleteCreated(val path: String) : UndoAction
+
+    /** Restore the previous bytes of a file, or remove it when it did not exist before the write. */
+    data class RestoreFile(val path: String, val previous: ByteArray?, val existed: Boolean) : UndoAction
 }
 
 /**

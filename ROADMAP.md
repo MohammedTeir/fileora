@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 56 tests pass (`./scripts/test-core.sh`).
+- `agent-core` (pure Kotlin/JVM): 80 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -36,7 +36,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | # | Task | Acceptance criteria |
 |---|---|---|
 | 6 | `file.read` tool — **done in code, not yet run** | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
-| 7 | `file.write` / `file.append` | Create or edit text files. Risk MEDIUM, overwrite needs confirmation, old version saved for undo, verifier re-reads and compares. |
+| 7 | `file.write` / `file.append` — **done** | Creates or edits bounded UTF-8 text files (100 KiB cap). Moderate-risk writes require confirmation, old versions are saved for undo, and the verifier checks the resulting size and SHA-256. JVM and SAF implementations are covered by core tests where possible. |
 | 8 | Persistent history (Room) | Replace `InMemoryAuditLog` and in-memory `UndoManager` data with Room. Survives process death. History screen in UI. Secrets redacted before writing. |
 | 9 | Background execution | Foreground service with notification + WorkManager. Task keeps running when the screen is off. Cancel button works. Confirmation requests arrive as notifications. |
 | 10 | Checkpoint and resume | After each completed step, persist state. After app kill, offer to resume or roll back. |

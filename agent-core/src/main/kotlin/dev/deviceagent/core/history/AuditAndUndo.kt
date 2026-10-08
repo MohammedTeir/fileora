@@ -73,6 +73,23 @@ class UndoManager {
                             notes += "Left in place: ${a.path} (${e.message})"
                         }
                     }
+                    is UndoAction.RestoreFile -> {
+                        if (a.existed) {
+                            val bytes = a.previous
+                            if (bytes == null) notes += "Skipped: previous contents for ${a.path} were unavailable"
+                            else {
+                                fs.writeBytes(a.path, bytes)
+                                reverted++
+                            }
+                        } else {
+                            val info = fs.stat(a.path)
+                            if (info == null) notes += "Skipped: ${a.path} no longer exists"
+                            else {
+                                fs.delete(a.path)
+                                reverted++
+                            }
+                        }
+                    }
                 }
             } catch (e: FsException) {
                 notes += "Could not revert $a: ${e.message}"

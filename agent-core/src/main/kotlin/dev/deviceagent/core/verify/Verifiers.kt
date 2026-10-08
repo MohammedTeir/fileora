@@ -32,6 +32,8 @@ class VerifierRegistry(verifiers: Map<String, Verifier> = emptyMap()) {
             mapOf(
                 "file.mkdir" to MkdirVerifier(),
                 "file.copy" to CopyVerifier(),
+                "file.write" to WriteVerifier(),
+                "file.append" to WriteVerifier(),
                 "file.move" to MoveVerifier(),
                 "file.rename" to MoveVerifier(),
                 "file.delete" to DeleteVerifier(),
@@ -93,6 +95,28 @@ class CopyVerifier : Verifier {
                 else if (bytes != plan.bytes) failures += "expected ${plan.bytes} bytes, found $bytes"
                 else checks += "all $files file(s) present with matching sizes"
             }
+        }
+        return VerificationResult.of(checks, failures)
+    }
+}
+
+class WriteVerifier : Verifier {
+    override suspend fun verify(call: ToolCall, plan: Plan, result: ToolResult, ctx: ToolContext): VerificationResult {
+        val path = plan.writes.firstOrNull() ?: return VerificationResult.of(emptyList(), listOf("incomplete plan"))
+        val checks = ArrayList<String>(); val failures = ArrayList<String>()
+        val info = safely(failures, "stat $path") { ctx.fs.stat(path) }
+        if (info == null) {
+            if (failures.isEmpty()) failures += "written file does not exist"
+            return VerificationResult.of(checks, failures)
+        }
+        if (info.isDirectory) failures += "$path is a directory" else checks += "file exists"
+        if (info.size != plan.bytes) failures += "size mismatch: expected ${plan.bytes} bytes, found ${info.size}"
+        else checks += "size matches (${info.size} bytes)"
+        val expected = result.data.str("sha256")
+        if (expected == null) failures += "write did not report a checksum"
+        else {
+            val actual = safely(failures, "hash $path") { ctx.fs.sha256(path) }
+            if (actual == expected) checks += "content hash matches" else if (actual != null) failures += "content hash differs from the written result"
         }
         return VerificationResult.of(checks, failures)
     }

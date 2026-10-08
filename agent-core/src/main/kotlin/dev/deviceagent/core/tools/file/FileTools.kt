@@ -287,6 +287,69 @@ class FileReadTool : Tool {
     }
 }
 
+const val WRITE_MAX_BYTES = 100 * 1024
+private const val WRITE_UNDO_MAX_BYTES = 1024 * 1024
+
+abstract class TextWriteTool(private val append: Boolean) : Tool {
+    override val spec = ToolSpec(
+        if (append) "file.append" else "file.write",
+        if (append) "Append UTF-8 text to a file, creating it if needed. The existing version is saved for undo."
+        else "Create or replace a UTF-8 text file. Replacing an existing file requires confirmation and the old version is saved for undo.",
+        listOf(
+            ParamSpec("path", STRING, "Absolute path of the text file"),
+            ParamSpec("content", STRING, "UTF-8 text to write or append (maximum $WRITE_MAX_BYTES bytes)"),
+        ),
+        RiskLevel.MODERATE,
+    )
+
+    override suspend fun plan(args: JsonObject, ctx: ToolContext): Plan {
+        val path = args.str("path")!!
+        val content = args.str("content")!!
+        val bytes = content.toByteArray(Charsets.UTF_8)
+        val summary = if (append) "Append ${bytes.size} bytes to $path" else "Write ${bytes.size} bytes to $path"
+        return guardedPlan(summary) {
+            if (bytes.size > WRITE_MAX_BYTES) {
+                return@guardedPlan FileOps.failedPlan(summary, ErrorKind.INVALID_ARGUMENTS, "content exceeds the $WRITE_MAX_BYTES byte limit", path)
+            }
+            val existing = ctx.fs.stat(path)
+            if (existing?.isDirectory == true) {
+                return@guardedPlan FileOps.failedPlan(summary, ErrorKind.INVALID_ARGUMENTS, "Path is a directory", path)
+            }
+            if (existing != null && existing.size > WRITE_UNDO_MAX_BYTES) {
+                return@guardedPlan FileOps.failedPlan(summary, ErrorKind.INVALID_ARGUMENTS, "Existing file is too large to edit safely with undo", path)
+            }
+            val parent = ctx.fs.parent(path)
+            if (parent == null || ctx.fs.stat(parent) == null) {
+                return@guardedPlan FileOps.failedPlan(summary, ErrorKind.NOT_FOUND, "Parent directory does not exist", parent ?: path)
+            }
+            val total = if (append) (existing?.size ?: 0L) + bytes.size else bytes.size.toLong()
+            Plan(summary, reads = if (existing == null) emptyList() else listOf(path), writes = listOf(path), fileCount = 1, bytes = total)
+        }
+    }
+
+    override suspend fun execute(args: JsonObject, ctx: ToolContext): ToolResult = guarded {
+        val path = args.str("path")!!
+        val content = args.str("content")!!
+        val info = ctx.fs.stat(path)
+        if (info?.isDirectory == true) return@guarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Path is a directory", path)
+        val previous = info?.let { ctx.fs.readBytes(path, WRITE_UNDO_MAX_BYTES + 1) }
+        if (previous != null && previous.size > WRITE_UNDO_MAX_BYTES) {
+            return@guarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "Existing file is too large to edit safely with undo", path)
+        }
+        val bytes = content.toByteArray(Charsets.UTF_8)
+        if (bytes.size > WRITE_MAX_BYTES) return@guarded ToolResult.failure(ErrorKind.INVALID_ARGUMENTS, "content exceeds the $WRITE_MAX_BYTES byte limit", path)
+        ctx.fs.writeBytes(path, bytes, append)
+        val size = ctx.fs.stat(path)?.size ?: return@guarded ToolResult.failure(ErrorKind.VERIFICATION_FAILED, "Written file disappeared", path)
+        ToolResult.success(
+            jsonObjectOf("path" to path, "bytes_written" to bytes.size, "size" to size, "sha256" to ctx.fs.sha256(path)),
+            listOf(UndoAction.RestoreFile(path, previous, info != null)),
+        )
+    }
+}
+
+class FileWriteTool : TextWriteTool(append = false)
+class FileAppendTool : TextWriteTool(append = true)
+
 // ───────────────────────────── mutating tools ─────────────────────────────
 
 class FileMkdirTool : Tool {

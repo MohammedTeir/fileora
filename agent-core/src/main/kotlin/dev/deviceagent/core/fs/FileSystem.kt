@@ -50,6 +50,9 @@ interface FileSystem {
     /** Reads at most [maxBytes] bytes from the START of a file. Fails with NOT_FOUND / OUTSIDE_SANDBOX like every other call. */
     fun readBytes(path: String, maxBytes: Int): ByteArray
 
+    /** Writes bytes, replacing an existing file unless [append] is true. Creates the file if missing. */
+    fun writeBytes(path: String, bytes: ByteArray, append: Boolean = false)
+
     /** Free bytes at [path], or null when the storage cannot say (e.g. Storage Access Framework). */
     fun freeSpaceBytes(path: String): Long?
 }

@@ -222,6 +222,18 @@ class SafFileSystem(private val context: Context, safRoots: List<SafRoot>) : Fil
         }
     }
 
+    override fun writeBytes(path: String, bytes: ByteArray, append: Boolean) = io(path) {
+        val parentPath = parent(path) ?: throw FsException(ErrorKind.INVALID_ARGUMENTS, "Destination has no parent folder", path)
+        val parentDoc = doc(parentPath) ?: throw FsException(ErrorKind.NOT_FOUND, "Destination folder does not exist", parentPath)
+        val existing = doc(path)
+        val target = existing ?: parentDoc.createFile("text/plain", name(path))
+            ?: throw FsException(ErrorKind.IO, "Could not create the destination file", path)
+        val mode = if (append) "wa" else "w"
+        val output = resolver.openOutputStream(target.uri, mode)
+            ?: throw FsException(ErrorKind.IO, "Could not open the destination", path)
+        output.use { it.write(bytes) }
+    }
+
     /** SAF offers no free-space query. */
     override fun freeSpaceBytes(path: String): Long? = null
 }

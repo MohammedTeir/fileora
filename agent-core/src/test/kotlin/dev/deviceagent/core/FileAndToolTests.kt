@@ -7,12 +7,15 @@ import dev.deviceagent.core.tools.ErrorKind
 import dev.deviceagent.core.tools.ToolContext
 import dev.deviceagent.core.tools.ToolRegistry
 import dev.deviceagent.core.tools.file.FileCopyTool
+import dev.deviceagent.core.tools.file.FileAppendTool
 import dev.deviceagent.core.tools.file.FileDeleteTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMoveTool
 import dev.deviceagent.core.tools.file.FileRenameTool
 import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
+import dev.deviceagent.core.tools.file.FileWriteTool
+import dev.deviceagent.core.tools.file.WRITE_MAX_BYTES
 import dev.deviceagent.core.tools.system.DefaultTools
 import dev.deviceagent.core.util.long
 import dev.deviceagent.core.util.str
@@ -110,6 +113,47 @@ fun registerFileAndToolTests() {
     }
 
     // ───────── mutating tools ─────────
+
+    test("file.write creates UTF-8 text, reports a checksum, and can be undone") {
+        fx { f ->
+            val path = f.p("hello.txt")
+            val t = ToolContext("t", f.fs)
+            val plan = FileWriteTool().plan(args("path" to path, "content" to "héllo"), t)
+            check(plan.error == null)
+            val r = FileWriteTool().execute(args("path" to path, "content" to "héllo"), t)
+            check(r.ok) { r.error.toString() }
+            eq("héllo", f.read("hello.txt"), "written content")
+            check(r.data.str("sha256")!!.length == 64) { "write must report SHA-256" }
+            val report = UndoManager().revert(r.undo, f.fs)
+            eq(1, report.reverted, "undo count")
+            check(!f.exists("hello.txt")) { "undo removes a newly created file" }
+        }
+    }
+
+    test("file.append appends text and overwrite restores the old version") {
+        fx { f ->
+            f.file("log.txt", "one")
+            val t = ToolContext("t", f.fs)
+            val append = FileAppendTool().execute(args("path" to f.p("log.txt"), "content" to "\ntwo"), t)
+            check(append.ok); eq("one\ntwo", f.read("log.txt"), "appended content")
+            val write = FileWriteTool().execute(args("path" to f.p("log.txt"), "content" to "replacement"), t)
+            check(write.ok); eq("replacement", f.read("log.txt"), "replaced content")
+            val report = UndoManager().revert(write.undo, f.fs)
+            eq(1, report.reverted, "undo overwrite count")
+            eq("one\ntwo", f.read("log.txt"), "restored old content")
+        }
+    }
+
+    test("file.write rejects oversized content before changing the file") {
+        fx { f ->
+            f.file("safe.txt", "keep")
+            val t = ToolContext("t", f.fs)
+            val content = "x".repeat(WRITE_MAX_BYTES + 1)
+            val plan = FileWriteTool().plan(args("path" to f.p("safe.txt"), "content" to content), t)
+            eq(ErrorKind.INVALID_ARGUMENTS, plan.error!!.kind)
+            eq("keep", f.read("safe.txt"), "oversized write must be side-effect free")
+        }
+    }
 
     test("file.copy copies content, creates parents, and records undo") {
         fx { f ->

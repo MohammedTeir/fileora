@@ -166,6 +166,19 @@ class JvmFileSystem(rootPaths: List<String>) : FileSystem {
         }
     }
 
+    override fun writeBytes(path: String, bytes: ByteArray, append: Boolean) {
+        val p = guard(path)
+        io(path) {
+            p.parent?.let { Files.createDirectories(it) }
+            val options = if (append) {
+                arrayOf(java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.APPEND)
+            } else {
+                arrayOf(java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)
+            }
+            Files.write(p, bytes, *options)
+        }
+    }
+
     override fun freeSpaceBytes(path: String): Long {
         var p: Path = guard(path)
         while (!Files.exists(p)) p = p.parent ?: break
