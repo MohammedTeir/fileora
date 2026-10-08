@@ -8,7 +8,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
-- CI: `setup-android` step removed (it failed on `sdkmanager tools`); first green Gradle run not yet confirmed.
+- CI: green, and the release workflow builds signed APKs (reported by the owner; `apksigner verify` output not seen by me).
 
 ## Rules for any contributor (do not break these)
 
@@ -29,7 +29,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 2 | `PLAN_ONLY` status — **done in code, not yet run** | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
 | 3 | Exact tool list in system prompt — **done in code, not yet run** | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
 | 4 | Reduce request count — **prompt batching guidance + tests added; real request count on device not yet measured** | Dry run of "create folder and move file" took 7 AI requests / 10.7K tokens. Find why (log requests), aim for 3 or fewer. Add a test with a fake provider that counts calls. |
-| 5 | Green CI | `ci.yml` passes on a branch. Bump `gradle/libs.versions.toml` to current stable versions (unverified now). Then tag `v0.1.0` and confirm `release.yml` produces signed APKs (`apksigner verify` passes). Needs the secrets in `docs/RELEASING.md`. |
+| 5 | Green CI — **done (reported by owner: CI green, signed APKs build)** | `ci.yml` passes on a branch. Bump `gradle/libs.versions.toml` to current stable versions (unverified now). Then tag `v0.1.0` and confirm `release.yml` produces signed APKs (`apksigner verify` passes). Needs the secrets in `docs/RELEASING.md`. |
 
 ## P1: make it usable
 
