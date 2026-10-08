@@ -33,7 +33,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Runs the 56-test suite (see agent-core/build.gradle.kts: runAgentTests).
+      # Runs the agent-core test suite (see agent-core/build.gradle.kts: runAgentTests).
       - name: Run agent-core tests
         run: ./gradlew :agent-core:check --stacktrace
 
