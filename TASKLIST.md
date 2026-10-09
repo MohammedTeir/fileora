@@ -1,7 +1,7 @@
 # Device Agent — Task List (done vs. not done)
 
 Compared: `README.md`, `ROADMAP.md`, `docs/SPEC.md` (identical to the "full idea v4" file), current main, and the supplied UX archive.
-Date of review: 2026-10-09. The core suite (99), app-helper tests (6), API 35 debug APK build, and Android lint all pass locally. Physical-device validation remains outstanding.
+Date of review: 2026-10-09. The core suite (100), app-helper tests (6), API 35 debug APK build, and Android lint all pass locally. Physical-device validation remains outstanding.
 
 **Legend**
 - `[x]` Done and covered by tests (agent-core) or confirmed on a real device
@@ -14,7 +14,7 @@ Date of review: 2026-10-09. The core suite (99), app-helper tests (6), API 35 de
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude providers | Done in core (99 tests pass locally) |
+| Core agent loop, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude providers | Done in core (100 tests pass locally) |
 | Android app: Home/Activity/Settings UX, approval bridge/notifications, Keystore, SAF, optional All Files Access, Room history | API 35 APK and lint pass; 6 helper tests pass. Existing SAF app runs on Redmi Note 8 Pro; new UX and All Files Access still need device validation |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
@@ -32,13 +32,13 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
   - Dry run: works on device. Everything else on this line: **not verified**.
 - [~] **#2 `PLAN_ONLY` status** — in code (`TaskStatus.PLAN_ONLY`, `determineStatus`), not run on device
 - [~] **#3 Exact tool list in system prompt** — generated from `ToolRegistry`; not run on device
-- [~] **#4 Reduce AI request count** (was 7 requests / 10.7K tokens, target ≤ 3) — prompt batching guidance + tests added; **real count on device not measured**
+- [~] **#4 Reduce AI request count** (was 7 requests / 10.7K tokens, target ≤ 3) — prompt batching guidance plus `file.move_matching` for bulk moves; core test added; **real count on device not measured**
 - [~] **#5 Green CI + signed APKs** — CI passed on `main`; Android/signing verification and release tag remain external checks. Version catalog and workflow action references are hardened in code.
 
 ## 2. P1 — Make it usable (ROADMAP)
 
 - [~] **#6 `file.read`** — implemented with size cap, untrusted_data wrapping, tests; not run on device
-- [x] **#7 `file.write` / `file.append`** — done (100 KiB cap, confirmation, undo of old version, SHA-256 verify)
+- [x] **#7 `file.write` / `file.append` / `file.move_matching`** — core done (100 KiB cap for writes; bulk matching moves are confirmation-protected, verified, and undoable)
 - [x] **#8 Persistent history (Room)** — `RoomAuditLog`, `RoomUndoStore`, history list in UI, latest task undoable after restart
 - [~] **#9 Background execution** — foreground `AgentTaskService` owns runs when the screen is off, shows progress/confirmation notifications, supports cancellation, and delivers progress/results to the UI. A delayed unique `AgentTaskRecoveryWorker` relaunches a checkpointed task after process death; device verification remains.
 - [~] **#10 Checkpoint and resume** — foreground service persists task inputs, provider-neutral messages after each tool-result turn, and latest progress; after process death the app offers Resume or Discard. Core coverage passes; device validation remains.
@@ -101,7 +101,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 ### 5.3 Tools (spec §5, §6, §39)
 File tools:
 - [x] `file.list`, `file.search`, `file.stat`, `file.hash`, `file.read`
-- [x] `file.copy`, `file.move`, `file.rename`, `file.mkdir`, `file.write`, `file.append`
+- [x] `file.copy`, `file.move`, `file.move_matching`, `file.rename`, `file.mkdir`, `file.write`, `file.append`
 - [x] `file.delete` (to restorable `.agent_trash`)
 - [x] `agent.ask_user`
 - [ ] `file.restore` as a tool (restore exists only through Undo)
@@ -163,9 +163,9 @@ Other groups:
 
 ## 6. Repo hygiene / inconsistencies found
 
-- [x] README status table and known limits reflect Room history, SAF writes, and the 99-core/6-app-test baseline.
+- [x] README status table and known limits reflect Room history, SAF writes, bulk moves, and the 100-core/6-app-test baseline.
 - [x] CI/release action references are pinned to immutable commit SHAs.
-- [ ] README says "Written; device build/run reported by the owner" while ROADMAP says "compiles and runs on a real device" — pick one wording.
+- [x] README and ROADMAP consistently state that the existing SAF build was reported running on a real device; the reworked UX and All Files Access flow still need validation.
 - [x] README no longer lists background execution/checkpoints as not started.
 - [~] `libs.versions.toml` retains the generated-version note; local API 35 Android build/lint now pass; GitHub CI for the UX commit remains to run.
 - [~] Core tests use the custom harness; app UX-helper tests use JUnit 4. Consider moving the core suite to a standard test framework later.

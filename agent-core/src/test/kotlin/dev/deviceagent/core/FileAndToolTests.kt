@@ -16,6 +16,7 @@ import dev.deviceagent.core.tools.file.FileDeleteTool
 import dev.deviceagent.core.tools.file.FileExtractTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMoveTool
+import dev.deviceagent.core.tools.file.FileMoveMatchingTool
 import dev.deviceagent.core.tools.file.FileRenameTool
 import dev.deviceagent.core.tools.file.FileSearchTool
 import dev.deviceagent.core.tools.file.FileStatTool
@@ -253,6 +254,33 @@ fun registerFileAndToolTests() {
             val plan = FileWriteTool().plan(args("path" to f.p("safe.txt"), "content" to content), t)
             eq(ErrorKind.INVALID_ARGUMENTS, plan.error!!.kind)
             eq("keep", f.read("safe.txt"), "oversized write must be side-effect free")
+        }
+    }
+
+    test("file.move_matching moves matching files in one operation and undo restores them") {
+        fx { f ->
+            f.file("Download/a.pdf", "a")
+            f.file("Download/b.pdf", "bb")
+            f.file("Download/keep.txt", "keep")
+            val t = ToolContext("t", f.fs)
+            val args = args(
+                "source_folder" to f.p("Download"),
+                "destination_folder" to f.p("Documents/PDFs"),
+                "pattern" to "*.pdf",
+            )
+            val tool = FileMoveMatchingTool()
+            val plan = tool.plan(args, t)
+            check(plan.error == null) { plan.error.toString() }
+            eq(2, plan.fileCount, "matched file count")
+            val r = tool.execute(args, t)
+            check(r.ok) { r.error.toString() }
+            check(f.exists("Documents/PDFs/a.pdf"))
+            check(f.exists("Documents/PDFs/b.pdf"))
+            check(f.exists("Download/keep.txt"))
+            check(!f.exists("Download/a.pdf"))
+            val report = UndoManager().revert(r.undo, f.fs)
+            eq(4, report.reverted, "undo moved files and created folders")
+            check(f.exists("Download/a.pdf")); check(f.exists("Download/b.pdf"))
         }
     }
 

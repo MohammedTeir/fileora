@@ -13,10 +13,12 @@ Problems found and what changed:
 - Model is now remembered per provider (it used to be shared, which broke after switching provider).
 - Light/dark theme, edge-to-edge, app icon, notification icon.
 - The most recent finished task can be reconstructed from Room audit history and shown on Home after an app restart.
+- Bulk requests such as “move all PDFs” use one bounded, verified `file.move_matching` operation instead of one AI turn per file, reducing token-limit failures and keeping the confirmation understandable.
 
 ## Verification and remaining work
 
 - `./gradlew :app:assembleDebug` passes locally with Android API 35.
 - JVM tests cover the new plain-language formatting, model suggestion, setup checklist, and status translation helpers.
 - Screens and notification flows still need visual and interaction validation on a physical Android device.
+- Bulk move confirmation and undo still need physical-device validation with a real Download/Documents provider.
 - Text remains hardcoded in English; Arabic/localized string resources are not included in this pass.

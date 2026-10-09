@@ -6,7 +6,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 99 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 100 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
 | `app` module (Compose Home/Activity/Settings, notification-linked approvals/questions, Keystore, SAF, optional All Files Access, Room audit/undo history) | **Debug APK and lint build locally on API 35; 6 UX-helper JVM tests pass.** SAF app has previously run on a real device (Redmi Note 8 Pro; reported by the owner). New UX and All Files Access flows still need device validation. **Dry run is verified on device; real run, confirmation, undo and delete-to-trash remain unverified** (`ROADMAP.md` P0 #1) |
 | Gradle build files / dependency versions | **Configured and locally verified**: `:app:assembleDebug` and `:app:lintDebug` pass with Android API 35; two non-blocking lint warnings remain for the intentionally declared `MANAGE_EXTERNAL_STORAGE` permission and the adaptive-icon qualifier |
@@ -15,7 +15,7 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 ## What the MVP does (spec phases 1 and 3)
 
-Tools: `file.list`, `file.search`, `file.search_content`, `file.stat`, `file.hash`, `file.read`, `file.write`, `file.append`, `file.mkdir`, `file.copy`, `file.move`, `file.rename`, `file.delete` (to a restorable trash), `file.compress`, `file.extract`, `media.probe`, `media.convert`, `media.extract_audio`, `system.storage`, plus `agent.ask_user`.
+Tools: `file.list`, `file.search`, `file.search_content`, `file.stat`, `file.hash`, `file.read`, `file.write`, `file.append`, `file.mkdir`, `file.copy`, `file.move`, `file.move_matching`, `file.rename`, `file.delete` (to a restorable trash), `file.compress`, `file.extract`, `media.probe`, `media.convert`, `media.extract_audio`, `system.storage`, plus `agent.ask_user`.
 
 The loop for every model-proposed call:
 

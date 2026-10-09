@@ -35,6 +35,7 @@ class VerifierRegistry(verifiers: Map<String, Verifier> = emptyMap()) {
                 "file.write" to WriteVerifier(),
                 "file.append" to WriteVerifier(),
                 "file.move" to MoveVerifier(),
+                "file.move_matching" to BatchMoveVerifier(),
                 "file.rename" to MoveVerifier(),
                 "file.delete" to DeleteVerifier(),
             ),
@@ -137,6 +138,29 @@ class MoveVerifier : Verifier {
         if (failures.isEmpty()) {
             if (files != plan.fileCount || bytes != plan.bytes) failures += "expected ${plan.fileCount} file(s)/${plan.bytes} bytes at destination, found $files/$bytes"
             else checks += "contents intact ($files file(s), $bytes bytes)"
+        }
+        return VerificationResult.of(checks, failures)
+    }
+}
+
+class BatchMoveVerifier : Verifier {
+    override suspend fun verify(call: ToolCall, plan: Plan, result: ToolResult, ctx: ToolContext): VerificationResult {
+        val checks = ArrayList<String>(); val failures = ArrayList<String>()
+        if (plan.reads.size != plan.writes.size) return VerificationResult.of(emptyList(), listOf("incomplete batch move plan"))
+        var bytes = 0L
+        plan.reads.zip(plan.writes).forEach { (source, destination) ->
+            val sourceInfo = safely(failures, "stat $source") { ctx.fs.stat(source) }
+            if (sourceInfo != null) failures += "source still exists: $source" else if (failures.isEmpty()) checks += "source moved: $source"
+            val destinationInfo = safely(failures, "stat $destination") { ctx.fs.stat(destination) }
+            if (destinationInfo == null) {
+                if (failures.isEmpty()) failures += "destination missing: $destination"
+            } else if (destinationInfo.isDirectory) failures += "destination is a directory: $destination"
+            else bytes += destinationInfo.size
+        }
+        if (failures.isEmpty()) {
+            if (plan.reads.size != plan.fileCount) failures += "expected ${plan.fileCount} files, checked ${plan.reads.size}"
+            else if (bytes != plan.bytes) failures += "expected ${plan.bytes} bytes, found $bytes"
+            else checks += "all ${plan.fileCount} file(s) moved with matching sizes"
         }
         return VerificationResult.of(checks, failures)
     }

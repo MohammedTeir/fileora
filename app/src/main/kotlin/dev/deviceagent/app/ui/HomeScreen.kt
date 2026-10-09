@@ -133,7 +133,9 @@ internal fun HomeScreen(
                     statusTitle(o.status),
                     statusExplanation(o.status),
                 ) {
-                    o.modelMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    if (o.status == dev.deviceagent.core.agent.TaskStatus.BLOCKED && o.stoppedReason != null) {
+                        Text("I stopped before finishing because this task reached its safety limit. Changes already made can still be undone.", style = MaterialTheme.typography.bodyMedium)
+                    }
                     if (o.unverifiedChanges > 0) Text("${o.unverifiedChanges} change(s) couldn't be double-checked automatically.", style = MaterialTheme.typography.bodyMedium)
                     if (o.providerError != null) Text(providerProblem(o.providerError), style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -141,9 +143,12 @@ internal fun HomeScreen(
                         Button(onClick = vm::clearOutcome) { Text("Done") }
                     }
                     val report = friendlyReport(o.report)
-                    if (report.isNotBlank() || s.usageSummary.isNotEmpty()) {
+                    if (report.isNotBlank() || o.modelMessage != null || s.usageSummary.isNotEmpty()) {
                         Expandable("Show details") {
                             if (report.isNotBlank()) Text(report, style = MaterialTheme.typography.bodySmall)
+                            o.modelMessage?.takeIf { it.isNotBlank() }?.let {
+                                Text("Assistant note\n${it.take(1200)}${if (it.length > 1200) "…" else ""}", style = MaterialTheme.typography.bodySmall)
+                            }
                             if (s.usageSummary.isNotEmpty()) Text(s.usageSummary, style = MaterialTheme.typography.bodySmall)
                         }
                     }

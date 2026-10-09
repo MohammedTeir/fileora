@@ -49,7 +49,7 @@ fun statusExplanation(status: TaskStatus): String = when (status) {
     TaskStatus.WAITING_FOR_USER -> "I stopped because a decision is yours to make."
     TaskStatus.WAITING_FOR_PERMISSION -> "Android needs your permission before I can continue."
     TaskStatus.WAITING_FOR_RESOURCE -> "Something I need (like storage or a connection) isn't available right now."
-    TaskStatus.BLOCKED -> "Something stopped me. Details are below."
+    TaskStatus.BLOCKED -> "I stopped before finishing to stay within the task limits. Details are below."
     TaskStatus.UNSAFE_TO_CONTINUE -> "Continuing could have damaged something, so I stopped."
     TaskStatus.FAILED_AFTER_INVESTIGATION -> "I tried, but couldn't finish. Details are below."
     TaskStatus.CANCELLED -> "You stopped this task."

@@ -17,6 +17,7 @@ import dev.deviceagent.core.tools.file.FileHashTool
 import dev.deviceagent.core.tools.file.FileListTool
 import dev.deviceagent.core.tools.file.FileMkdirTool
 import dev.deviceagent.core.tools.file.FileMoveTool
+import dev.deviceagent.core.tools.file.FileMoveMatchingTool
 import dev.deviceagent.core.tools.file.FileReadTool
 import dev.deviceagent.core.tools.file.FileExtractTool
 import dev.deviceagent.core.tools.file.FileRenameTool
@@ -63,7 +64,7 @@ class SystemStorageTool : Tool {
 object DefaultTools {
     fun all(): List<Tool> = listOf(
         FileListTool(), FileSearchTool(), FileStatTool(), FileHashTool(), FileReadTool(),
-        FileMkdirTool(), FileCopyTool(), FileWriteTool(), FileAppendTool(), FileMoveTool(), FileRenameTool(), FileDeleteTool(),
+        FileMkdirTool(), FileCopyTool(), FileWriteTool(), FileAppendTool(), FileMoveTool(), FileMoveMatchingTool(), FileRenameTool(), FileDeleteTool(),
         FileCompressTool(), FileExtractTool(), FileContentSearchTool(), MediaProbeTool(), MediaConvertTool(), MediaExtractAudioTool(),
         SystemStorageTool(),
     )

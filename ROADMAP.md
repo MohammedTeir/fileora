@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-09)
 
-- `agent-core` (pure Kotlin/JVM): 99 tests pass (`./gradlew :agent-core:check`); app UX helpers have 6 passing JVM tests.
+- `agent-core` (pure Kotlin/JVM): 100 tests pass (`./gradlew :agent-core:check`); app UX helpers have 6 passing JVM tests.
 - `app` (Compose + SAF + Keystore): existing SAF build was reported running on a real device (Redmi Note 8 Pro); the reworked UX and All Files Access flow remain unverified on-device.
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -29,7 +29,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | 1 | Verify real run on device | With dry run off: create folder + move shows a confirmation with the full real paths; result says "2 changes completed and verified"; Undo restores the file; delete always asks and lands in `.agent_trash` (restorable). Fix anything that fails. |
 | 2 | `PLAN_ONLY` status — **done in code, not yet run** | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
 | 3 | Exact tool list in system prompt — **done in code, not yet run** | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
-| 4 | Reduce request count — **prompt batching guidance + tests added; real request count on device not yet measured** | Dry run of "create folder and move file" took 7 AI requests / 10.7K tokens. Find why (log requests), aim for 3 or fewer. Add a test with a fake provider that counts calls. |
+| 4 | Reduce request count — **batch move implemented; real request count on device not yet measured** | Prompt batching guidance and a `file.move_matching` operation now move matching files (for example all PDFs) in one verified call instead of one model turn per file. Core coverage includes the batch operation; measure the real request count on device. |
 | 5 | Green CI/release — **workflow hardening implemented; GitHub run and signing verification remain** | CI/release workflows now pin actions to immutable SHAs and run core tests, Android builds, signature checks, and checksums. Run them on GitHub with Android SDK/signing secrets, then tag `v0.1.0`; the sandbox cannot perform this external verification. |
 
 ## P1: make it usable
@@ -37,7 +37,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 | # | Task | Acceptance criteria |
 |---|---|---|
 | 6 | `file.read` tool — **done in code, not yet run** | Read text files with a size cap (for example 100 KB) and encoding detection; binary refused; result wrapped as `untrusted_data`; risk level READ; tests including a file containing injection text ("ignore previous instructions"). |
-| 7 | `file.write` / `file.append` — **done** | Creates or edits bounded UTF-8 text files (100 KiB cap). Moderate-risk writes require confirmation, old versions are saved for undo, and the verifier checks the resulting size and SHA-256. JVM and SAF implementations are covered by core tests where possible. |
+| 7 | `file.write` / `file.append` / batch move — **done in core** | Creates or edits bounded UTF-8 text files (100 KiB cap), and `file.move_matching` moves matching files in one moderate-risk, verified, undoable operation. Moderate-risk changes require confirmation. |
 | 8 | Persistent history (Room) — **done** | `RoomAuditLog` persists redacted audit entries, `RoomUndoStore` persists move/delete/restore actions, the app shows recent history, and the latest persisted task remains undoable after process restart. |
 | 9 | Background execution — **implemented; device verification remains** | Foreground service owns the run with a notification, cancellation, confirmation actions, progress broadcasts, and result delivery to the UI. A delayed unique WorkManager watchdog relaunches a checkpointed task only after the service process has died. |
 | 10 | Checkpoint and resume — **implemented; device validation remains** | The service persists task inputs, provider-neutral messages, and latest progress after each tool-result turn; Resume restores the conversation and Discard clears it. |
