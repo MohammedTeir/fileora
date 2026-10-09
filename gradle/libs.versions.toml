@@ -1,7 +1,7 @@
 # Versions are pinned for reproducible CI resolution. Review them through Dependabot and
 # validate Android changes on GitHub's Android-enabled runners before upgrading the release line.
 [versions]
-kotlin = "2.0.21"
+kotlin = "2.4.20"
 agp = "8.7.3"
 coroutines = "1.9.0"
 serializationJson = "1.7.3"
