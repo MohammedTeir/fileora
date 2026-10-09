@@ -1,4 +1,4 @@
-# Android AI Device Agent — Full Product Specification (v4, Cloud AI only)
+# Fileora — Android AI file assistant — Full Product Specification (v4, Cloud AI only)
 
 ## 1. Vision
 

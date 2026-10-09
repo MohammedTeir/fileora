@@ -1,4 +1,4 @@
-# Device Agent
+# Fileora
 
 An Android AI agent that operates the device through **typed, policy-checked, verified tools**. You describe a goal; the agent inspects, plans, acts, checks the real result, and recovers from failures within strict limits. Cloud AI only (Gemini first, bring-your-own API key). Spec: [`docs/SPEC.md`](docs/SPEC.md).
 

@@ -298,7 +298,7 @@ private fun AboutCard() {
     val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
     AppCard {
         CardTitle("About")
-        Text("Device Agent${if (version.isNotBlank()) " · version $version" else ""}", style = MaterialTheme.typography.bodyMedium)
+        Text("Fileora${if (version.isNotBlank()) " · version $version" else ""}", style = MaterialTheme.typography.bodyMedium)
         Hint("Your key and your history stay on this phone. Only your request and file names (and file contents, if you allow it) are sent to the AI service you chose.")
     }
 }

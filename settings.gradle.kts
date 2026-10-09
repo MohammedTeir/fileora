@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "device-agent"
+rootProject.name = "Fileora"
 include(":agent-core", ":app")

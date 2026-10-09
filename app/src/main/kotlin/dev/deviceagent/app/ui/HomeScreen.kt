@@ -81,7 +81,7 @@ internal fun HomeScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { ScreenTitle("Device Agent", "Tell me what to do with your files. I'll ask before I change anything.") }
+        item { ScreenTitle("Fileora", "Tell me what to do with your files. I'll ask before I change anything.") }
 
         if (!s.notificationsEnabled) item {
             Banner(
