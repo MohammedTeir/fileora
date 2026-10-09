@@ -70,4 +70,10 @@ class FriendlyTests {
             formatAssistantNote("**Duplicate files**\n- `archive.zip`\n- `backup.zip`"),
         )
     }
+
+    @Test
+    fun progressDoesNotExposeInternalTaskIds() {
+        assertEquals("Task started", cleanProgress("Task task-694a99a6 started"))
+        assertEquals("Task finished", cleanProgress("Task task-694a99a6 finished: SUCCESS"))
+    }
 }

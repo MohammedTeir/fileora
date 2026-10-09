@@ -104,7 +104,7 @@ class AgentEngine(
         }
         config.onCheckpoint?.invoke(messages.toList())
         audit.record(taskId, "task_start", jsonObjectOf("goal" to goal, "model" to config.model, "dry_run" to config.dryRun, "mode" to policy.config.mode.name))
-        log("Task $taskId started")
+        log("Task started")
 
         var finalText: String? = null
         var stopped: String? = null
@@ -162,7 +162,7 @@ class AgentEngine(
         val status = determineStatus(run, stopped, providerError, config.dryRun)
         val report = buildReport(run, status, stopped, providerError)
         audit.record(taskId, "task_end", jsonObjectOf("status" to status.name, "failures" to run.failures, "tool_calls" to run.toolCalls))
-        log("Task $taskId finished: $status")
+        log("Task finished")
         return TaskOutcome(
             taskId = taskId, status = status, modelMessage = finalText?.takeIf { it.isNotBlank() }, report = report,
             steps = run.steps, inputTokens = run.inputTokens, outputTokens = run.outputTokens,

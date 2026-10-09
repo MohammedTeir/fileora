@@ -74,6 +74,7 @@ fun formatAssistantNote(note: String): String {
     text = text.replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
     text = text.replace(Regex("__(.*?)__"), "$1")
     text = text.replace(Regex("(?m)^\\s*[-*+]\\s+"), "• ")
+    text = text.replace(Regex("(?m)^\\s*•\\s*$"), "")
     text = text.replace(Regex("(?m)^\\s*#{1,6}\\s+"), "")
     text = text.replace(Regex("\\[([^]]+)]\\([^)]*\\)"), "$1")
     return text.lines()
@@ -182,7 +183,12 @@ fun providerName(p: ProviderChoice): String = when (p) {
     ProviderChoice.CLAUDE -> "Anthropic Claude"
 }
 
-fun cleanProgress(line: String): String = line.trim().removePrefix("•").trim().take(140)
+fun cleanProgress(line: String): String {
+    val clean = line.trim()
+        .replace(Regex("^Task task-[A-Za-z0-9-]+ started$"), "Task started")
+        .replace(Regex("^Task task-[A-Za-z0-9-]+ finished(?::.*)?$"), "Task finished")
+    return clean.removePrefix("•").trim().take(140)
+}
 
 // ───────── setup ─────────
 

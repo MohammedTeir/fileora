@@ -145,11 +145,14 @@ internal fun HomeScreen(
                     }
                     val report = friendlyReport(o.report)
                     if (report.isNotBlank() || o.modelMessage != null || s.usageSummary.isNotEmpty()) {
-                        Expandable("Show details") {
+                        Expandable("View summary") {
                             if (report.isNotBlank()) Text(report, style = MaterialTheme.typography.bodySmall)
                             o.modelMessage?.takeIf { it.isNotBlank() }?.let {
                                 val note = formatAssistantNote(it)
-                                if (note.isNotBlank()) Text("Assistant note\n${note.take(1200)}${if (note.length > 1200) "…" else ""}", style = MaterialTheme.typography.bodySmall)
+                                if (note.isNotBlank()) {
+                                    Text("AI summary", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                                    Text(note, maxLines = 14, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                             if (s.usageSummary.isNotEmpty()) Text(s.usageSummary, style = MaterialTheme.typography.bodySmall)
                         }
