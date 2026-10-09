@@ -24,6 +24,7 @@ data class ScheduledTask(
     val provider: String = ProviderChoice.GEMINI.name,
     val automaticModelRouting: Boolean = false,
     val recoveryModel: String? = null,
+    val useAllFilesAccess: Boolean = false,
 )
 
 object ScheduledTasks {
@@ -38,11 +39,12 @@ object ScheduledTasks {
     private const val KEY_PROVIDER = "provider"
     private const val KEY_AUTOMATIC_MODEL_ROUTING = "automatic_model_routing"
     private const val KEY_RECOVERY_MODEL = "recovery_model"
+    private const val KEY_USE_ALL_FILES_ACCESS = "use_all_files_access"
 
     fun schedule(context: Context, task: ScheduledTask) {
         require(task.id.matches(Regex("[A-Za-z0-9_-]{1,80}"))) { "Invalid scheduled task id" }
         require(task.goal.isNotBlank() && task.model.isNotBlank()) { "Scheduled task goal and model are required" }
-        require(task.rootNames.size == task.rootUris.size && task.rootNames.isNotEmpty()) { "Scheduled tasks need matching approved roots" }
+        require(task.rootNames.size == task.rootUris.size && (task.useAllFilesAccess || task.rootNames.isNotEmpty())) { "Scheduled tasks need matching approved roots or All Files Access" }
         require(task.intervalHours >= 1) { "Scheduled task interval must be at least one hour" }
         val input = Data.Builder()
             .putString(KEY_GOAL, task.goal)
@@ -56,6 +58,7 @@ object ScheduledTasks {
             .putString(KEY_PROVIDER, task.provider)
             .putBoolean(KEY_AUTOMATIC_MODEL_ROUTING, task.automaticModelRouting)
             .putString(KEY_RECOVERY_MODEL, task.recoveryModel)
+            .putBoolean(KEY_USE_ALL_FILES_ACCESS, task.useAllFilesAccess)
             .build()
         val request = PeriodicWorkRequestBuilder<ScheduledTaskWorker>(task.intervalHours, TimeUnit.HOURS)
             .setInputData(input)
@@ -72,8 +75,8 @@ object ScheduledTasks {
     fun list(context: Context): List<ScheduledTask> = AgentDatabase.get(context).scheduledTaskDao().all().map { it.toTask() }
 
     private const val SEPARATOR = "\u001f"
-    private fun ScheduledTask.toEntity() = ScheduledTaskEntity(id, goal, model, rootNames.joinToString(SEPARATOR), rootUris.joinToString(SEPARATOR), intervalHours, sendContents, dryRun, manual, provider, automaticModelRouting, recoveryModel)
-    private fun ScheduledTaskEntity.toTask() = ScheduledTask(id, goal, model, rootNames.split(SEPARATOR).filter(String::isNotEmpty), rootUris.split(SEPARATOR).filter(String::isNotEmpty), intervalHours, sendContents, dryRun, manual, provider, automaticModelRouting, recoveryModel)
+    private fun ScheduledTask.toEntity() = ScheduledTaskEntity(id, goal, model, rootNames.joinToString(SEPARATOR), rootUris.joinToString(SEPARATOR), intervalHours, sendContents, dryRun, manual, provider, automaticModelRouting, recoveryModel, useAllFilesAccess)
+    private fun ScheduledTaskEntity.toTask() = ScheduledTask(id, goal, model, rootNames.split(SEPARATOR).filter(String::isNotEmpty), rootUris.split(SEPARATOR).filter(String::isNotEmpty), intervalHours, sendContents, dryRun, manual, provider, automaticModelRouting, recoveryModel, useAllFilesAccess)
 }
 
 class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
@@ -83,7 +86,8 @@ class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : Corou
         val provider = inputData.getString("provider") ?: ProviderChoice.GEMINI.name
         val names = inputData.getStringArray("root_names")?.toList().orEmpty()
         val uris = inputData.getStringArray("root_uris")?.toList().orEmpty()
-        if (names.isEmpty() || names.size != uris.size) return Result.failure()
+        val useAllFilesAccess = inputData.getBoolean("use_all_files_access", false)
+        if ((!useAllFilesAccess && names.isEmpty()) || names.size != uris.size) return Result.failure()
         val intent = AgentTaskService.createStartIntent(
             applicationContext,
             goal = goal,
@@ -96,6 +100,7 @@ class ScheduledTaskWorker(appContext: Context, params: WorkerParameters) : Corou
             recoveryModel = inputData.getString("recovery_model"),
             rootNames = names,
             rootUris = uris,
+            useAllFilesAccess = useAllFilesAccess,
         )
         return try {
             ContextCompat.startForegroundService(applicationContext, intent)

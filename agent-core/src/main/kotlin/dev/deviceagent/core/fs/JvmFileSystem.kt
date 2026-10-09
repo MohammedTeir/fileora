@@ -18,11 +18,15 @@ import java.security.MessageDigest
 /**
  * [FileSystem] on java.nio. Every path is checked against the sandbox roots after resolving
  * symlinks, so `..` tricks and symlinks that point outside the roots are rejected.
- * Used by the unit tests and usable on Android for app-private storage.
+ * Used by the unit tests and usable on Android for direct-path storage. Optional [blockedPaths]
+ * add protected subtrees that remain inaccessible even when they sit inside a granted root.
  */
-class JvmFileSystem(rootPaths: List<String>) : FileSystem {
+class JvmFileSystem(rootPaths: List<String>, blockedPaths: List<String> = emptyList()) : FileSystem {
     private val realRoots: List<Path> = rootPaths.map { Paths.get(it).toRealPath() }
+    private val blockedRoots: List<Path> = blockedPaths.map { Paths.get(it).toAbsolutePath().normalize() }
     override val roots: List<String> = realRoots.map { it.toString() }
+
+    private fun isBlocked(path: Path): Boolean = blockedRoots.any { path.toAbsolutePath().normalize().startsWith(it) }
 
     private fun guard(path: String): Path {
         val p = try { Paths.get(path) } catch (e: InvalidPathException) {
@@ -30,6 +34,7 @@ class JvmFileSystem(rootPaths: List<String>) : FileSystem {
         }
         if (!p.isAbsolute) throw FsException(ErrorKind.INVALID_ARGUMENTS, "Path must be absolute", path)
         val n = p.normalize()
+        if (isBlocked(n)) throw FsException(ErrorKind.OUTSIDE_SANDBOX, "Path is protected and cannot be accessed", path)
         // Resolve symlinks on the deepest entry that exists, then re-append the missing tail.
         var existing: Path = n
         val tail = ArrayList<Path>()
@@ -45,6 +50,7 @@ class JvmFileSystem(rootPaths: List<String>) : FileSystem {
         if (realRoots.none { resolved.startsWith(it) }) {
             throw FsException(ErrorKind.OUTSIDE_SANDBOX, "Path is outside the accessible folders", path)
         }
+        if (isBlocked(resolved)) throw FsException(ErrorKind.OUTSIDE_SANDBOX, "Path is protected and cannot be accessed", path)
         return n
     }
 
@@ -108,7 +114,7 @@ class JvmFileSystem(rootPaths: List<String>) : FileSystem {
         return io(path) {
             if (!Files.exists(p)) throw NoSuchFileException(path)
             if (!Files.isDirectory(p)) throw FsException(ErrorKind.INVALID_ARGUMENTS, "Not a directory", path)
-            Files.newDirectoryStream(p).use { ds -> ds.map { info(it) } }.sortedBy { it.name.lowercase() }
+            Files.newDirectoryStream(p).use { ds -> ds.filterNot { isBlocked(it) }.map { info(it) } }.sortedBy { it.name.lowercase() }
         }
     }
 

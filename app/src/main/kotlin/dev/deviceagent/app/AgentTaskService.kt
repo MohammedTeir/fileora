@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit
 import dev.deviceagent.core.agent.AgentConfig
 import dev.deviceagent.core.agent.AgentEngine
 import dev.deviceagent.core.agent.PrivacyMode
+import dev.deviceagent.core.agent.TaskStatus
 import dev.deviceagent.core.ai.ResilientProvider
 import dev.deviceagent.core.ai.UsageTracker
 import dev.deviceagent.core.ai.gemini.GeminiProvider
@@ -29,6 +30,7 @@ import dev.deviceagent.core.policy.PolicyConfig
 import dev.deviceagent.core.policy.PolicyEngine
 import dev.deviceagent.core.policy.UserChannel
 import dev.deviceagent.core.security.Redactor
+import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.tools.ToolRegistry
 import dev.deviceagent.core.tools.system.DefaultTools
 import kotlinx.coroutines.CompletableDeferred
@@ -90,10 +92,30 @@ class AgentTaskService : Service() {
         }
         val apiKey = KeystoreSecretStore(this).get(keyName).orEmpty()
         if (apiKey.isNotBlank()) redactor.addSecret(apiKey)
+        val useAllFilesAccess = intent.getBooleanExtra(EXTRA_USE_ALL_FILES_ACCESS, false)
         val roots = intent.getStringArrayListExtra(EXTRA_ROOT_NAMES).orEmpty()
             .zip(intent.getStringArrayListExtra(EXTRA_ROOT_URIS).orEmpty())
             .map { SafRoot(it.first, android.net.Uri.parse(it.second)) }
-        val fs = SafFileSystem(this, roots)
+        val fs: FileSystem = if (useAllFilesAccess) {
+            if (!AllFilesAccess.hasAccess()) {
+                sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
+                    putExtra(EXTRA_STATUS, TaskStatus.WAITING_FOR_PERMISSION.name)
+                    putExtra(EXTRA_REPORT, "All Files Access is required but is no longer granted. No SAF fallback was used. Grant it in Android settings, then tap Resume, or discard this task.")
+                    putExtra(EXTRA_TASK_ID, taskId)
+                    putExtra(EXTRA_CAN_UNDO, false)
+                    putExtra(EXTRA_USE_ALL_FILES_ACCESS, true)
+                    putExtra(EXTRA_CHECKPOINT_RETAINED, true)
+                })
+                updateNotification("All Files Access is required; resume after granting it", confirmation = false, ongoing = false)
+                cancelRecovery()
+                currentTaskId = null
+                stopSelf()
+                return
+            }
+            AllFilesAccess.createFileSystem(this)
+        } else {
+            SafFileSystem(this, roots)
+        }
         val undoManager = UndoManager(RoomUndoStore(AgentDatabase.get(this).undoDao()))
         val audit = RoomAuditLog(AgentDatabase.get(this).auditDao(), redactor)
         val channel = object : UserChannel {
@@ -136,11 +158,16 @@ class AgentTaskService : Service() {
                     dryRun = intent.getBooleanExtra(EXTRA_DRY_RUN, false),
                     automaticModelRouting = intent.getBooleanExtra(EXTRA_AUTOMATIC_MODEL_ROUTING, false),
                     recoveryModel = intent.getStringExtra(EXTRA_RECOVERY_MODEL),
-                    mediaBackend = SafMediaBackend(this@AgentTaskService, fs),
+                    mediaBackend = (fs as? SafFileSystem)?.let { SafMediaBackend(this@AgentTaskService, it) },
                     initialMessages = ConversationCheckpointCodec.decode(intent.getStringExtra(EXTRA_MESSAGES)),
                     onCheckpoint = { messages -> saveConversationCheckpoint(ConversationCheckpointCodec.encode(messages)) },
                 ),
             )
+            if (outcome.canUndo) {
+                getSharedPreferences("agent", MODE_PRIVATE).edit()
+                    .putBoolean("undo_all_files_${outcome.taskId}", useAllFilesAccess)
+                    .apply()
+            }
             sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
                 putExtra(EXTRA_STATUS, outcome.status.name)
                 putExtra(EXTRA_REPORT, outcome.report)
@@ -155,15 +182,20 @@ class AgentTaskService : Service() {
                 putExtra(EXTRA_UNVERIFIED, outcome.unverifiedChanges)
                 putExtra(EXTRA_STOPPED_REASON, outcome.stoppedReason)
                 putExtra(EXTRA_PROVIDER_ERROR, outcome.providerError)
+                putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             })
             updateNotification("Task finished: ${outcome.status.name}", confirmation = false, ongoing = false)
         } catch (_: CancellationException) {
-            sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).putExtra(EXTRA_STATUS, "CANCELLED"))
+            sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
+                putExtra(EXTRA_STATUS, "CANCELLED")
+                putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
+            })
             updateNotification("Task cancelled", confirmation = false, ongoing = false)
         } catch (e: Exception) {
             sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
                 putExtra(EXTRA_STATUS, "FAILED_AFTER_INVESTIGATION")
                 putExtra(EXTRA_REPORT, redactor.redact(e.message ?: e.javaClass.simpleName))
+                putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             })
             updateNotification("Task stopped: ${redactor.redact(e.message ?: e.javaClass.simpleName)}", confirmation = false, ongoing = false)
         } finally {
@@ -230,6 +262,7 @@ class AgentTaskService : Service() {
             .putBoolean(KEY_DRY_RUN, intent.getBooleanExtra(EXTRA_DRY_RUN, false))
             .putBoolean(KEY_MANUAL, intent.getBooleanExtra(EXTRA_MANUAL, false))
             .putBoolean(KEY_SEND_CONTENTS, intent.getBooleanExtra(EXTRA_SEND_CONTENTS, false))
+            .putBoolean(KEY_USE_ALL_FILES_ACCESS, intent.getBooleanExtra(EXTRA_USE_ALL_FILES_ACCESS, false))
             .putString(KEY_ROOT_NAMES, intent.getStringArrayListExtra(EXTRA_ROOT_NAMES).orEmpty().joinToString(ROOT_SEPARATOR))
             .putString(KEY_ROOT_URIS, intent.getStringArrayListExtra(EXTRA_ROOT_URIS).orEmpty().joinToString(ROOT_SEPARATOR))
             .putString(KEY_MESSAGES, intent.getStringExtra(EXTRA_MESSAGES).orEmpty())
@@ -275,6 +308,8 @@ class AgentTaskService : Service() {
         const val EXTRA_MESSAGES = "messages"
         const val EXTRA_ROOT_NAMES = "root_names"
         const val EXTRA_ROOT_URIS = "root_uris"
+        const val EXTRA_USE_ALL_FILES_ACCESS = "use_all_files_access"
+        const val EXTRA_CHECKPOINT_RETAINED = "checkpoint_retained"
         const val EXTRA_STATUS = "status"
         const val EXTRA_REPORT = "report"
         const val EXTRA_TASK_ID = "task_id"
@@ -304,6 +339,7 @@ class AgentTaskService : Service() {
         private const val KEY_DRY_RUN = "dry_run"
         private const val KEY_MANUAL = "manual"
         private const val KEY_SEND_CONTENTS = "send_contents"
+        private const val KEY_USE_ALL_FILES_ACCESS = "use_all_files_access"
         private const val KEY_ROOT_NAMES = "root_names"
         private const val KEY_ROOT_URIS = "root_uris"
         private const val KEY_MESSAGES = "messages"
@@ -324,6 +360,7 @@ class AgentTaskService : Service() {
             sendContents: Boolean,
             rootNames: List<String>,
             rootUris: List<String>,
+            useAllFilesAccess: Boolean = false,
         ): Intent = Intent(context, AgentTaskService::class.java).apply {
             action = ACTION_START
             putExtra(EXTRA_GOAL, goal)
@@ -334,6 +371,7 @@ class AgentTaskService : Service() {
             putExtra(EXTRA_DRY_RUN, dryRun)
             putExtra(EXTRA_MANUAL, manual)
             putExtra(EXTRA_SEND_CONTENTS, sendContents)
+            putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             putStringArrayListExtra(EXTRA_ROOT_NAMES, ArrayList(rootNames))
             putStringArrayListExtra(EXTRA_ROOT_URIS, ArrayList(rootUris))
         }
@@ -358,6 +396,7 @@ class AgentTaskService : Service() {
                 putExtra(EXTRA_DRY_RUN, p.getBoolean(KEY_DRY_RUN, false))
                 putExtra(EXTRA_MANUAL, p.getBoolean(KEY_MANUAL, false))
                 putExtra(EXTRA_SEND_CONTENTS, p.getBoolean(KEY_SEND_CONTENTS, false))
+                putExtra(EXTRA_USE_ALL_FILES_ACCESS, p.getBoolean(KEY_USE_ALL_FILES_ACCESS, false))
                 putExtra(EXTRA_MESSAGES, p.getString(KEY_MESSAGES, ""))
                 putStringArrayListExtra(EXTRA_ROOT_NAMES, ArrayList(p.getString(KEY_ROOT_NAMES, "").orEmpty().split(ROOT_SEPARATOR).filter(String::isNotEmpty)))
                 putStringArrayListExtra(EXTRA_ROOT_URIS, ArrayList(p.getString(KEY_ROOT_URIS, "").orEmpty().split(ROOT_SEPARATOR).filter(String::isNotEmpty)))

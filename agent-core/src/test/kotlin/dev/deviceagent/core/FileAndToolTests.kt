@@ -2,6 +2,7 @@ package dev.deviceagent.core
 
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
+import dev.deviceagent.core.fs.JvmFileSystem
 import dev.deviceagent.core.agent.PrivacyMode
 import dev.deviceagent.core.history.UndoManager
 import dev.deviceagent.core.tools.ErrorKind
@@ -72,6 +73,30 @@ fun registerFileAndToolTests() {
             expectFs(ErrorKind.OUTSIDE_SANDBOX) { f.fs.sha256(f.p("link/secret.txt")) }
             expectFs(ErrorKind.OUTSIDE_SANDBOX) { f.fs.copyFile(f.p("link/secret.txt"), f.p("stolen.txt")) }
             check(!f.exists("stolen.txt")) { "file escaped the sandbox" }
+        }
+    }
+
+    test("sandbox: blocked subtrees are hidden and denied through direct and symlink paths") {
+        val base = Files.createTempDirectory("protected-storage").toRealPath()
+        try {
+            val shared = Files.createDirectories(base.resolve("shared"))
+            val android = Files.createDirectories(shared.resolve("Android"))
+            val data = Files.createDirectories(android.resolve("data"))
+            val obb = Files.createDirectories(android.resolve("obb"))
+            val secret = Files.writeString(data.resolve("private.txt"), "private")
+            Files.writeString(obb.resolve("payload.bin"), "payload")
+            Files.createSymbolicLink(shared.resolve("data-alias"), data)
+            val fs = JvmFileSystem(
+                listOf(shared.toString()),
+                blockedPaths = listOf(data.toString(), obb.toString()),
+            )
+
+            eq(emptyList<String>(), fs.list(android.toString()).map { it.name }, "protected children hidden")
+            expectFs(ErrorKind.OUTSIDE_SANDBOX) { fs.stat(secret.toString()) }
+            expectFs(ErrorKind.OUTSIDE_SANDBOX) { fs.readBytes(secret.toString(), 100) }
+            expectFs(ErrorKind.OUTSIDE_SANDBOX) { fs.stat(shared.resolve("data-alias/private.txt").toString()) }
+        } finally {
+            base.toFile().deleteRecursively()
         }
     }
 

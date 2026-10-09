@@ -58,6 +58,9 @@ data class UiState(
     val recoveryModel: String = "",
     val availableModels: List<String> = emptyList(),
     val roots: List<RootUi> = emptyList(),
+    val allFilesAccessSupported: Boolean = false,
+    val allFilesAccessGranted: Boolean = false,
+    val useAllFilesAccess: Boolean = false,
     val goal: String = "",
     val dryRun: Boolean = false,
     val manualMode: Boolean = false,
@@ -90,7 +93,6 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     private var pendingConfirm: CompletableDeferred<ConfirmationResponse>? = null
     private var pendingAnswer: CompletableDeferred<String?>? = null
-    private var lastTaskFs: SafFileSystem? = null
     private val taskReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AgentTaskService.ACTION_PROGRESS) {
@@ -101,11 +103,16 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             if (intent.action != AgentTaskService.ACTION_RESULT) return
             val status = intent.getStringExtra(AgentTaskService.EXTRA_STATUS).orEmpty()
             val report = intent.getStringExtra(AgentTaskService.EXTRA_REPORT).orEmpty()
+            val resultTaskId = intent.getStringExtra(AgentTaskService.EXTRA_TASK_ID).orEmpty()
+            if (resultTaskId.isNotBlank() && intent.getBooleanExtra(AgentTaskService.EXTRA_CAN_UNDO, false) && intent.hasExtra(AgentTaskService.EXTRA_USE_ALL_FILES_ACCESS)) {
+                prefs.edit().putBoolean(undoFsPreference(resultTaskId), intent.getBooleanExtra(AgentTaskService.EXTRA_USE_ALL_FILES_ACCESS, false)).apply()
+            }
+            val checkpointRetained = intent.getBooleanExtra(AgentTaskService.EXTRA_CHECKPOINT_RETAINED, false)
             _state.update {
                 it.copy(
                     running = false,
-                    checkpointAvailable = false,
-                    checkpointDescription = "",
+                    checkpointAvailable = checkpointRetained,
+                    checkpointDescription = if (checkpointRetained) AgentTaskService.checkpointDescription(context) else "",
                     outcome = TaskOutcome(
                         taskId = intent.getStringExtra(AgentTaskService.EXTRA_TASK_ID).orEmpty(),
                         status = runCatching { TaskStatus.valueOf(status) }.getOrDefault(TaskStatus.FAILED_AFTER_INVESTIGATION),
@@ -146,6 +153,9 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 recoveryModel = prefs.getString(recoveryModelPreference(choice), "") ?: "",
                 sendFileContents = prefs.getBoolean("send_file_contents", false),
                 roots = loadRoots(),
+                allFilesAccessSupported = AllFilesAccess.isSupported(),
+                allFilesAccessGranted = AllFilesAccess.hasAccess(),
+                useAllFilesAccess = prefs.getBoolean(KEY_USE_ALL_FILES_ACCESS, false),
                 checkpointAvailable = AgentTaskService.hasCheckpoint(app),
                 checkpointDescription = if (AgentTaskService.hasCheckpoint(app)) AgentTaskService.checkpointDescription(app) else "",
             )
@@ -263,12 +273,40 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putBoolean("send_file_contents", on).apply()
         _state.update { it.copy(sendFileContents = on) }
     }
+
+    fun refreshAllFilesAccessStatus() {
+        _state.update { it.copy(allFilesAccessSupported = AllFilesAccess.isSupported(), allFilesAccessGranted = AllFilesAccess.hasAccess()) }
+    }
+
+    fun setAllFilesAccessMode(on: Boolean) {
+        if (on && !AllFilesAccess.isSupported()) {
+            _state.update { it.copy(notice = "All Files Access requires Android 11 or later. SAF folders remain available.") }
+            return
+        }
+        if (on && !AllFilesAccess.hasAccess()) {
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "Grant All Files Access in Android settings first. SAF folders remain the active storage mode.") }
+            return
+        }
+        prefs.edit().putBoolean(KEY_USE_ALL_FILES_ACCESS, on).apply()
+        _state.update { it.copy(useAllFilesAccess = on, notice = if (on) "All Files Access is enabled for tasks. Android/data and Android/obb remain blocked." else "SAF folder access is active again.") }
+    }
+
+    fun openAllFilesAccessSettings() {
+        if (!AllFilesAccess.openSettings(getApplication())) {
+            _state.update { it.copy(notice = "This Android build could not open All Files Access settings. You can keep using SAF folders.") }
+        }
+    }
+
     fun dismissNotice() = _state.update { it.copy(notice = null) }
 
     fun scheduleCurrent(intervalHours: Long) {
         val s = _state.value
-        if (s.goal.isBlank() || s.model.isBlank() || s.roots.isEmpty()) {
-            _state.update { it.copy(notice = "Set a goal, model, and approved folder before scheduling.") }
+        if (s.goal.isBlank() || s.model.isBlank() || (!s.useAllFilesAccess && s.roots.isEmpty())) {
+            _state.update { it.copy(notice = "Set a goal, model, and approved folder (or enable All Files Access) before scheduling.") }
+            return
+        }
+        if (s.useAllFilesAccess && !AllFilesAccess.hasAccess()) {
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "All Files Access is selected but not granted. Re-enable it in Android settings before scheduling.") }
             return
         }
         if (s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model)) {
@@ -277,7 +315,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name, automaticModelRouting = s.automaticModelRouting, recoveryModel = s.recoveryModel.ifBlank { null })
+                val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name, automaticModelRouting = s.automaticModelRouting, recoveryModel = s.recoveryModel.ifBlank { null }, useAllFilesAccess = s.useAllFilesAccess)
                 ScheduledTasks.schedule(getApplication(), task)
                 _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled every $intervalHours hour(s) in manual mode.") }
             }.onFailure { e -> _state.update { it.copy(notice = e.message ?: "Could not schedule task.") } }
@@ -335,7 +373,9 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your ${s.provider.name.lowercase()} API key first.") }; return }
             s.model.isBlank() -> { _state.update { it.copy(notice = "Choose a model first (tap List models).") }; return }
             s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model) -> { _state.update { it.copy(notice = "Choose a recovery model different from the planning/default model.") }; return }
-            s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use.") }; return }
+            s.useAllFilesAccess && !s.allFilesAccessSupported -> { _state.update { it.copy(notice = "All Files Access requires Android 11 or later. Add a SAF folder instead.") }; return }
+            s.useAllFilesAccess && !AllFilesAccess.hasAccess() -> { _state.update { it.copy(allFilesAccessGranted = false, notice = "All Files Access is selected but not granted. Re-enable it in Android settings or switch back to SAF folders.") }; return }
+            !s.useAllFilesAccess && s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use, or enable All Files Access.") }; return }
             s.goal.isBlank() -> return
         }
         val intent = Intent(getApplication(), AgentTaskService::class.java).apply {
@@ -348,6 +388,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             putExtra(AgentTaskService.EXTRA_DRY_RUN, s.dryRun)
             putExtra(AgentTaskService.EXTRA_MANUAL, s.manualMode)
             putExtra(AgentTaskService.EXTRA_SEND_CONTENTS, s.sendFileContents)
+            putExtra(AgentTaskService.EXTRA_USE_ALL_FILES_ACCESS, s.useAllFilesAccess)
             putStringArrayListExtra(AgentTaskService.EXTRA_ROOT_NAMES, ArrayList(s.roots.map { it.name }))
             putStringArrayListExtra(AgentTaskService.EXTRA_ROOT_URIS, ArrayList(s.roots.map { it.uri }))
         }
@@ -384,16 +425,30 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun undoLastTask() {
         val current = _state.value
         val taskId = current.outcome?.taskId ?: current.restorableUndoTaskId ?: return
-        val fs = lastTaskFs ?: SafFileSystem(getApplication(), current.roots.map { SafRoot(it.name, Uri.parse(it.uri)) })
+        val useAllFilesAccess = prefs.getBoolean(undoFsPreference(taskId), false)
+        if (useAllFilesAccess && !AllFilesAccess.hasAccess()) {
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "Re-enable All Files Access in Android settings before undoing this task.") }
+            return
+        }
+        val app = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {
-            val report = undoManager.undo(taskId, fs)
-            val extra = if (report.notes.isEmpty()) "" else " (" + report.notes.joinToString("; ") + ")"
-            _state.update { it.copy(notice = "Undo: reverted ${report.reverted} change(s)$extra", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
+            runCatching {
+                val fs = if (useAllFilesAccess) AllFilesAccess.createFileSystem(app) else SafFileSystem(app, current.roots.map { SafRoot(it.name, Uri.parse(it.uri)) })
+                undoManager.undo(taskId, fs)
+            }
+                .onSuccess { report ->
+                    val extra = if (report.notes.isEmpty()) "" else " (" + report.notes.joinToString("; ") + ")"
+                    prefs.edit().remove(undoFsPreference(taskId)).apply()
+                    _state.update { it.copy(notice = "Undo: reverted ${report.reverted} change(s)$extra", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
+                }
+                .onFailure { error -> _state.update { it.copy(notice = "Undo failed: ${error.message ?: "storage access is unavailable"}") } }
         }
     }
 
     private companion object {
         const val KEY_NAME = "gemini_api_key"
+        const val KEY_USE_ALL_FILES_ACCESS = "use_all_files_access"
+        private fun undoFsPreference(taskId: String) = "undo_all_files_$taskId"
         fun recoveryModelPreference(provider: ProviderChoice) = "recovery_model_${provider.name.lowercase()}"
         fun secretKey(provider: ProviderChoice) = when (provider) {
             ProviderChoice.GEMINI -> KEY_NAME

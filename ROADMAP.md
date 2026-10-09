@@ -4,7 +4,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 ## Verified state (as of 2026-10-08)
 
-- `agent-core` (pure Kotlin/JVM): 98 tests pass (`./gradlew :agent-core:check`).
+- `agent-core` (pure Kotlin/JVM): 99 tests pass (`./gradlew :agent-core:check`).
 - `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
@@ -48,7 +48,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 | # | Task | Notes |
 |---|---|---|
-| 13 | Optional "All files access" mode | `MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem` behind an explicit opt-in screen. SAF cannot grant the storage root, Download, `Android/data` (Android 11+). Keep the protected-paths denylist and mandatory trash/undo. Not allowed on Play Store, fine for direct distribution. **Do not implement until P0 real-run, confirmation, undo, and delete-to-restorable-trash behavior is verified on a physical device.** |
+| 13 | Optional "All files access" mode — **implemented in code; device validation remains** | Explicit, default-off `MANAGE_EXTERNAL_STORAGE` settings flow; runtime grant checks; direct-path `JvmFileSystem` over Android-reported shared-storage roots; protected `Android/data`/`Android/obb` paths; existing confirmation, trash, and undo; foreground/checkpoint/scheduled propagation and Room migration. SAF remains default. **P0 real-run, confirmation, undo, and delete-to-restorable-trash checks are still unverified on a physical device; complete them before relying on broad access. Google Play requires review and may not approve this app's use case.** |
 | 14 | Archive tools — **implemented in core** | `file.compress` / `file.extract` use bounded ZIP archives, reject zip-slip paths, enforce entry and expanded-size limits, never overwrite, and record undo actions. Device/SAF validation remains. |
 | 15 | Media tools — **partially implemented** | Core `media.probe` / `media.convert` / `media.extract_audio` use an injected backend; `JvmFfmpegBackend` invokes FFmpeg/FFprobe without a shell. Android SAF supports local probe, supported-track MP4 remux, and first-track M4A extraction with platform `MediaExtractor`/`MediaMuxer`. Arbitrary Android FFmpeg conversion requires building FFmpegKitNext from source into an AAR; eight media operations and device validation remain. |
 | 17 | Scheduled tasks — **implemented** | Room-backed schedule definitions, WorkManager periodic scheduling, foreground-service launch, and Compose schedule/cancel controls are implemented. Scheduled runs default to manual mode; physical-device validation remains. |
@@ -70,14 +70,14 @@ Android 11+ (scoped storage) will not let the Storage Access Framework (SAF) pic
 | Option | What it gives | Trade-off |
 |---|---|---|
 | **A. SAF subfolders (current, keep as DEFAULT)** | Safest: the agent sees only folders the user picked | User grants folders one by one |
-| **B. "All files access" (`MANAGE_EXTERNAL_STORAGE`)** | Whole shared storage in one grant | Large blast radius. Play Store restricts it; allowed for direct distribution |
+| **B. "All files access" (`MANAGE_EXTERNAL_STORAGE`)** | Broad shared-storage access on Android-reported mounted volumes | Large blast radius. Google Play requires approval; direct distribution does not imply Play approval |
 | **C. Shizuku or root** | Reaches `Android/data` | Advanced, later phase (P3) |
 
 Rules:
-- A stays the default. B is an optional "full access mode" the user must turn on, with a clear warning screen.
-- B reuses `JvmFileSystem` (normal paths); no core rewrite needed.
-- Under B the sandbox, `PolicyEngine`, protected-paths list, confirmation-before-delete, trash and undo matter MORE, because a prompt-injection attack could reach everything. They must stay mandatory.
-- Do not build B until the agent has been tested on a few folders under A (real run, confirmation, undo, delete-to-trash all verified).
+- A stays the default. B is an optional "full access mode" the user must turn on, with a clear warning and Android special-access grant.
+- B reuses `JvmFileSystem` (normal paths) with an additional protected-subtree denylist; only mounted shared-storage roots reported by Android are included.
+- Under B the sandbox, `PolicyEngine`, protected-paths list, confirmation-before-delete, trash and undo matter MORE, because a prompt-injection attack could reach the shared volumes. They remain mandatory. `Android/data` and `Android/obb` are explicitly blocked.
+- B is implemented in code, but P0 real-run, confirmation, undo, and delete-to-trash remain unverified. Keep it default-off and complete those physical-device checks before relying on broad access.
 
 ## Known weaknesses to fix or watch
 

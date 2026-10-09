@@ -1249,6 +1249,8 @@ Restricted:
 /system
 ```
 
+An optional All Files Access mode may be offered through Android's special app-access settings for users who explicitly need broad shared-storage access. SAF remains the default. The app must check the `MANAGE_EXTERNAL_STORAGE` grant before using direct paths, keep its filesystem sandbox and confirmation/undo protections, and clearly explain the broader scope. Android app-specific paths under `Android/data` and `Android/obb` remain blocked; the agent must never imply that this permission grants root or private app-data access.
+
 The agent should not pretend it can access restricted areas.
 
 ---

@@ -14,8 +14,8 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 
 | Area | State |
 |---|---|
-| Core agent loop, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude providers | Done in core (98 tests pass locally) |
-| Android app: UI, Keystore, SAF, Room history | Written, compiles, runs on Redmi Note 8 Pro |
+| Core agent loop, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude providers | Done in core (99 tests pass locally) |
+| Android app: UI, Keystore, SAF, optional All Files Access, Room history | Existing SAF build runs on Redmi Note 8 Pro; new All Files Access path is not yet device-validated |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
 | Checkpoints | Implemented: exact provider-neutral conversation and latest progress persist after tool-result turns; Resume/Discard implemented. Device validation remains |
@@ -47,7 +47,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 
 ## 3. P2 — More capability (ROADMAP)
 
-- [ ] #13 Optional "All files access" mode (`MANAGE_EXTERNAL_STORAGE` + `JvmFileSystem`) — gated on P0 physical-device verification of real run, confirmation, undo, and delete-to-restorable-trash
+- [~] #13 Optional "All files access" mode — default-off `MANAGE_EXTERNAL_STORAGE` settings flow, permission checks, Android-reported shared-volume `JvmFileSystem`, `Android/data`/`Android/obb` denylist, scheduled-task persistence, and filesystem-matched undo implemented; physical-device validation remains. P0 real-run/confirmation/undo/trash checks are still outstanding.
 - [~] #14 Archive tools — `file.compress` / `file.extract` implemented with ZIP entry/path/expanded-size limits, no-overwrite behavior, undo, and core round-trip/zip-slip tests; Android/SAF validation remains
 - [~] #15 Media tools — core `media.probe` / `media.convert` / `media.extract_audio`, JVM FFmpeg backend, and SAF-local Android probe/MP4 remux/M4A extraction are implemented; full Android FFmpeg, remaining media tools, and device validation remain
 - [~] #16 Search by content — `file.search_content` searches approved roots with binary skipping, bounded reads/results, short untrusted snippets, and names-only privacy blocking; Android/SAF validation remains
@@ -180,4 +180,4 @@ Other groups:
 2. **P0 #5** — run GitHub CI/release with Android SDK and signing secrets; tag only after green verification
 3. **P1 #10** — exact provider conversation/tool-step checkpoint restore
 4. **P1 #9** — physical-device validation of service, notification actions, and WorkManager recovery
-5. Then remaining P2 validation/implementation: #13 All-files access only after the roadmap's SAF/device safety gate; #15 full Android FFmpeg/AAR build, eight remaining media tools, and device validation. #19 is implemented; validate routing on Android/device.
+5. Then remaining P2 validation/implementation: validate #13 on-device, including the still-pending P0 real-run/confirmation/undo/trash gate, before relying on broad access; #15 full Android FFmpeg/AAR build, eight remaining media tools, and device validation. #19 is implemented; validate routing on Android/device.

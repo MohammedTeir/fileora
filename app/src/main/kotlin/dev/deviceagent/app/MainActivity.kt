@@ -46,6 +46,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { MaterialTheme { Screen(vm) } }
     }
+
+    override fun onResume() {
+        super.onResume()
+        vm.refreshAllFilesAccessStatus()
+    }
 }
 
 @Composable
@@ -119,7 +124,14 @@ private fun Screen(vm: AgentViewModel) {
 
         // ── 2. Folders ──
         Section("2. Folders the agent may use") {
-            Text("The agent can only see folders you add here. It cannot access anything else.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                when {
+                    s.useAllFilesAccess && s.allFilesAccessGranted -> "All Files Access is active for tasks. These SAF folders remain saved as a narrower alternative."
+                    s.useAllFilesAccess -> "All Files Access is selected but not currently granted. Tasks will wait for permission instead of silently switching to SAF."
+                    else -> "SAF is the default: the agent can only see folders you add here and cannot access anything else."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
             s.roots.forEach { r ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("/${r.name}", Modifier.weight(1f), fontFamily = FontFamily.Monospace)
@@ -127,6 +139,31 @@ private fun Screen(vm: AgentViewModel) {
                 }
             }
             Button(onClick = { pickFolder.launch(null) }) { Text("Add folder") }
+        }
+
+        Section("Storage access settings") {
+            Text("SAF folder access is the default and grants only the folders you pick. All Files Access is optional, broader access to Android-reported shared-storage volumes, and may be restricted by Android or Google Play.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                when {
+                    !s.allFilesAccessSupported -> "Status: unavailable on this Android version (requires Android 11 or later)."
+                    s.allFilesAccessGranted -> "Android permission: granted."
+                    else -> "Android permission: not granted. SAF remains available."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text("Even with this permission, Android/data and Android/obb remain blocked. Tasks keep confirmation, sandbox checks, trash, and undo.", style = MaterialTheme.typography.bodySmall)
+            Text("Current Android media processing remains SAF-specific; media tools may be unavailable while All Files Access mode is active.", style = MaterialTheme.typography.bodySmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = s.useAllFilesAccess,
+                    onCheckedChange = vm::setAllFilesAccessMode,
+                    enabled = !s.running && s.allFilesAccessSupported,
+                )
+                Text("  Use All Files Access for tasks")
+            }
+            OutlinedButton(onClick = vm::openAllFilesAccessSettings, enabled = !s.running && s.allFilesAccessSupported) {
+                Text("Open Android access settings")
+            }
         }
 
         // ── 3. Task ──
@@ -173,7 +210,7 @@ private fun Screen(vm: AgentViewModel) {
         }
 
         Section("Scheduled task") {
-            Text("Schedules retain the current goal, provider/models, routing choice, and approved folders. They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
+            Text("Schedules retain the current goal, provider/models, routing choice, and storage mode (SAF folders or All Files Access). They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(value = intervalInput, onValueChange = { intervalInput = it.filter(Char::isDigit) }, label = { Text("Repeat every N hours") })
             Button(onClick = { intervalInput.toLongOrNull()?.let(vm::scheduleCurrent) }) { Text("Schedule current task") }
             s.scheduledTasks.forEach { task ->

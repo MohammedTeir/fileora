@@ -6,9 +6,9 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 98 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 99 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
-| `app` module (Compose UI, Keystore, SAF filesystem, Room audit/undo history) | **Compiles and runs on a real device** (Redmi Note 8 Pro; reported by the owner). Includes SAF write support, redacted audit history persisted in Room, restart-safe undo storage in Room, and task request/token usage reporting. **Dry run is verified on device; a real run, the confirmation screen, undo and delete-to-trash are not yet verified on device** (`ROADMAP.md` P0 #1) |
+| `app` module (Compose UI, Keystore, SAF filesystem, optional All Files Access, Room audit/undo history) | SAF app has previously compiled and run on a real device (Redmi Note 8 Pro; reported by the owner). The new All Files Access flow is implemented but not device-validated. **Dry run is verified on device; a real run, confirmation, undo and delete-to-trash are not yet verified** (`ROADMAP.md` P0 #1) |
 | Gradle build files / dependency versions | **Configured**: Android/WorkManager dependencies are declared; full Android compilation still needs GitHub CI or an Android SDK |
 | GitHub Actions (`ci.yml`, `release.yml`) | **CI is green and the release workflow builds signed APKs** (reported by the owner; `apksigner verify` output not yet seen). See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
 | Media (FFmpeg), Linux runtime, packages, root, scheduling | Core probe/convert/audio-extraction support and JVM FFmpeg backend are implemented. Android SAF supports local probe, MP4 remux, and M4A audio extraction; broader FFmpeg processing remains. Scheduling is implemented; other advanced runtimes/tools remain |
@@ -51,7 +51,7 @@ agent-core/   pure Kotlin/JVM, no Android imports (enforced by review; checked b
   fs/         FileSystem interface + JvmFileSystem (sandboxed)
   security/   Redactor, SecretStore
   history/    AuditLog, UndoManager
-app/          Android shell: Compose UI, KeystoreSecretStore, SafFileSystem
+app/          Android shell: Compose UI, KeystoreSecretStore, SafFileSystem, optional All Files Access
 scripts/      test-core.sh (offline build+test), kotlin-env.sh
 ```
 
@@ -80,6 +80,7 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 
 - **Distribution.** Play Store vs direct APK decides how far Linux/root can go (spec phases 4 and 7). The MVP needs neither.
 - **SAF limits.** No free-space query (reported as "unknown"), linear folder lookups (slow in huge folders), folder moves need provider support.
+- **All Files Access (P2 #13):** implemented as an explicit, default-off mode using Android's `MANAGE_EXTERNAL_STORAGE` special access and `JvmFileSystem` for Android-reported shared-storage roots. SAF remains the default; the user can explicitly switch back to it, but the service never silently narrows a full-access task to SAF. `Android/data` and `Android/obb` are blocked in the filesystem layer; confirmation, trash, and undo remain active. Physical-device validation is pending. Android's current media backend is SAF-specific, so media tools may be unavailable in this mode. Google Play restricts this permission; direct distribution does not imply Play approval.
 - **Media/FFmpeg status:** core `media.probe`, `media.convert`, and `media.extract_audio` contracts are implemented; the JVM `JvmFfmpegBackend` uses no shell and verifies output. Android uses SAF `content://` URIs with platform `MediaExtractor`/`MediaMuxer` for local probe, supported-track MP4 remux, and first-track M4A extraction. This does not re-encode or match arbitrary FFmpeg formats/filters. Full Android FFmpeg requires a reproducible native AAR build because [FFmpegKitNext is source-only](https://github.com/arthenica/ffmpeg-kit-next/wiki/Building-Android); other media tools and on-device validation remain.
 - **Model routing:** implemented and opt-in. The selected model handles planning and routine turns; after a failed tool-result turn, an optional user-selected recovery model from the same provider is used only if it advertises tool-calling support. The toggle/model flow is wired through foreground, resumed, and scheduled tasks; Android/device validation remains.
 - **Usage limits:** each task now has hard request, input-token, and output-token budgets; reaching one stops the task with `BLOCKED`. Provider-reported usage is shown for the current task; usage history is still in memory only.
