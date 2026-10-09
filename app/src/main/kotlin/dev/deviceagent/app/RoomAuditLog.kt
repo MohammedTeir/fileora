@@ -91,6 +91,9 @@ interface UndoDao {
 
     @Query("SELECT taskId FROM undo_actions ORDER BY id DESC LIMIT 1")
     fun latestTaskId(): String?
+
+    @Query("SELECT DISTINCT taskId FROM undo_actions")
+    fun taskIdsWithUndo(): List<String>
 }
 
 @Database(entities = [AuditEntity::class, UndoEntity::class, ScheduledTaskEntity::class], version = 5, exportSchema = false)
@@ -169,4 +172,5 @@ class RoomUndoStore(private val dao: UndoDao) : UndoStore {
 
     override fun clear(taskId: String) = dao.clear(taskId)
     override fun latestTaskId(): String? = dao.latestTaskId()
+    fun taskIdsWithUndo(): Set<String> = dao.taskIdsWithUndo().toSet()
 }

@@ -5,9 +5,9 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 ## Verified state (as of 2026-10-09)
 
 - `agent-core` (pure Kotlin/JVM): 100 tests pass (`./gradlew :agent-core:check`); app UX helpers have 6 passing JVM tests.
-- `app` (Compose + SAF + Keystore): existing SAF build was reported running on a real device (Redmi Note 8 Pro); the reworked UX and All Files Access flow remain unverified on-device.
+- `app` (Compose + SAF + Keystore): existing SAF build was reported running on a real device (Redmi Note 8 Pro); the owner has now verified the P0 move-and-undo flow. The reworked UX and All Files Access flow still need broader device validation.
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
-- Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
+- Dry run: works. The owner verified a real move and complete Undo flow on device; delete-to-trash and the reworked UX/All Files Access flows still need explicit validation.
 - CI: green, and the release workflow builds signed APKs (reported by the owner; `apksigner verify` output not seen by me).
 - Local validation: `:app:assembleDebug`, `:app:lintDebug`, `:app:testDebugUnitTest`, and `:agent-core:check` pass with Android API 35; lint reports 2 non-blocking warnings (All Files Access policy disclosure and adaptive-icon qualifier).
 
@@ -26,7 +26,7 @@ Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (
 
 | # | Task | Acceptance criteria |
 |---|---|---|
-| 1 | Verify real run on device | With dry run off: create folder + move shows a confirmation with the full real paths; result says "2 changes completed and verified"; Undo restores the file; delete always asks and lands in `.agent_trash` (restorable). Fix anything that fails. |
+| 1 | Verify real run on device — **move + undo verified by owner; delete-to-trash remains** | With dry run off: create folder + move shows a confirmation with the full real paths; result says "2 changes completed and verified"; Undo restores the file; delete always asks and lands in `.agent_trash` (restorable). Move and complete Undo were verified by the owner; explicitly verify delete-to-trash before calling the entire acceptance criterion complete. |
 | 2 | `PLAN_ONLY` status — **done in code, not yet run** | A dry run must not report `SUCCESS`. Add `TaskStatus.PLAN_ONLY` (or similar), update `AgentEngine`, UI label, tests. |
 | 3 | Exact tool list in system prompt — **done in code, not yet run** | Model must not claim abilities it lacks (it claimed "read" and "create files"). Generate the capability list from `ToolRegistry`. Test: prompt contains every registered tool and nothing else. |
 | 4 | Reduce request count — **batch move implemented; real request count on device not yet measured** | Prompt batching guidance and a `file.move_matching` operation now move matching files (for example all PDFs) in one verified call instead of one model turn per file. Core coverage includes the batch operation; measure the real request count on device. |

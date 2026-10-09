@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,12 +29,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
+import androidx.compose.ui.window.Dialog
 import dev.deviceagent.app.AgentViewModel
 import dev.deviceagent.app.HistoryItem
 import dev.deviceagent.app.ScheduledTask
 import dev.deviceagent.app.UiState
+import dev.deviceagent.app.cleanProgress
+import dev.deviceagent.app.formatAssistantNote
 import dev.deviceagent.app.formatWhen
+import dev.deviceagent.app.friendlyReport
 import dev.deviceagent.app.intervalLabel
+import dev.deviceagent.app.statusExplanation
 import dev.deviceagent.app.statusTitle
 import dev.deviceagent.app.statusTone
 
@@ -43,6 +52,7 @@ import dev.deviceagent.app.statusTone
 internal fun ActivityScreen(s: UiState, vm: AgentViewModel) {
     var undoTarget by remember { mutableStateOf<String?>(null) }
     var stopTarget by remember { mutableStateOf<ScheduledTask?>(null) }
+    var detailsTarget by remember { mutableStateOf<HistoryItem?>(null) }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -72,7 +82,7 @@ internal fun ActivityScreen(s: UiState, vm: AgentViewModel) {
             }
         } else {
             items(s.history, key = { it.taskId }) { item ->
-                HistoryCard(item) { undoTarget = item.taskId }
+                HistoryCard(item) { detailsTarget = item }
             }
         }
     }
@@ -95,20 +105,26 @@ internal fun ActivityScreen(s: UiState, vm: AgentViewModel) {
             onDismiss = { stopTarget = null },
         )
     }
+    detailsTarget?.let { item ->
+        TaskDetailsDialog(
+            item = item,
+            onUndo = { detailsTarget = null; undoTarget = item.taskId },
+            onDismiss = { detailsTarget = null },
+        )
+    }
 }
 
 @Composable
-private fun HistoryCard(item: HistoryItem, onUndo: () -> Unit) {
-    var open by remember { mutableStateOf(false) }
+private fun HistoryCard(item: HistoryItem, onOpen: () -> Unit) {
     val (bg, fg) = item.status?.let { toneColors(statusTone(it)) } ?: (MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurface)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Column(Modifier.clickable { open = !open }.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.clickable(onClick = onOpen).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(item.goal, maxLines = if (open) 10 else 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text(item.goal, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     Hint(formatWhen(item.startedAtMs))
                 }
-                Icon(if (open) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = if (open) "Hide steps" else "Show steps")
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Show task details")
             }
             androidx.compose.material3.Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(50), color = bg) {
                 Text(
@@ -118,10 +134,66 @@ private fun HistoryCard(item: HistoryItem, onUndo: () -> Unit) {
                     color = fg,
                 )
             }
-            if (open) {
-                if (item.steps.isEmpty()) Hint("No changes were made.")
-                item.steps.take(60).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
-                if (item.canUndo) OutlinedButton(onClick = onUndo) { Text("Undo this task") }
+            Hint(if (item.canUndo) "Tap to see what happened and undo changes." else "Tap to see what happened.")
+        }
+    }
+}
+
+@Composable
+private fun TaskDetailsDialog(item: HistoryItem, onUndo: () -> Unit, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+        ) {
+            Column(
+                Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("Task details", style = MaterialTheme.typography.headlineSmall)
+                Text(item.goal, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Hint(formatWhen(item.startedAtMs))
+                item.status?.let {
+                    Text(statusTitle(it), style = MaterialTheme.typography.labelLarge)
+                    Text(statusExplanation(it), style = MaterialTheme.typography.bodyMedium)
+                }
+                if (item.stoppedReason != null) {
+                    Text("Why it stopped", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(cleanProgress(item.stoppedReason), style = MaterialTheme.typography.bodyMedium)
+                }
+                if (item.providerError != null) {
+                    Text("AI service", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(item.providerError, style = MaterialTheme.typography.bodyMedium)
+                }
+                Text(
+                    "${item.stepsCount} AI request(s) · ${item.toolCalls} tool action(s) · ${item.failures} problem(s)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (item.unverifiedChanges > 0) Text("${item.unverifiedChanges} change(s) could not be checked automatically.", style = MaterialTheme.typography.bodyMedium)
+                val report = friendlyReport(item.report)
+                if (report.isNotBlank()) {
+                    Text("What happened", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(report, style = MaterialTheme.typography.bodyMedium)
+                }
+                item.modelMessage?.let { note ->
+                    val clean = formatAssistantNote(note)
+                    if (clean.isNotBlank()) {
+                        Text("AI note", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                        Text(clean, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Text("Activity", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                if (item.steps.isEmpty()) Hint("No recorded file changes or actions.")
+                item.steps.take(100).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                if (item.canUndo) {
+                    OutlinedButton(onClick = onUndo, modifier = Modifier.fillMaxWidth()) { Text("Undo changes from this task") }
+                } else if (item.status != null) {
+                    Hint("There are no reversible changes saved for this task.")
+                }
+                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Close") }
             }
         }
     }

@@ -161,7 +161,23 @@ class AgentEngine(
 
         val status = determineStatus(run, stopped, providerError, config.dryRun)
         val report = buildReport(run, status, stopped, providerError)
-        audit.record(taskId, "task_end", jsonObjectOf("status" to status.name, "failures" to run.failures, "tool_calls" to run.toolCalls))
+        audit.record(
+            taskId,
+            "task_end",
+            jsonObjectOf(
+                "status" to status.name,
+                "failures" to run.failures,
+                "tool_calls" to run.toolCalls,
+                "steps" to run.steps,
+                "input_tokens" to run.inputTokens,
+                "output_tokens" to run.outputTokens,
+                "unverified_changes" to run.unverified,
+                "report" to report,
+                "model_message" to finalText?.takeIf { it.isNotBlank() },
+                "stopped_reason" to stopped,
+                "provider_error" to providerError?.let { "${it.kind}: ${it.message}" },
+            ),
+        )
         log("Task finished")
         return TaskOutcome(
             taskId = taskId, status = status, modelMessage = finalText?.takeIf { it.isNotBlank() }, report = report,

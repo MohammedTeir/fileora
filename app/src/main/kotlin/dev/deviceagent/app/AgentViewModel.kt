@@ -61,6 +61,16 @@ data class HistoryItem(
     val status: TaskStatus?,
     val steps: List<String>,
     val canUndo: Boolean,
+    val report: String = "",
+    val modelMessage: String? = null,
+    val stoppedReason: String? = null,
+    val providerError: String? = null,
+    val stepsCount: Int = 0,
+    val inputTokens: Long = 0,
+    val outputTokens: Long = 0,
+    val toolCalls: Int = 0,
+    val failures: Int = 0,
+    val unverifiedChanges: Int = 0,
 )
 
 data class UiState(
@@ -195,8 +205,9 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun refreshHistory() = viewModelScope.launch(Dispatchers.IO) {
         val undoId = undoStore.latestTaskId()
+        val undoIds = undoStore.taskIdsWithUndo()
         val rows = audit.entries().takeLast(800)
-        val historyItems = buildHistory(rows, undoId)
+        val historyItems = buildHistory(rows, undoIds)
         val mostRecentTask = historyItems.firstOrNull { it.status != null }
         _state.update {
             it.copy(
@@ -207,17 +218,30 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun buildHistory(entries: List<AuditEntry>, undoTaskId: String?): List<HistoryItem> =
+    private fun buildHistory(entries: List<AuditEntry>, undoTaskIds: Set<String>): List<HistoryItem> =
         entries.groupBy { it.taskId }.map { (id, rows) ->
             val start = rows.firstOrNull { it.kind == "task_start" }
             val end = rows.lastOrNull { it.kind == "task_end" }
+            val details = end?.details
+            fun text(key: String): String? = details?.get(key)?.jsonPrimitive?.contentOrNull
+            fun long(key: String): Long = text(key)?.toLongOrNull() ?: 0L
             HistoryItem(
                 taskId = id,
                 startedAtMs = rows.first().timestampMs,
                 goal = start?.details?.get("goal")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() } ?: "Earlier task",
                 status = end?.details?.get("status")?.jsonPrimitive?.contentOrNull?.let { runCatching { TaskStatus.valueOf(it) }.getOrNull() },
                 steps = rows.mapNotNull(::describeAudit),
-                canUndo = id == undoTaskId,
+                canUndo = id in undoTaskIds,
+                report = text("report").orEmpty(),
+                modelMessage = text("model_message"),
+                stoppedReason = text("stopped_reason"),
+                providerError = text("provider_error"),
+                stepsCount = long("steps").toInt(),
+                inputTokens = long("input_tokens"),
+                outputTokens = long("output_tokens"),
+                toolCalls = long("tool_calls").toInt(),
+                failures = long("failures").toInt(),
+                unverifiedChanges = long("unverified_changes").toInt(),
             )
         }.sortedByDescending { it.startedAtMs }.take(30)
 
@@ -486,12 +510,18 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         val app = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
-                val fs = if (useAllFilesAccess) AllFilesAccess.createFileSystem(app) else SafFileSystem(app, current.roots.map { SafRoot(it.name, Uri.parse(it.uri)) })
+                val taskRoots = prefs.getStringSet("undo_roots_$taskId", emptySet()).orEmpty().mapNotNull { encoded ->
+                    val separator = encoded.indexOf('\u0000')
+                    if (separator <= 0 || separator == encoded.lastIndex) null
+                    else SafRoot(encoded.substring(0, separator), Uri.parse(encoded.substring(separator + 1)))
+                }
+                val rootsForUndo = taskRoots.ifEmpty { current.roots.map { SafRoot(it.name, Uri.parse(it.uri)) } }
+                val fs = if (useAllFilesAccess) AllFilesAccess.createFileSystem(app) else SafFileSystem(app, rootsForUndo)
                 undoManager.undo(taskId, fs)
             }
                 .onSuccess { report ->
                     val skipped = if (report.notes.isEmpty()) "" else " ${report.notes.size} item(s) were skipped because they changed or no longer exist."
-                    prefs.edit().remove(undoFsPreference(taskId)).apply()
+                    prefs.edit().remove(undoFsPreference(taskId)).remove("undo_roots_$taskId").apply()
                     _state.update { it.copy(notice = "Undone: ${report.reverted} change(s) put back.$skipped", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
                     refreshHistory()
                 }

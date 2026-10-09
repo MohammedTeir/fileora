@@ -28,8 +28,8 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 
 ## 1. P0 — Finish the MVP (ROADMAP)
 
-- [~] **#1 Verify real run on device** (dry run OFF): create folder + move shows confirmation with full real paths; "2 changes completed and verified"; Undo restores; delete asks and lands in `.agent_trash`
-  - Dry run: works on device. Everything else on this line: **not verified**.
+- [~] **#1 Verify real run on device** (dry run OFF): owner verified the real move and complete Undo flow on device; delete-to-trash still needs explicit verification before this acceptance criterion is fully complete
+  - Dry run, real move, confirmation and Undo: **verified by owner**. Delete-to-restorable-trash: **pending explicit device check**.
 - [~] **#2 `PLAN_ONLY` status** — in code (`TaskStatus.PLAN_ONLY`, `determineStatus`), not run on device
 - [~] **#3 Exact tool list in system prompt** — generated from `ToolRegistry`; not run on device
 - [~] **#4 Reduce AI request count** (was 7 requests / 10.7K tokens, target ≤ 3) — prompt batching guidance plus `file.move_matching` for bulk moves; core test added; **real count on device not measured**
