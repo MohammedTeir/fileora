@@ -134,6 +134,8 @@ fun registerPromptAndCostTests() {
         val prompt = SystemPrompt.build(listOf("/phone"), false, InteractionMode.NORMAL, DefaultTools.all().map { it.spec })
         check(prompt.contains("ONE reply")) { "batching guidance missing" }
         check(prompt.contains("create them separately")) { "guidance about redundant mkdir missing" }
+        check(prompt.contains("file.move_matching")) { "bulk move guidance missing" }
+        check(prompt.contains("never use more than 10 individual file.move calls")) { "bulk move limit missing" }
     }
 
     test("engine: create folder + move file in a batched reply takes 3 AI requests (inspect, act, summarize)") {

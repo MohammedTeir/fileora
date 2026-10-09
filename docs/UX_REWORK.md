@@ -14,6 +14,7 @@ Problems found and what changed:
 - Light/dark theme, edge-to-edge, app icon, notification icon.
 - The most recent finished task can be reconstructed from Room audit history and shown on Home after an app restart.
 - Bulk requests such as “move all PDFs” use one bounded, verified `file.move_matching` operation instead of one AI turn per file, reducing token-limit failures and keeping the confirmation understandable.
+- AI closing notes are rendered as bounded plain text: common backticks, bold markers, headings, links, and Markdown bullets are cleaned before display, while the engine’s factual result remains primary.
 
 ## Verification and remaining work
 

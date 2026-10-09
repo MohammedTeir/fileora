@@ -66,6 +66,26 @@ fun friendlyReport(report: String): String {
     }.trim()
 }
 
+/** AI notes are plain Compose Text, not a Markdown renderer; remove common Markdown syntax. */
+fun formatAssistantNote(note: String): String {
+    var text = note.replace("\r\n", "\n").replace('\r', '\n')
+    text = text.replace(Regex("```[A-Za-z0-9_+.-]*\\n?"), "").replace("```", "")
+    text = text.replace(Regex("`([^`\\n]+)`"), "$1")
+    text = text.replace(Regex("\\*\\*(.*?)\\*\\*"), "$1")
+    text = text.replace(Regex("__(.*?)__"), "$1")
+    text = text.replace(Regex("(?m)^\\s*[-*+]\\s+"), "• ")
+    text = text.replace(Regex("(?m)^\\s*#{1,6}\\s+"), "")
+    text = text.replace(Regex("\\[([^]]+)]\\([^)]*\\)"), "$1")
+    return text.lines()
+        .map { it.trimEnd() }
+        .fold(ArrayList<String>()) { out, line ->
+            if (line.isNotBlank() || out.lastOrNull()?.isNotBlank() == true) out += line
+            out
+        }
+        .joinToString("\n")
+        .trim()
+}
+
 fun providerProblem(kind: String?): String = when (kind) {
     "INVALID_CREDENTIALS" -> "Your API key was rejected. Check that you pasted it correctly in Settings."
     "RATE_LIMITED" -> "The AI service is busy or you've reached a usage limit. Try again in a little while."
@@ -87,6 +107,7 @@ private val CHANGE_VERBS = mapOf(
     "file.extract" to "unzip files",
     "file.mkdir" to "create folders",
     "file.move" to "move files",
+    "file.move_matching" to "move matching files",
     "file.rename" to "rename files",
     "file.write" to "save a file",
     "media.convert" to "convert media",

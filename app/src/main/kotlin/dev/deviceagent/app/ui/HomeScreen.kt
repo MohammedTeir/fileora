@@ -46,6 +46,7 @@ import dev.deviceagent.app.Tone
 import dev.deviceagent.app.UiState
 import dev.deviceagent.app.cleanProgress
 import dev.deviceagent.app.friendlyReport
+import dev.deviceagent.app.formatAssistantNote
 import dev.deviceagent.app.providerName
 import dev.deviceagent.app.providerProblem
 import dev.deviceagent.app.setupGaps
@@ -147,7 +148,8 @@ internal fun HomeScreen(
                         Expandable("Show details") {
                             if (report.isNotBlank()) Text(report, style = MaterialTheme.typography.bodySmall)
                             o.modelMessage?.takeIf { it.isNotBlank() }?.let {
-                                Text("Assistant note\n${it.take(1200)}${if (it.length > 1200) "…" else ""}", style = MaterialTheme.typography.bodySmall)
+                                val note = formatAssistantNote(it)
+                                if (note.isNotBlank()) Text("Assistant note\n${note.take(1200)}${if (note.length > 1200) "…" else ""}", style = MaterialTheme.typography.bodySmall)
                             }
                             if (s.usageSummary.isNotEmpty()) Text(s.usageSummary, style = MaterialTheme.typography.bodySmall)
                         }

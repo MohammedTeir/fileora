@@ -62,4 +62,12 @@ class FriendlyTests {
         assertEquals("Preview ready", statusTitle(TaskStatus.PLAN_ONLY))
         assertEquals("Nothing on your device was changed.", statusExplanation(TaskStatus.PLAN_ONLY))
     }
+
+    @Test
+    fun assistantNotesRemoveCommonMarkdownSyntax() {
+        assertEquals(
+            "Duplicate files\n• archive.zip\n• backup.zip",
+            formatAssistantNote("**Duplicate files**\n- `archive.zip`\n- `backup.zip`"),
+        )
+    }
 }
