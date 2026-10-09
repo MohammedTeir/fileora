@@ -1,7 +1,7 @@
 # Device Agent — Task List (done vs. not done)
 
-Compared: `README.md`, `ROADMAP.md`, `docs/SPEC.md` (identical to the "full idea v4" file) and the actual code in the zip.
-Date of review: 2026-10-08. The core suite was run locally; the Android APK build could not proceed because this sandbox has no Android SDK.
+Compared: `README.md`, `ROADMAP.md`, `docs/SPEC.md` (identical to the "full idea v4" file), current main, and the supplied UX archive.
+Date of review: 2026-10-09. The core suite (99), app-helper tests (6), API 35 debug APK build, and Android lint all pass locally. Physical-device validation remains outstanding.
 
 **Legend**
 - `[x]` Done and covered by tests (agent-core) or confirmed on a real device
@@ -15,7 +15,7 @@ Date of review: 2026-10-08. The core suite was run locally; the Android APK buil
 | Area | State |
 |---|---|
 | Core agent loop, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude providers | Done in core (99 tests pass locally) |
-| Android app: UI, Keystore, SAF, optional All Files Access, Room history | Existing SAF build runs on Redmi Note 8 Pro; new All Files Access path is not yet device-validated |
+| Android app: Home/Activity/Settings UX, approval bridge/notifications, Keystore, SAF, optional All Files Access, Room history | API 35 APK and lint pass; 6 helper tests pass. Existing SAF app runs on Redmi Note 8 Pro; new UX and All Files Access still need device validation |
 | Real run / confirmation / undo / trash on device | **Not verified yet (P0 #1)** |
 | Background execution | Implemented: foreground service, notification actions, cancel path, WorkManager recovery watchdog, progress/result UI integration; device verification remains |
 | Checkpoints | Implemented: exact provider-neutral conversation and latest progress persist after tool-result turns; Resume/Discard implemented. Device validation remains |
@@ -134,13 +134,13 @@ Other groups:
 - [ ] Execution isolation / resource limits (§50, §54) beyond step counts
 
 ### 5.5 Android app (spec §58, §59)
-- [x] Compose UI: key, model, folders, goal, dry run, manual, run, result, undo, history
+- [x] Compose Home/Activity/Settings UI: providers/models, folders/storage, task entry, dry run/manual, results, undo, task history, repeating tasks
 - [x] SAF filesystem with write support
 - [~] SAF limits: slow lookups in huge folders, no free space, folder moves need provider support
 - [ ] Real chat interface (current UI is a single goal box + result, not a conversation)
 - [ ] File browser screen
-- [ ] Foreground service / notifications / pause button / progress ("71 / 156 files")
-- [ ] Settings screen for memory, privacy, models, usage
+- [~] Foreground service / approval and result notifications / stop / progress are implemented; physical-device behavior remains to validate
+- [x] Settings screen for providers/models/API keys, privacy and storage modes; memory controls and usage dashboard remain unimplemented
 - [ ] Connectivity awareness (offline mode §37)
 
 ### 5.6 Memory, history, logs (spec §32–34)
@@ -163,12 +163,12 @@ Other groups:
 
 ## 6. Repo hygiene / inconsistencies found
 
-- [x] README status table and known limits now reflect Room history, SAF writes, and the 98-test baseline.
+- [x] README status table and known limits reflect Room history, SAF writes, and the 99-core/6-app-test baseline.
 - [x] CI/release action references are pinned to immutable commit SHAs.
 - [ ] README says "Written; device build/run reported by the owner" while ROADMAP says "compiles and runs on a real device" — pick one wording.
 - [x] README no longer lists background execution/checkpoints as not started.
-- [~] `libs.versions.toml` retains the generated-version note; Android dependency resolution still needs a GitHub/Android-SDK build.
-- [ ] Tests use a custom harness (no JUnit); fine for now, but consider JUnit 5 so IDE/CI report per-test results.
+- [~] `libs.versions.toml` retains the generated-version note; local API 35 Android build/lint now pass; GitHub CI for the UX commit remains to run.
+- [~] Core tests use the custom harness; app UX-helper tests use JUnit 4. Consider moving the core suite to a standard test framework later.
 - [ ] Add a live Gemini contract test (opt-in, needs key) so API-shape changes are caught.
 - [x] Privacy risk is documented and protected by names-only default plus explicit content opt-in.
 

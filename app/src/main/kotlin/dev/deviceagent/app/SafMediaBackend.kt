@@ -143,9 +143,21 @@ internal class SafMediaBackend(
                     ?: throw IOException("Extractor returned a sample for an unselected track")
                 val presentationTimeUs = extractor.sampleTime
                 if (presentationTimeUs < 0) throw IOException("Source has a media sample with an invalid timestamp")
+                val sourceFlags = extractor.sampleFlags
+                if (sourceFlags and MediaExtractor.SAMPLE_FLAG_ENCRYPTED != 0) {
+                    throw IOException("Encrypted media samples cannot be remuxed without decryption")
+                }
+                if (sourceFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME != 0) {
+                    throw IOException("Partial media frames cannot be safely remuxed by this backend")
+                }
+                val outputFlags = if (sourceFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) {
+                    MediaCodec.BUFFER_FLAG_KEY_FRAME
+                } else {
+                    0
+                }
                 sampleBuffer.position(0)
                 sampleBuffer.limit(sampleSize)
-                bufferInfo.set(0, sampleSize, presentationTimeUs, extractor.sampleFlags)
+                bufferInfo.set(0, sampleSize, presentationTimeUs, outputFlags)
                 activeMuxer.writeSampleData(outputTrack, sampleBuffer, bufferInfo)
                 written++
                 if (!extractor.advance()) break

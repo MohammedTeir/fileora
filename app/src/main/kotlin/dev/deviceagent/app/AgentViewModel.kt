@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,10 +47,21 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 
 data class RootUi(val name: String, val uri: String)
 enum class ProviderChoice { GEMINI, OPENAI, CLAUDE }
+
+/** One finished (or interrupted) task, already translated into plain language for the Activity tab. */
+data class HistoryItem(
+    val taskId: String,
+    val startedAtMs: Long,
+    val goal: String,
+    val status: TaskStatus?,
+    val steps: List<String>,
+    val canUndo: Boolean,
+)
 
 data class UiState(
     val provider: ProviderChoice = ProviderChoice.GEMINI,
@@ -74,9 +87,13 @@ data class UiState(
     val pendingQuestion: String? = null,
     val notice: String? = null,
     val usageSummary: String = "",
-    val history: List<AuditEntry> = emptyList(),
+    val history: List<HistoryItem> = emptyList(),
+    val mostRecentTask: HistoryItem? = null,
+    val dismissedRecentTaskId: String? = null,
     val restorableUndoTaskId: String? = null,
     val scheduledTasks: List<ScheduledTask> = emptyList(),
+    val notificationsEnabled: Boolean = true,
+    val busy: Boolean = false,
 )
 
 class AgentViewModel(app: Application) : AndroidViewModel(app) {
@@ -91,8 +108,6 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private var pendingConfirm: CompletableDeferred<ConfirmationResponse>? = null
-    private var pendingAnswer: CompletableDeferred<String?>? = null
     private val taskReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == AgentTaskService.ACTION_PROGRESS) {
@@ -133,7 +148,6 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                     usageSummary = "${intent.getIntExtra(AgentTaskService.EXTRA_STEPS, 0)} AI request(s), " +
                         "${intent.getLongExtra(AgentTaskService.EXTRA_INPUT_TOKENS, 0L)} tokens in / " +
                         "${intent.getLongExtra(AgentTaskService.EXTRA_OUTPUT_TOKENS, 0L)} out",
-                    notice = if (report.isBlank()) "Background task: $status" else "Background task $status: $report",
                 )
             }
             refreshHistory()
@@ -141,6 +155,11 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     init {
+        // Models used to be one global setting, which broke as soon as you switched provider. Make it per-provider.
+        prefs.getString("model", null)?.takeIf { it.isNotBlank() }?.let { legacy ->
+            val current = prefs.getString("provider", ProviderChoice.GEMINI.name) ?: ProviderChoice.GEMINI.name
+            prefs.edit().putString("model_${current.lowercase()}", legacy).remove("model").apply()
+        }
         val choice = runCatching { ProviderChoice.valueOf(prefs.getString("provider", ProviderChoice.GEMINI.name) ?: ProviderChoice.GEMINI.name) }.getOrDefault(ProviderChoice.GEMINI)
         val key = secrets.get(secretKey(choice))
         key?.let { redactor.addSecret(it) }
@@ -148,10 +167,12 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 provider = choice,
                 apiKeyMask = key?.let(::maskSecret),
-                model = prefs.getString("model", "") ?: "",
+                model = modelFor(choice),
                 automaticModelRouting = prefs.getBoolean("automatic_model_routing", false),
                 recoveryModel = prefs.getString(recoveryModelPreference(choice), "") ?: "",
                 sendFileContents = prefs.getBoolean("send_file_contents", false),
+                running = AgentTaskService.isRunning,
+                notificationsEnabled = NotificationManagerCompat.from(app).areNotificationsEnabled(),
                 roots = loadRoots(),
                 allFilesAccessSupported = AllFilesAccess.isSupported(),
                 allFilesAccessGranted = AllFilesAccess.hasAccess(),
@@ -162,21 +183,43 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
         refreshHistory()
         viewModelScope.launch(Dispatchers.IO) { _state.update { it.copy(scheduledTasks = ScheduledTasks.list(app)) } }
+        // Approval requests and questions come from the background service through TaskBridge.
+        viewModelScope.launch { TaskBridge.confirmation.collect { c -> _state.update { it.copy(pendingConfirmation = c) } } }
+        viewModelScope.launch { TaskBridge.question.collect { q -> _state.update { it.copy(pendingQuestion = q) } } }
         val filter = IntentFilter().apply {
             addAction(AgentTaskService.ACTION_RESULT)
             addAction(AgentTaskService.ACTION_PROGRESS)
         }
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            app.registerReceiver(taskReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION") app.registerReceiver(taskReceiver, filter)
-        }
+        ContextCompat.registerReceiver(app, taskReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     private fun refreshHistory() = viewModelScope.launch(Dispatchers.IO) {
-        val rows = audit.entries().takeLast(100).reversed()
-        _state.update { it.copy(history = rows, restorableUndoTaskId = undoStore.latestTaskId()) }
+        val undoId = undoStore.latestTaskId()
+        val rows = audit.entries().takeLast(800)
+        val historyItems = buildHistory(rows, undoId)
+        val mostRecentTask = historyItems.firstOrNull { it.status != null }
+        _state.update {
+            it.copy(
+                history = historyItems,
+                mostRecentTask = mostRecentTask,
+                restorableUndoTaskId = undoId,
+            )
+        }
     }
+
+    private fun buildHistory(entries: List<AuditEntry>, undoTaskId: String?): List<HistoryItem> =
+        entries.groupBy { it.taskId }.map { (id, rows) ->
+            val start = rows.firstOrNull { it.kind == "task_start" }
+            val end = rows.lastOrNull { it.kind == "task_end" }
+            HistoryItem(
+                taskId = id,
+                startedAtMs = rows.first().timestampMs,
+                goal = start?.details?.get("goal")?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() } ?: "Earlier task",
+                status = end?.details?.get("status")?.jsonPrimitive?.contentOrNull?.let { runCatching { TaskStatus.valueOf(it) }.getOrNull() },
+                steps = rows.mapNotNull(::describeAudit),
+                canUndo = id == undoTaskId,
+            )
+        }.sortedByDescending { it.startedAtMs }.take(30)
 
     // ───────── settings ─────────
 
@@ -185,23 +228,25 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         if (k.isEmpty()) return
         secrets.put(secretKey(_state.value.provider), k)
         redactor.addSecret(k)
-        _state.update { it.copy(apiKeyMask = maskSecret(k), notice = "API key saved securely on this device.") }
+        _state.update { it.copy(apiKeyMask = maskSecret(k), notice = "Key saved on this phone. Checking which models you can use…") }
+        refreshModels()
     }
 
     fun removeApiKey() {
         secrets.remove(secretKey(_state.value.provider))
-        _state.update { it.copy(apiKeyMask = null, availableModels = emptyList(), notice = "API key removed.") }
+        _state.update { it.copy(apiKeyMask = null, availableModels = emptyList(), notice = "Key removed.") }
     }
 
     fun setProvider(provider: ProviderChoice) {
         prefs.edit().putString("provider", provider.name).apply()
         val key = secrets.get(secretKey(provider))
         val recoveryModel = prefs.getString(recoveryModelPreference(provider), "") ?: ""
-        _state.update { it.copy(provider = provider, apiKeyMask = key?.let(::maskSecret), recoveryModel = recoveryModel, availableModels = emptyList()) }
+        _state.update { it.copy(provider = provider, apiKeyMask = key?.let(::maskSecret), model = modelFor(provider), recoveryModel = recoveryModel, availableModels = emptyList()) }
+        if (key != null) refreshModels(provider)
     }
 
     fun setModel(model: String) {
-        prefs.edit().putString("model", model.trim()).apply()
+        prefs.edit().putString(modelPreference(_state.value.provider), model.trim()).apply()
         _state.update { it.copy(model = model.trim()) }
     }
 
@@ -215,21 +260,43 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(recoveryModel = model.trim()) }
     }
 
-    fun refreshModels() = viewModelScope.launch(Dispatchers.IO) {
+    fun refreshModels() = refreshModels(_state.value.provider)
+
+    private fun refreshModels(choice: ProviderChoice) = viewModelScope.launch(Dispatchers.IO) {
+        _state.update { if (it.provider == choice) it.copy(busy = true) else it }
         try {
-            val models = provider().listModels().map { it.id }
-            _state.update { it.copy(availableModels = models, notice = "${models.size} models available for this key.") }
+            val infos = provider(choice).listModels()
+            val ids = infos.filter { it.capabilities.toolCalling }.ifEmpty { infos }.map { it.id }
+            val savedModel = modelFor(choice)
+            val suggestion = if (savedModel.isBlank()) suggestModel(choice, ids) else null
+            if (suggestion != null) prefs.edit().putString(modelPreference(choice), suggestion).apply()
+            _state.update {
+                if (it.provider != choice) it else it.copy(
+                    availableModels = ids,
+                    model = suggestion ?: it.model,
+                    notice = when {
+                        ids.isEmpty() -> "Connected, but no models were listed for this key."
+                        suggestion != null -> "Connected. I picked $suggestion for you. You can change it in Settings."
+                        else -> "Connected. ${ids.size} models available."
+                    },
+                )
+            }
         } catch (e: ProviderException) {
-            _state.update { it.copy(notice = "Could not list models: ${redactor.redact(e.message ?: e.kind.name)}") }
+            _state.update { if (it.provider == choice) it.copy(notice = providerProblem(e.kind.name)) else it }
+        } finally {
+            _state.update { if (it.provider == choice) it.copy(busy = false) else it }
         }
     }
 
     fun testConnection() = viewModelScope.launch(Dispatchers.IO) {
+        _state.update { it.copy(busy = true) }
         try {
             val ok = provider().validateCredentials()
-            _state.update { it.copy(notice = if (ok) "Connection works." else "The provider rejected this API key.") }
+            _state.update { it.copy(notice = if (ok) "Connection works." else providerProblem("INVALID_CREDENTIALS")) }
         } catch (e: ProviderException) {
-            _state.update { it.copy(notice = "Could not reach the provider: ${redactor.redact(e.message ?: e.kind.name)}") }
+            _state.update { it.copy(notice = providerProblem(e.kind.name)) }
+        } finally {
+            _state.update { it.copy(busy = false) }
         }
     }
 
@@ -237,7 +304,13 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun addRoot(uri: Uri) {
         val ctx = getApplication<Application>()
-        ctx.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        val kept = runCatching {
+            ctx.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+        if (kept.isFailure) {
+            _state.update { it.copy(notice = "Android wouldn't let me keep access to that folder. Try a different one.") }
+            return
+        }
         val base = DocumentFile.fromTreeUri(ctx, uri)?.name ?: "Folder"
         val taken = _state.value.roots.map { it.name }.toSet()
         var name = base; var n = 2
@@ -280,20 +353,20 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setAllFilesAccessMode(on: Boolean) {
         if (on && !AllFilesAccess.isSupported()) {
-            _state.update { it.copy(notice = "All Files Access requires Android 11 or later. SAF folders remain available.") }
+            _state.update { it.copy(notice = "Full file access needs Android 11 or newer. Your chosen folders still work.") }
             return
         }
         if (on && !AllFilesAccess.hasAccess()) {
-            _state.update { it.copy(allFilesAccessGranted = false, notice = "Grant All Files Access in Android settings first. SAF folders remain the active storage mode.") }
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "Allow “All files access” in Android settings first, then come back and turn this on.") }
             return
         }
         prefs.edit().putBoolean(KEY_USE_ALL_FILES_ACCESS, on).apply()
-        _state.update { it.copy(useAllFilesAccess = on, notice = if (on) "All Files Access is enabled for tasks. Android/data and Android/obb remain blocked." else "SAF folder access is active again.") }
+        _state.update { it.copy(useAllFilesAccess = on, notice = if (on) "Full file access is on. System app folders stay off-limits." else "Back to your chosen folders only.") }
     }
 
     fun openAllFilesAccessSettings() {
         if (!AllFilesAccess.openSettings(getApplication())) {
-            _state.update { it.copy(notice = "This Android build could not open All Files Access settings. You can keep using SAF folders.") }
+            _state.update { it.copy(notice = "Couldn't open that Android settings page. You can keep using your chosen folders.") }
         }
     }
 
@@ -302,35 +375,34 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     fun scheduleCurrent(intervalHours: Long) {
         val s = _state.value
         if (s.goal.isBlank() || s.model.isBlank() || (!s.useAllFilesAccess && s.roots.isEmpty())) {
-            _state.update { it.copy(notice = "Set a goal, model, and approved folder (or enable All Files Access) before scheduling.") }
+            _state.update { it.copy(notice = "Finish setup (AI key, model and a folder) and describe a task first.") }
             return
         }
         if (s.useAllFilesAccess && !AllFilesAccess.hasAccess()) {
-            _state.update { it.copy(allFilesAccessGranted = false, notice = "All Files Access is selected but not granted. Re-enable it in Android settings before scheduling.") }
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "Full file access isn't allowed right now. Turn it on in Android settings first.") }
             return
         }
         if (s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model)) {
-            _state.update { it.copy(notice = "Choose a recovery model different from the planning/default model before scheduling.") }
+            _state.update { it.copy(notice = "Pick a different backup model in Settings → Advanced first.") }
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 val task = ScheduledTask("task-${System.currentTimeMillis()}", s.goal, s.model, s.roots.map { it.name }, s.roots.map { it.uri }, intervalHours, s.sendFileContents, s.dryRun, manual = true, provider = s.provider.name, automaticModelRouting = s.automaticModelRouting, recoveryModel = s.recoveryModel.ifBlank { null }, useAllFilesAccess = s.useAllFilesAccess)
                 ScheduledTasks.schedule(getApplication(), task)
-                _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled every $intervalHours hour(s) in manual mode.") }
+                _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Done. I'll check ${intervalLabel(intervalHours).lowercase()} and suggest changes. I won't change files on my own.") }
             }.onFailure { e -> _state.update { it.copy(notice = e.message ?: "Could not schedule task.") } }
         }
     }
 
     fun cancelScheduledTask(id: String) = viewModelScope.launch(Dispatchers.IO) {
         ScheduledTasks.cancel(getApplication(), id)
-        _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Scheduled task cancelled.") }
+        _state.update { it.copy(scheduledTasks = ScheduledTasks.list(getApplication()), notice = "Stopped repeating that task.") }
     }
 
     // ───────── running a task ─────────
 
-    private fun provider(): ResilientProvider {
-        val choice = _state.value.provider
+    private fun provider(choice: ProviderChoice = _state.value.provider): ResilientProvider {
         val key = { secrets.get(secretKey(choice)) ?: "" }
         val selected = when (choice) {
             ProviderChoice.GEMINI -> GeminiProvider(apiKey = key)
@@ -340,42 +412,20 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         return ResilientProvider(selected, tracker = usage)
     }
 
-    private val channel = object : UserChannel {
-        override suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse {
-            val d = CompletableDeferred<ConfirmationResponse>()
-            pendingConfirm = d
-            _state.update { it.copy(pendingConfirmation = request) }
-            return d.await()
-        }
+    fun answerConfirmation(response: ConfirmationResponse) = TaskBridge.answerConfirmation(response)
 
-        override suspend fun ask(question: String): String? {
-            val d = CompletableDeferred<String?>()
-            pendingAnswer = d
-            _state.update { it.copy(pendingQuestion = question) }
-            return d.await()
-        }
-    }
-
-    fun answerConfirmation(response: ConfirmationResponse) {
-        pendingConfirm?.complete(response); pendingConfirm = null
-        _state.update { it.copy(pendingConfirmation = null) }
-    }
-
-    fun answerQuestion(answer: String?) {
-        pendingAnswer?.complete(answer?.takeIf { it.isNotBlank() }); pendingAnswer = null
-        _state.update { it.copy(pendingQuestion = null) }
-    }
+    fun answerQuestion(answer: String?) = TaskBridge.answerQuestion(answer?.takeIf { it.isNotBlank() })
 
     fun runTask() {
         val s = _state.value
         when {
             s.running -> return
-            s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your ${s.provider.name.lowercase()} API key first.") }; return }
-            s.model.isBlank() -> { _state.update { it.copy(notice = "Choose a model first (tap List models).") }; return }
-            s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model) -> { _state.update { it.copy(notice = "Choose a recovery model different from the planning/default model.") }; return }
-            s.useAllFilesAccess && !s.allFilesAccessSupported -> { _state.update { it.copy(notice = "All Files Access requires Android 11 or later. Add a SAF folder instead.") }; return }
-            s.useAllFilesAccess && !AllFilesAccess.hasAccess() -> { _state.update { it.copy(allFilesAccessGranted = false, notice = "All Files Access is selected but not granted. Re-enable it in Android settings or switch back to SAF folders.") }; return }
-            !s.useAllFilesAccess && s.roots.isEmpty() -> { _state.update { it.copy(notice = "Add at least one folder the agent may use, or enable All Files Access.") }; return }
+            s.apiKeyMask == null -> { _state.update { it.copy(notice = "Add your ${providerName(s.provider)} API key in Settings first.") }; return }
+            s.model.isBlank() -> { _state.update { it.copy(notice = "Choose an AI model in Settings first.") }; return }
+            s.automaticModelRouting && (s.recoveryModel.isBlank() || s.recoveryModel == s.model) -> { _state.update { it.copy(notice = "Pick a different backup model in Settings → Advanced, or turn off retrying.") }; return }
+            s.useAllFilesAccess && !s.allFilesAccessSupported -> { _state.update { it.copy(notice = "Full file access needs Android 11 or newer. Choose folders in Settings instead.") }; return }
+            s.useAllFilesAccess && !AllFilesAccess.hasAccess() -> { _state.update { it.copy(allFilesAccessGranted = false, notice = "Full file access isn't allowed anymore. Allow it in Android settings or choose folders instead.") }; return }
+            !s.useAllFilesAccess && s.roots.isEmpty() -> { _state.update { it.copy(notice = "Choose at least one folder in Settings first.") }; return }
             s.goal.isBlank() -> return
         }
         val intent = Intent(getApplication(), AgentTaskService::class.java).apply {
@@ -393,8 +443,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             putStringArrayListExtra(AgentTaskService.EXTRA_ROOT_URIS, ArrayList(s.roots.map { it.uri }))
         }
         _state.update { it.copy(running = true, outcome = null, log = emptyList()) }
-        if (android.os.Build.VERSION.SDK_INT >= 26) getApplication<Application>().startForegroundService(intent)
-        else getApplication<Application>().startService(intent)
+        getApplication<Application>().startForegroundService(intent)
     }
 
     fun cancelTask() {
@@ -407,9 +456,8 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(checkpointAvailable = false) }
             return
         }
-        _state.update { it.copy(running = true, checkpointAvailable = false, outcome = null, log = emptyList(), notice = "Resuming the interrupted task…") }
-        if (android.os.Build.VERSION.SDK_INT >= 26) getApplication<Application>().startForegroundService(intent)
-        else getApplication<Application>().startService(intent)
+        _state.update { it.copy(running = true, checkpointAvailable = false, outcome = null, log = emptyList(), notice = "Continuing the interrupted task…") }
+        getApplication<Application>().startForegroundService(intent)
     }
 
     fun discardCheckpoint() {
@@ -424,10 +472,15 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun undoLastTask() {
         val current = _state.value
-        val taskId = current.outcome?.taskId ?: current.restorableUndoTaskId ?: return
+        val taskId = current.outcome?.taskId?.takeIf { it.isNotBlank() } ?: current.restorableUndoTaskId ?: return
+        undoTask(taskId)
+    }
+
+    fun undoTask(taskId: String) {
+        val current = _state.value
         val useAllFilesAccess = prefs.getBoolean(undoFsPreference(taskId), false)
         if (useAllFilesAccess && !AllFilesAccess.hasAccess()) {
-            _state.update { it.copy(allFilesAccessGranted = false, notice = "Re-enable All Files Access in Android settings before undoing this task.") }
+            _state.update { it.copy(allFilesAccessGranted = false, notice = "Allow “All files access” in Android settings again, then try the undo.") }
             return
         }
         val app = getApplication<Application>()
@@ -437,18 +490,34 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 undoManager.undo(taskId, fs)
             }
                 .onSuccess { report ->
-                    val extra = if (report.notes.isEmpty()) "" else " (" + report.notes.joinToString("; ") + ")"
+                    val skipped = if (report.notes.isEmpty()) "" else " ${report.notes.size} item(s) were skipped because they changed or no longer exist."
                     prefs.edit().remove(undoFsPreference(taskId)).apply()
-                    _state.update { it.copy(notice = "Undo: reverted ${report.reverted} change(s)$extra", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
+                    _state.update { it.copy(notice = "Undone: ${report.reverted} change(s) put back.$skipped", outcome = it.outcome?.copy(canUndo = false), restorableUndoTaskId = null) }
+                    refreshHistory()
                 }
-                .onFailure { error -> _state.update { it.copy(notice = "Undo failed: ${error.message ?: "storage access is unavailable"}") } }
+                .onFailure { error -> _state.update { it.copy(notice = "Couldn't undo: ${error.message ?: "I can't reach your files right now."}") } }
         }
     }
+
+    fun clearOutcome() = _state.update {
+        it.copy(outcome = null, dismissedRecentTaskId = it.outcome?.taskId ?: it.dismissedRecentTaskId)
+    }
+
+    fun refreshNotificationStatus() {
+        val on = NotificationManagerCompat.from(getApplication<Application>()).areNotificationsEnabled()
+        _state.update { it.copy(notificationsEnabled = on) }
+    }
+
+    fun notificationsAsked(): Boolean = prefs.getBoolean("notifications_asked", false)
+    fun markNotificationsAsked() = prefs.edit().putBoolean("notifications_asked", true).apply()
+
+    private fun modelFor(provider: ProviderChoice): String = prefs.getString(modelPreference(provider), "") ?: ""
 
     private companion object {
         const val KEY_NAME = "gemini_api_key"
         const val KEY_USE_ALL_FILES_ACCESS = "use_all_files_access"
         private fun undoFsPreference(taskId: String) = "undo_all_files_$taskId"
+        fun modelPreference(provider: ProviderChoice) = "model_${provider.name.lowercase()}"
         fun recoveryModelPreference(provider: ProviderChoice) = "recovery_model_${provider.name.lowercase()}"
         fun secretKey(provider: ProviderChoice) = when (provider) {
             ProviderChoice.GEMINI -> KEY_NAME

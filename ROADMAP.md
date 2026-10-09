@@ -2,14 +2,14 @@
 
 Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (CI and signing).
 
-## Verified state (as of 2026-10-08)
+## Verified state (as of 2026-10-09)
 
-- `agent-core` (pure Kotlin/JVM): 99 tests pass (`./gradlew :agent-core:check`).
-- `app` (Compose + SAF + Keystore): **compiles and runs on a real device** (Redmi Note 8 Pro).
+- `agent-core` (pure Kotlin/JVM): 99 tests pass (`./gradlew :agent-core:check`); app UX helpers have 6 passing JVM tests.
+- `app` (Compose + SAF + Keystore): existing SAF build was reported running on a real device (Redmi Note 8 Pro); the reworked UX and All Files Access flow remain unverified on-device.
 - Gemini adapter: **works live** (model `gemini-3.5-flash-lite`, 0 errors).
 - Dry run: works. Real run, confirmation screen, undo and delete-to-trash: **not yet verified on device**.
 - CI: green, and the release workflow builds signed APKs (reported by the owner; `apksigner verify` output not seen by me).
-- Local validation: the core suite passes; the sandbox Android build is blocked by the missing Android SDK, not a reported source error.
+- Local validation: `:app:assembleDebug`, `:app:lintDebug`, `:app:testDebugUnitTest`, and `:agent-core:check` pass with Android API 35; lint reports 2 non-blocking warnings (All Files Access policy disclosure and adaptive-icon qualifier).
 
 ## Rules for any contributor (do not break these)
 

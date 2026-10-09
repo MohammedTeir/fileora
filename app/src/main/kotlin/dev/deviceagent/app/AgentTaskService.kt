@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.work.ExistingWorkPolicy
@@ -40,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Owns an agent run independently of the activity so it continues with the screen off. */
@@ -48,7 +48,6 @@ class AgentTaskService : Service() {
     private val scope = CoroutineScope(Dispatchers.Default + serviceJob)
     private val usage = UsageTracker()
     private var taskJob: Job? = null
-    private var pendingConfirmation: CompletableDeferred<ConfirmationResponse>? = null
     private var currentTaskId: String? = null
     private val stopping = AtomicBoolean(false)
 
@@ -64,7 +63,7 @@ class AgentTaskService : Service() {
                 if (taskJob?.isActive != true) {
                     saveCheckpoint(intent)
                     scheduleRecovery()
-                    startForeground(NOTIFICATION_ID, notification("Starting agent task…", ongoing = true))
+                    startForeground(NOTIFICATION_ID, progressNotification("Getting started…"))
                     taskJob = scope.launch { runTask(intent) }
                 }
             }
@@ -73,9 +72,10 @@ class AgentTaskService : Service() {
                 clearCheckpoint()
                 stopSelf()
             }
-            ACTION_ALLOW_ONCE -> pendingConfirmation?.complete(ConfirmationResponse.ALLOW_ONCE)
-            ACTION_DENY -> pendingConfirmation?.complete(ConfirmationResponse.DENY)
-            ACTION_CANCEL_CONFIRMATION -> pendingConfirmation?.complete(ConfirmationResponse.CANCEL_TASK)
+            // The notification buttons and the in-app dialog answer through the same bridge.
+            ACTION_ALLOW_ONCE -> TaskBridge.answerConfirmation(ConfirmationResponse.ALLOW_ONCE)
+            ACTION_DENY -> TaskBridge.answerConfirmation(ConfirmationResponse.DENY)
+            ACTION_CANCEL_CONFIRMATION -> TaskBridge.answerConfirmation(ConfirmationResponse.CANCEL_TASK)
         }
         return START_NOT_STICKY
     }
@@ -106,7 +106,7 @@ class AgentTaskService : Service() {
                     putExtra(EXTRA_USE_ALL_FILES_ACCESS, true)
                     putExtra(EXTRA_CHECKPOINT_RETAINED, true)
                 })
-                updateNotification("All Files Access is required; resume after granting it", confirmation = false, ongoing = false)
+                postResult("Permission needed", "I need access to all files again. Open the app to continue.")
                 cancelRecovery()
                 currentTaskId = null
                 stopSelf()
@@ -120,16 +120,22 @@ class AgentTaskService : Service() {
         val audit = RoomAuditLog(AgentDatabase.get(this).auditDao(), redactor)
         val channel = object : UserChannel {
             override suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse {
-                pendingConfirmation = CompletableDeferred()
-                updateNotification("Confirmation needed: ${request.summary}", confirmation = true)
-                val answer = pendingConfirmation!!.await()
-                pendingConfirmation = null
+                updateProgress("Waiting for your OK…")
+                // Keep a shade notification available if the user backgrounds the app while this dialog is open.
+                showApproval(approvalTitle(request.tool), request.summary, approvalDetails(request), withButtons = true)
+                val answer = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { TaskBridge.requestConfirmation(request) } ?: ConfirmationResponse.DENY
+                clearApproval()
+                updateProgress("Continuing…")
                 return answer
             }
 
             override suspend fun ask(question: String): String? {
-                updateNotification("Question needs an answer in the app: $question", confirmation = false)
-                return null
+                updateProgress("Waiting for your answer…")
+                showApproval("I have a question", question, question, withButtons = false)
+                val answer = TaskBridge.askQuestion(question, QUESTION_TIMEOUT_MS)
+                clearApproval()
+                updateProgress("Continuing…")
+                return answer
             }
         }
         val provider = when (runCatching { ProviderChoice.valueOf(providerChoice) }.getOrDefault(ProviderChoice.GEMINI)) {
@@ -147,7 +153,7 @@ class AgentTaskService : Service() {
             undoManager = undoManager,
             redactor = redactor,
             audit = audit,
-            log = { updateNotification(redactor.redact(it), confirmation = false) },
+            log = { updateProgress(redactor.redact(it)) },
         )
         try {
             val outcome = engine.run(
@@ -184,21 +190,22 @@ class AgentTaskService : Service() {
                 putExtra(EXTRA_PROVIDER_ERROR, outcome.providerError)
                 putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             })
-            updateNotification("Task finished: ${outcome.status.name}", confirmation = false, ongoing = false)
+            postResult(statusTitle(outcome.status), statusExplanation(outcome.status))
         } catch (_: CancellationException) {
             sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
                 putExtra(EXTRA_STATUS, "CANCELLED")
                 putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             })
-            updateNotification("Task cancelled", confirmation = false, ongoing = false)
+            clearApproval()
         } catch (e: Exception) {
             sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
                 putExtra(EXTRA_STATUS, "FAILED_AFTER_INVESTIGATION")
                 putExtra(EXTRA_REPORT, redactor.redact(e.message ?: e.javaClass.simpleName))
                 putExtra(EXTRA_USE_ALL_FILES_ACCESS, useAllFilesAccess)
             })
-            updateNotification("Task stopped: ${redactor.redact(e.message ?: e.javaClass.simpleName)}", confirmation = false, ongoing = false)
+            postResult("Something went wrong", "The task stopped unexpectedly. Open the app for details.")
         } finally {
+            clearApproval()
             cancelRecovery()
             clearCheckpoint()
             currentTaskId = null
@@ -208,46 +215,99 @@ class AgentTaskService : Service() {
 
     private fun cancelTask() {
         stopping.set(true)
-        pendingConfirmation?.complete(ConfirmationResponse.CANCEL_TASK)
+        TaskBridge.answerConfirmation(ConfirmationResponse.CANCEL_TASK)
+        TaskBridge.answerQuestion(null)
         taskJob?.cancel()
     }
 
     private fun createChannel() {
-        if (Build.VERSION.SDK_INT >= 26) {
-            getSystemService(NotificationManager::class.java).createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Agent tasks", NotificationManager.IMPORTANCE_LOW),
-            )
-        }
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, "Task progress", NotificationManager.IMPORTANCE_LOW)
+                .apply { description = "Shown while a task is running." },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_APPROVAL, "Needs your OK", NotificationManager.IMPORTANCE_HIGH)
+                .apply { description = "Asks before changing files, or when I have a question." },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_RESULT, "Task results", NotificationManager.IMPORTANCE_DEFAULT)
+                .apply { description = "Tells you when a task is finished." },
+        )
     }
 
-    private fun notification(text: String, ongoing: Boolean, confirmation: Boolean = false): Notification {
-        val cancel = PendingIntent.getService(this, 2, Intent(this, AgentTaskService::class.java).setAction(ACTION_CANCEL), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
-            .setContentTitle("Device Agent")
-            .setContentText(text.take(180))
-            .setOngoing(ongoing)
-            .setOnlyAlertOnce(true)
-            .addAction(NotificationCompat.Action.Builder(0, "Cancel", cancel).build())
-        if (confirmation) {
-            builder.addAction(NotificationCompat.Action.Builder(0, "Allow", serviceAction(ACTION_ALLOW_ONCE)).build())
-            builder.addAction(NotificationCompat.Action.Builder(0, "Deny", serviceAction(ACTION_DENY)).build())
-        }
-        return builder.build()
-    }
+    /** Tapping any notification opens the app (before, tapping did nothing). */
+    private fun openAppIntent(): PendingIntent = PendingIntent.getActivity(
+        this, 0,
+        Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun serviceAction(action: String) = PendingIntent.getService(
         this, action.hashCode(), Intent(this, AgentTaskService::class.java).setAction(action),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    private fun updateNotification(text: String, confirmation: Boolean, ongoing: Boolean = true) {
+    private fun progressNotification(text: String): Notification =
+        NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_agent)
+            .setContentTitle("Working on your task")
+            .setContentText(text.take(180))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text.take(500)))
+            .setContentIntent(openAppIntent())
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setProgress(0, 0, true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .addAction(0, "Stop", serviceAction(ACTION_CANCEL))
+            .build()
+
+    private fun updateProgress(text: String) {
         getSharedPreferences(CHECKPOINT_PREFS, MODE_PRIVATE).edit()
             .putString(KEY_PROGRESS, text.take(500))
             .putLong(KEY_UPDATED_AT, System.currentTimeMillis())
             .apply()
         sendBroadcast(Intent(ACTION_PROGRESS).setPackage(packageName).putExtra(EXTRA_PROGRESS, text.take(500)))
-        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(text, ongoing, confirmation))
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, progressNotification(text))
+    }
+
+    /** A separate, high-priority notification so a request for approval can actually be noticed. */
+    private fun showApproval(title: String, text: String, details: String, withButtons: Boolean) {
+        val builder = NotificationCompat.Builder(this, CHANNEL_APPROVAL)
+            .setSmallIcon(R.drawable.ic_stat_agent)
+            .setContentTitle(title)
+            .setContentText(text.take(180))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(details.take(1000)))
+            .setContentIntent(openAppIntent())
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSilent(AppVisibility.inForeground)
+            .setAutoCancel(false)
+        if (withButtons) {
+            builder.addAction(0, "Allow", serviceAction(ACTION_ALLOW_ONCE))
+            builder.addAction(0, "Don't allow", serviceAction(ACTION_DENY))
+            builder.addAction(0, "Stop task", serviceAction(ACTION_CANCEL_CONFIRMATION))
+        }
+        getSystemService(NotificationManager::class.java).notify(APPROVAL_NOTIFICATION_ID, builder.build())
+    }
+
+    private fun clearApproval() {
+        getSystemService(NotificationManager::class.java).cancel(APPROVAL_NOTIFICATION_ID)
+    }
+
+    /**
+     * The result is its own notification. It used to reuse the "running" notification, which Android
+     * removes the moment the service stops — so the finished message was never actually visible.
+     */
+    private fun postResult(title: String, text: String) {
+        val n = NotificationCompat.Builder(this, CHANNEL_RESULT)
+            .setSmallIcon(R.drawable.ic_stat_agent)
+            .setContentTitle(title)
+            .setContentText(text.take(180))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text.take(500)))
+            .setContentIntent(openAppIntent())
+            .setAutoCancel(true)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(RESULT_NOTIFICATION_ID, n)
     }
 
     private fun saveCheckpoint(intent: Intent) {
@@ -325,7 +385,13 @@ class AgentTaskService : Service() {
         const val EXTRA_PROVIDER_ERROR = "provider_error"
         const val EXTRA_PROGRESS = "progress"
         private const val CHANNEL_ID = "agent_tasks"
+        private const val CHANNEL_APPROVAL = "agent_approval"
+        private const val CHANNEL_RESULT = "agent_results"
         private const val NOTIFICATION_ID = 7001
+        private const val APPROVAL_NOTIFICATION_ID = 7002
+        private const val RESULT_NOTIFICATION_ID = 7003
+        private const val APPROVAL_TIMEOUT_MS = 30 * 60_000L
+        private const val QUESTION_TIMEOUT_MS = 10 * 60_000L
         private const val KEY_NAME = "gemini_api_key"
         private const val OPENAI_KEY_NAME = "openai_api_key"
         private const val CLAUDE_KEY_NAME = "claude_api_key"

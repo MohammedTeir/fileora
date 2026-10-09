@@ -1,312 +1,166 @@
 package dev.deviceagent.app
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import dev.deviceagent.core.policy.ConfirmationRequest
-import dev.deviceagent.core.policy.ConfirmationResponse
+import androidx.compose.ui.platform.LocalContext
+import dev.deviceagent.app.ui.ActivityScreen
+import dev.deviceagent.app.ui.AgentTheme
+import dev.deviceagent.app.ui.ApprovalDialog
+import dev.deviceagent.app.ui.HomeScreen
+import dev.deviceagent.app.ui.QuestionDialog
+import dev.deviceagent.app.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
     private val vm: AgentViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { Screen(vm) } }
+        enableEdgeToEdge()
+        setContent { AgentTheme { AppRoot(vm) } }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AppVisibility.inForeground = true
+    }
+
+    override fun onStop() {
+        AppVisibility.inForeground = false
+        super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
         vm.refreshAllFilesAccessStatus()
+        vm.refreshNotificationStatus()
     }
 }
 
+private const val TAB_HOME = 0
+private const val TAB_ACTIVITY = 1
+private const val TAB_SETTINGS = 2
+
 @Composable
-private fun Screen(vm: AgentViewModel) {
+private fun AppRoot(vm: AgentViewModel) {
     val s by vm.state.collectAsState()
-    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) vm.addRoot(uri) }
-    var keyInput by remember { mutableStateOf("") }
-    var modelInput by remember(s.model) { mutableStateOf(s.model) }
-    var intervalInput by remember { mutableStateOf("24") }
+    val context = LocalContext.current
+    var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    var startAfterPermission by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
 
-    Column(
-        Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text("Device Agent", style = MaterialTheme.typography.headlineMedium)
-
-        s.notice?.let { msg ->
-            Card(Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(msg, Modifier.weight(1f))
-                    TextButton(onClick = vm::dismissNotice) { Text("OK") }
-                }
-            }
+    // Messages appear at the bottom of whatever screen you're on (they used to be a card at the very top of a long page).
+    LaunchedEffect(s.notice) {
+        s.notice?.let {
+            snackbar.showSnackbar(it, withDismissAction = true, duration = SnackbarDuration.Long)
+            vm.dismissNotice()
         }
+    }
 
-        // ── 1. AI provider ──
-        Section("1. AI provider (${s.provider.name.lowercase()})") {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ProviderChoice.values().forEach { choice ->
-                    if (choice == s.provider) Button(onClick = {}) { Text(choice.name) }
-                    else OutlinedButton(onClick = { vm.setProvider(choice) }) { Text(choice.name) }
-                }
-            }
-            if (s.apiKeyMask != null) {
-                Text("API key: ${s.apiKeyMask}")
-                OutlinedButton(onClick = vm::removeApiKey) { Text("Remove key") }
-            } else {
-                OutlinedTextField(
-                    value = keyInput, onValueChange = { keyInput = it }, label = { Text("${s.provider.name.lowercase()} API key") },
-                    visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth(),
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        vm.refreshNotificationStatus()
+        if (startAfterPermission) {
+            startAfterPermission = false
+            vm.runTask()
+        }
+    }
+
+    val turnOnNotifications: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= 33 && !vm.notificationsAsked()) {
+            vm.markNotificationsAsked()
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            openNotificationSettings(context)
+        }
+    }
+
+    // The first time someone starts a task, ask for notification permission so they hear back when they leave the app.
+    val start: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= 33 && !s.notificationsEnabled && !vm.notificationsAsked()) {
+            vm.markNotificationsAsked()
+            startAfterPermission = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            vm.runTask()
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = tab == TAB_HOME, onClick = { tab = TAB_HOME },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = null) }, label = { Text("Home") },
                 )
-                Button(onClick = { vm.saveApiKey(keyInput); keyInput = "" }, enabled = keyInput.isNotBlank()) { Text("Save key") }
-            }
-            OutlinedTextField(
-                value = modelInput, onValueChange = { modelInput = it; vm.setModel(it) },
-                label = { Text("Planning / default model") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { vm.refreshModels() }, enabled = s.apiKeyMask != null) { Text("List models") }
-                OutlinedButton(onClick = { vm.testConnection() }, enabled = s.apiKeyMask != null) { Text("Test connection") }
-            }
-            s.availableModels.take(30).forEach { id ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { vm.setModel(id) }, modifier = Modifier.weight(1f)) { Text("Default: $id", fontSize = 13.sp) }
-                    TextButton(onClick = { vm.setRecoveryModel(id) }) { Text("Recovery", fontSize = 12.sp) }
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = s.automaticModelRouting, onCheckedChange = vm::setAutomaticModelRouting)
-                Text("  Automatically route failed turns to recovery model")
-            }
-            OutlinedTextField(
-                value = s.recoveryModel,
-                onValueChange = vm::setRecoveryModel,
-                label = { Text(if (s.automaticModelRouting) "Recovery model" else "Recovery model (optional)") },
-                supportingText = { Text(if (s.automaticModelRouting) "Required for routing. Used only after a failed tool turn; select from the current provider's list and ensure it supports tool calls." else "Optional. If configured and routing is enabled, this must be from the selected provider and support tool calls.") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-
-        // ── 2. Folders ──
-        Section("2. Folders the agent may use") {
-            Text(
-                when {
-                    s.useAllFilesAccess && s.allFilesAccessGranted -> "All Files Access is active for tasks. These SAF folders remain saved as a narrower alternative."
-                    s.useAllFilesAccess -> "All Files Access is selected but not currently granted. Tasks will wait for permission instead of silently switching to SAF."
-                    else -> "SAF is the default: the agent can only see folders you add here and cannot access anything else."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
-            s.roots.forEach { r ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("/${r.name}", Modifier.weight(1f), fontFamily = FontFamily.Monospace)
-                    TextButton(onClick = { vm.removeRoot(r.name) }) { Text("Remove") }
-                }
-            }
-            Button(onClick = { pickFolder.launch(null) }) { Text("Add folder") }
-        }
-
-        Section("Storage access settings") {
-            Text("SAF folder access is the default and grants only the folders you pick. All Files Access is optional, broader access to Android-reported shared-storage volumes, and may be restricted by Android or Google Play.", style = MaterialTheme.typography.bodySmall)
-            Text(
-                when {
-                    !s.allFilesAccessSupported -> "Status: unavailable on this Android version (requires Android 11 or later)."
-                    s.allFilesAccessGranted -> "Android permission: granted."
-                    else -> "Android permission: not granted. SAF remains available."
-                },
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text("Even with this permission, Android/data and Android/obb remain blocked. Tasks keep confirmation, sandbox checks, trash, and undo.", style = MaterialTheme.typography.bodySmall)
-            Text("Current Android media processing remains SAF-specific; media tools may be unavailable while All Files Access mode is active.", style = MaterialTheme.typography.bodySmall)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = s.useAllFilesAccess,
-                    onCheckedChange = vm::setAllFilesAccessMode,
-                    enabled = !s.running && s.allFilesAccessSupported,
+                NavigationBarItem(
+                    selected = tab == TAB_ACTIVITY, onClick = { tab = TAB_ACTIVITY },
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) }, label = { Text("Activity") },
                 )
-                Text("  Use All Files Access for tasks")
+                NavigationBarItem(
+                    selected = tab == TAB_SETTINGS, onClick = { tab = TAB_SETTINGS },
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) }, label = { Text("Settings") },
+                )
             }
-            OutlinedButton(onClick = vm::openAllFilesAccessSettings, enabled = !s.running && s.allFilesAccessSupported) {
-                Text("Open Android access settings")
-            }
-        }
-
-        // ── 3. Task ──
-        Section("3. What should I do?") {
-            if (s.checkpointAvailable && !s.running) {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Interrupted task", style = MaterialTheme.typography.titleSmall)
-                        Text(s.checkpointDescription, style = MaterialTheme.typography.bodySmall)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = vm::resumeTask) { Text("Resume") }
-                            OutlinedButton(onClick = vm::discardCheckpoint) { Text("Discard") }
-                        }
-                    }
-                }
-            }
-            OutlinedTextField(
-                value = s.goal, onValueChange = vm::setGoal, modifier = Modifier.fillMaxWidth(), minLines = 3,
-                label = { Text("e.g. Copy every .mp4 from Download into Music/Lessons") },
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = s.dryRun, onCheckedChange = vm::setDryRun)
-                Text("  Dry run: show the plan, change nothing")
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = s.manualMode, onCheckedChange = vm::setManualMode)
-                Text("  Manual mode: propose only, never execute")
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = s.sendFileContents, onCheckedChange = vm::setSendFileContents)
-                Text("  Allow file contents to be sent to Gemini")
-            }
-            Text(
-                if (s.sendFileContents)
-                    "Sending preview: goal, folder names, file metadata, and text requested through file.read."
-                else
-                    "Sending preview: goal, folder names, and file metadata only. File contents are blocked.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = vm::runTask, enabled = !s.running && s.goal.isNotBlank()) { Text(if (s.running) "Working…" else "Run") }
-                if (s.running) OutlinedButton(onClick = vm::cancelTask) { Text("Cancel") }
-            }
-        }
-
-        Section("Scheduled task") {
-            Text("Schedules retain the current goal, provider/models, routing choice, and storage mode (SAF folders or All Files Access). They run in manual mode by default and create proposals instead of changing files.", style = MaterialTheme.typography.bodySmall)
-            OutlinedTextField(value = intervalInput, onValueChange = { intervalInput = it.filter(Char::isDigit) }, label = { Text("Repeat every N hours") })
-            Button(onClick = { intervalInput.toLongOrNull()?.let(vm::scheduleCurrent) }) { Text("Schedule current task") }
-            s.scheduledTasks.forEach { task ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("${task.id}: every ${task.intervalHours}h (manual)", Modifier.weight(1f), fontSize = 12.sp)
-                    TextButton(onClick = { vm.cancelScheduledTask(task.id) }) { Text("Cancel") }
-                }
-            }
-        }
-
-        // ── 4. Progress / result ──
-        if (s.log.isNotEmpty()) {
-            Section("Activity") { s.log.takeLast(40).forEach { Text(it, fontFamily = FontFamily.Monospace, fontSize = 12.sp) } }
-        }
-        s.outcome?.let { o ->
-            Section("Result: ${statusLabel(o.status)}") {
-                // The engine's own facts come first; the model's words are secondary.
-                Text(o.report, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
-                o.modelMessage?.let { Text("\nAssistant says:\n$it") }
-                if (o.unverifiedChanges > 0) Text("\n${o.unverifiedChanges} change(s) could not be verified automatically.")
-                if (s.usageSummary.isNotEmpty()) Text("\n${s.usageSummary}", style = MaterialTheme.typography.bodySmall)
-                if (o.canUndo || s.restorableUndoTaskId != null) OutlinedButton(onClick = vm::undoLastTask) { Text("Undo this task") }
-            }
-        }
-        if (s.outcome == null && s.restorableUndoTaskId != null) {
-            Section("Recover previous task") {
-                Text("A reversible task from an earlier app session is available.")
-                OutlinedButton(onClick = vm::undoLastTask) { Text("Undo previous task") }
-            }
-        }
-        if (s.history.isNotEmpty()) {
-            Section("History") {
-                s.history.take(20).forEach { entry ->
-                    Text(
-                        "${entry.kind} · ${entry.taskId}\n${entry.details}",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
-                    )
-                }
+        },
+    ) { padding ->
+        Box(Modifier.padding(padding).consumeWindowInsets(padding).imePadding()) {
+            when (tab) {
+                TAB_HOME -> HomeScreen(
+                    s = s, vm = vm,
+                    onOpenSettings = { tab = TAB_SETTINGS },
+                    onTurnOnNotifications = turnOnNotifications,
+                    onStart = start,
+                )
+                TAB_ACTIVITY -> ActivityScreen(s, vm)
+                else -> SettingsScreen(s, vm)
             }
         }
     }
 
-    s.pendingConfirmation?.let { ConfirmDialog(it, vm::answerConfirmation) }
-    s.pendingQuestion?.let { q -> QuestionDialog(q, vm::answerQuestion) }
+    // Dialogs sit above every tab, so an approval request is never hidden behind another screen.
+    s.pendingConfirmation?.let { ApprovalDialog(it, vm::answerConfirmation) }
+    s.pendingQuestion?.let { QuestionDialog(it, vm::answerQuestion) }
 }
 
-/** Plain-language label; PLAN_ONLY must read as "nothing was changed", never as a success. */
-private fun statusLabel(status: dev.deviceagent.core.agent.TaskStatus): String = when (status) {
-    dev.deviceagent.core.agent.TaskStatus.PLAN_ONLY -> "PLAN ONLY (nothing was changed)"
-    else -> status.name
-}
-
-@Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            content()
-        }
-    }
-}
-
-@Composable
-private fun ConfirmDialog(req: ConfirmationRequest, onAnswer: (ConfirmationResponse) -> Unit) {
-    AlertDialog(
-        onDismissRequest = { onAnswer(ConfirmationResponse.DENY) },
-        title = { Text("Allow this? (${req.risk.name.lowercase()} risk)") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(req.summary)
-                if (req.fileCount > 0) Text("${req.fileCount} file(s), ${req.bytes} bytes")
-                req.affectedSample.take(5).forEach { Text(it, fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
-                Text(if (req.reversible) "This can be undone." else "This cannot be undone.", style = MaterialTheme.typography.bodySmall)
-                if (req.grantScope != null) TextButton(onClick = { onAnswer(ConfirmationResponse.ALLOW_FOR_TASK) }) { Text("Always allow ${req.grantScope} for this task") }
-                TextButton(onClick = { onAnswer(ConfirmationResponse.CANCEL_TASK) }) { Text("Cancel the whole task") }
-            }
-        },
-        confirmButton = { TextButton(onClick = { onAnswer(ConfirmationResponse.ALLOW_ONCE) }) { Text("Allow once") } },
-        dismissButton = { TextButton(onClick = { onAnswer(ConfirmationResponse.DENY) }) { Text("Deny") } },
-    )
-}
-
-@Composable
-private fun QuestionDialog(question: String, onAnswer: (String?) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = { onAnswer(null) },
-        title = { Text("The agent has a question") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(question)
-                OutlinedTextField(value = text, onValueChange = { text = it }, modifier = Modifier.fillMaxWidth())
-            }
-        },
-        confirmButton = { TextButton(onClick = { onAnswer(text) }) { Text("Answer") } },
-        dismissButton = { TextButton(onClick = { onAnswer(null) }) { Text("Skip") } },
-    )
+private fun openNotificationSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(intent) }
 }

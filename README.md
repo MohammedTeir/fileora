@@ -8,8 +8,8 @@ An Android AI agent that operates the device through **typed, policy-checked, ve
 |---|---|
 | `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 99 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
-| `app` module (Compose UI, Keystore, SAF filesystem, optional All Files Access, Room audit/undo history) | SAF app has previously compiled and run on a real device (Redmi Note 8 Pro; reported by the owner). The new All Files Access flow is implemented but not device-validated. **Dry run is verified on device; a real run, confirmation, undo and delete-to-trash are not yet verified** (`ROADMAP.md` P0 #1) |
-| Gradle build files / dependency versions | **Configured**: Android/WorkManager dependencies are declared; full Android compilation still needs GitHub CI or an Android SDK |
+| `app` module (Compose Home/Activity/Settings, notification-linked approvals/questions, Keystore, SAF, optional All Files Access, Room audit/undo history) | **Debug APK and lint build locally on API 35; 6 UX-helper JVM tests pass.** SAF app has previously run on a real device (Redmi Note 8 Pro; reported by the owner). New UX and All Files Access flows still need device validation. **Dry run is verified on device; real run, confirmation, undo and delete-to-trash remain unverified** (`ROADMAP.md` P0 #1) |
+| Gradle build files / dependency versions | **Configured and locally verified**: `:app:assembleDebug` and `:app:lintDebug` pass with Android API 35; two non-blocking lint warnings remain for the intentionally declared `MANAGE_EXTERNAL_STORAGE` permission and the adaptive-icon qualifier |
 | GitHub Actions (`ci.yml`, `release.yml`) | **CI is green and the release workflow builds signed APKs** (reported by the owner; `apksigner verify` output not yet seen). See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
 | Media (FFmpeg), Linux runtime, packages, root, scheduling | Core probe/convert/audio-extraction support and JVM FFmpeg backend are implemented. Android SAF supports local probe, MP4 remux, and M4A audio extraction; broader FFmpeg processing remains. Scheduling is implemented; other advanced runtimes/tools remain |
 
@@ -60,6 +60,7 @@ scripts/      test-core.sh (offline build+test), kotlin-env.sh
 ```bash
 ./scripts/test-core.sh        # no network needed; uses the Kotlin compiler bundled in Gradle's lib dir
 gradle :agent-core:check      # same suite via Gradle, once dependencies can be resolved
+gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug  # requires Android SDK API 35
 ```
 
 ## CI and releases
@@ -69,8 +70,8 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 
 ## First steps on your machine
 
-1. Open the project in Android Studio; let it sync; bump versions in `gradle/libs.versions.toml` and fix any compile errors in `app/` (start with `SafFileSystem.kt`, the largest untested piece).
-2. Run the app, add your Gemini API key, tap **List models**, pick a model, add one folder, and try a **dry run** first.
+1. Run `./gradlew :app:assembleDebug` (or open the project in Android Studio); bump versions only after validating the pinned build.
+2. Install the debug APK on a device, add your Gemini API key in Settings, choose a model and folder, and try a **dry run** first.
 3. Verify the Gemini adapter on a real key before trusting it (a failure there will show up as a clear provider error, not a crash).
 
 ## Known limits and decisions to make
@@ -84,7 +85,7 @@ gradle :agent-core:check      # same suite via Gradle, once dependencies can be 
 - **Media/FFmpeg status:** core `media.probe`, `media.convert`, and `media.extract_audio` contracts are implemented; the JVM `JvmFfmpegBackend` uses no shell and verifies output. Android uses SAF `content://` URIs with platform `MediaExtractor`/`MediaMuxer` for local probe, supported-track MP4 remux, and first-track M4A extraction. This does not re-encode or match arbitrary FFmpeg formats/filters. Full Android FFmpeg requires a reproducible native AAR build because [FFmpegKitNext is source-only](https://github.com/arthenica/ffmpeg-kit-next/wiki/Building-Android); other media tools and on-device validation remain.
 - **Model routing:** implemented and opt-in. The selected model handles planning and routine turns; after a failed tool-result turn, an optional user-selected recovery model from the same provider is used only if it advertises tool-calling support. The toggle/model flow is wired through foreground, resumed, and scheduled tasks; Android/device validation remains.
 - **Usage limits:** each task now has hard request, input-token, and output-token budgets; reaching one stops the task with `BLOCKED`. Provider-reported usage is shown for the current task; usage history is still in memory only.
-- **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and the undo actions (move, delete-created, restore) survive an app restart, and the latest persisted task is offered for undo after restart. Limits: the database is not encrypted beyond Android's app-private storage, undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each), and AI usage totals (`UsageTracker`) are still in memory only.
+- **History is persisted in Room** (`device-agent.db`, `RoomAuditLog.kt`): the redacted audit log and undo actions (move, delete-created, restore) survive an app restart; Home reconstructs the latest finished-task summary and offers undo when available. Limits: the database is not encrypted beyond Android's app-private storage, undo rows for `file.write`/`file.append` hold the previous file contents (up to 100 KiB each), and AI usage totals (`UsageTracker`) are still in memory only.
 - **Checkpointing:** an interrupted foreground-service task persists its request, exact provider-neutral conversation, and latest progress, then offers Resume or Discard on the next app launch. Physical-device validation remains.
 - **Scheduled tasks:** `ScheduledTasks.schedule/cancel/list` persist definitions in Room, run through periodic WorkManager, and relaunch the foreground service. The Compose screen can schedule and cancel the current task. Scheduled runs default to manual mode, so they produce proposals instead of silently changing files; physical-device validation remains.
 - **Exact conversation checkpoints:** the core now persists provider-neutral messages after each tool-result turn and the Android service restores them after process death. Device validation remains required.
