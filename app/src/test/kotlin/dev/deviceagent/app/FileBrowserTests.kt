@@ -62,4 +62,12 @@ class FileBrowserTests {
         assertEquals(false, matchesSearch(f("docs", dir = true), "", FileCategory.DOCUMENTS))
         assertEquals(true, matchesSearch(f("x.jpg"), "", FileCategory.IMAGES))
     }
+
+    @Test fun recentFilesSkipFoldersAndHiddenNamesAndAreNewestFirst() {
+        val entries = listOf(
+            f("old.txt", ms = 10), f("new.pdf", ms = 90), f(".cache", ms = 99), f("dir", dir = true, ms = 100), f("mid.mp4", ms = 50),
+        )
+        assertEquals(listOf("new.pdf", "mid.mp4"), mostRecentFiles(entries, 2).map { it.name })
+        assertEquals(listOf("new.pdf", "mid.mp4", "old.txt"), mostRecentFiles(entries, 10).map { it.name })
+    }
 }

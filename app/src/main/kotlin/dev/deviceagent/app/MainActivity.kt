@@ -95,6 +95,9 @@ private fun AppRoot(vm: AgentViewModel) {
     val context = LocalContext.current
     val browser: FileBrowserViewModel = viewModel()
     var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    val recent by browser.recent.collectAsState()
+    val favoriteInfos by browser.favoriteInfos.collectAsState()
+    LaunchedEffect(tab) { if (tab == TAB_HOME) browser.refreshRecent() }
     var showTasks by rememberSaveable { mutableStateOf(false) }
     val go: (Int) -> Unit = { tab = it; showTasks = false }
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
@@ -176,6 +179,9 @@ private fun AppRoot(vm: AgentViewModel) {
                 }
             } else when (tab) {
                 TAB_HOME -> DashboardScreen(
+                    recent = recent,
+                    favorites = favoriteInfos,
+                    onReveal = { info -> browser.reveal(info); go(TAB_BROWSE) },
                     onSearch = { go(TAB_SEARCH) },
                     onBrowse = { go(TAB_BROWSE) },
                     onOpenCategory = { c -> browser.updateSearch(query = "", category = c); go(TAB_SEARCH) },

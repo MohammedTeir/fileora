@@ -47,6 +47,9 @@ data class SearchState(
 
 private const val SEARCH_MAX_VISITED = 20_000
 private const val SEARCH_MAX_RESULTS = 200
+private const val RECENT_LIMIT = 5
+private const val RECENT_MAX_VISITED = 5_000
+private const val RECENT_REFRESH_MS = 60_000L
 
 /**
  * Read-only browsing. This view model never writes, moves or deletes anything: changes still go
@@ -61,6 +64,18 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
     val search: StateFlow<SearchState> = _search.asStateFlow()
     private var searchJob: Job? = null
 
+    private val favoritesStore = FavoritesStore(app)
+    private val _favorites = MutableStateFlow(favoritesStore.load())
+    /** Starred paths (may include ones that no longer exist). */
+    val favorites: StateFlow<Set<String>> = _favorites.asStateFlow()
+    private val _favoriteInfos = MutableStateFlow<List<FileInfo>>(emptyList())
+    /** Starred items that still exist, for the Home list. */
+    val favoriteInfos: StateFlow<List<FileInfo>> = _favoriteInfos.asStateFlow()
+    private val _recent = MutableStateFlow<List<FileInfo>>(emptyList())
+    val recent: StateFlow<List<FileInfo>> = _recent.asStateFlow()
+    private var recentJob: Job? = null
+    private var lastRecentAt = 0L
+
     private var fs: FileSystem? = null
     private var configKey: String? = null
     private var job: Job? = null
@@ -72,6 +87,10 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
         configKey = key
         job?.cancel()
         searchJob?.cancel()
+        recentJob?.cancel()
+        lastRecentAt = 0L
+        _recent.value = emptyList()
+        _favoriteInfos.value = emptyList()
         _search.update { SearchState(recent = it.recent) }
         _state.value = BrowserState(loading = true)
         job = viewModelScope.launch(Dispatchers.IO) {
@@ -86,6 +105,8 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
             built.onSuccess {
                 fs = it
                 _state.value = BrowserState(roots = it.roots)
+                refreshFavoriteInfos()
+                refreshRecent(force = true)
             }.onFailure { e ->
                 fs = null
                 _state.value = BrowserState(error = e.message ?: "Couldn't open your folders.")
@@ -125,6 +146,49 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
         val parent = if (path == s.root) null else system.parent(path)
         if (parent == null) openRoots() else open(parent)
         return true
+    }
+
+    /** Stars or un-stars a file or folder. Only the path is stored, on this device. */
+    fun toggleFavorite(path: String) {
+        val current = _favorites.value
+        val next = if (path in current) current - path else current + path
+        favoritesStore.save(next)
+        _favorites.value = next
+        refreshFavoriteInfos()
+    }
+
+    private fun refreshFavoriteInfos() {
+        val system = fs ?: return
+        val paths = _favorites.value.sorted()
+        viewModelScope.launch(Dispatchers.IO) {
+            _favoriteInfos.value = paths.mapNotNull { p -> try { system.stat(p) } catch (e: Exception) { null } }
+        }
+    }
+
+    /**
+     * Looks through the accessible folders (breadth first, bounded) for the newest visible files.
+     * Read-only. Skips hidden names, the trash folder and symlinks, and re-runs at most once a minute unless forced.
+     */
+    fun refreshRecent(force: Boolean = false) {
+        val system = fs ?: return
+        val now = System.currentTimeMillis()
+        if (!force && now - lastRecentAt < RECENT_REFRESH_MS) return
+        lastRecentAt = now
+        recentJob?.cancel()
+        recentJob = viewModelScope.launch(Dispatchers.IO) {
+            var best = emptyList<FileInfo>()
+            val queue = ArrayDeque(system.roots)
+            var visited = 0
+            while (queue.isNotEmpty() && isActive && visited < RECENT_MAX_VISITED) {
+                val dir = queue.removeFirst()
+                val children = try { system.list(dir) } catch (e: Exception) { continue }
+                val visible = children.filter { it.name != TRASH_DIR && !it.isSymlink && !isHiddenName(it.name) }
+                visited += visible.size
+                visible.filter { it.isDirectory }.forEach { queue.addLast(it.path) }
+                best = mostRecentFiles(best + visible, RECENT_LIMIT)
+            }
+            if (isActive) _recent.value = best
+        }
     }
 
     fun setCategory(c: FileCategory?) = _state.update { it.copy(category = c) }

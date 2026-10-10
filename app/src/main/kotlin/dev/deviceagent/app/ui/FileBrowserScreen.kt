@@ -24,11 +24,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -46,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +79,7 @@ internal fun FileBrowserScreen(
     onUseInTask: (List<String>) -> Unit,
 ) {
     val b by browser.state.collectAsState()
+    val favorites by browser.favorites.collectAsState()
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
     BackHandler(enabled = b.path != null) { browser.up() }
 
@@ -117,7 +121,7 @@ internal fun FileBrowserScreen(
                     }
                 }
                 !inFolder -> RootList(b.roots, hasFolders = s.roots.isNotEmpty() || s.useAllFilesAccess, onOpen = browser::open)
-                else -> FolderList(b.visible, b.selected, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected)
+                else -> FolderList(b.visible, b.selected, favorites, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected, browser::toggleFavorite)
             }
         }
 
@@ -204,9 +208,11 @@ private fun RootList(roots: List<String>, hasFolders: Boolean, onOpen: (String) 
 private fun FolderList(
     entries: List<FileInfo>,
     selected: Set<String>,
+    favorites: Set<String>,
     filtering: Boolean,
     onOpen: (String) -> Unit,
     onToggle: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
 ) {
     if (entries.isEmpty()) {
         Column(Modifier.padding(16.dp)) {
@@ -225,7 +231,7 @@ private fun FolderList(
                     .fillMaxWidth()
                     .padding(vertical = 2.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
                     .clickable { if (selected.isNotEmpty() || !e.isDirectory) onToggle(e.path) else onOpen(e.path) }
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -238,7 +244,17 @@ private fun FolderList(
                 }
                 when {
                     isSelected -> Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
-                    e.isDirectory && selected.isEmpty() -> Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    selected.isEmpty() -> {
+                        val starred = e.path in favorites
+                        IconButton(onClick = { onToggleFavorite(e.path) }, modifier = Modifier.size(40.dp)) {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = if (starred) "Remove from favorites" else "Add to favorites",
+                                tint = if (starred) Color(0xFFF5A623) else MaterialTheme.colorScheme.outlineVariant,
+                            )
+                        }
+                        if (e.isDirectory) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }

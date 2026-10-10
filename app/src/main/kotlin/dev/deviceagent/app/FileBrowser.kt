@@ -81,3 +81,10 @@ fun extensionBadge(name: String): String {
     val ext = name.substringAfterLast('.', "")
     return if (ext.isEmpty() || ext.length > 5 || name.startsWith('.') && name.count { it == '.' } == 1) "FILE" else ext.uppercase()
 }
+
+/** Dot-names (".config", ".thumbnails") are system or app clutter, not something the user would call recent. */
+fun isHiddenName(name: String): Boolean = name.startsWith('.')
+
+/** The newest visible files, newest first. Folders and hidden names are skipped. */
+fun mostRecentFiles(entries: List<FileInfo>, limit: Int): List<FileInfo> =
+    entries.filter { !it.isDirectory && !isHiddenName(it.name) }.sortedByDescending { it.modifiedMs }.take(limit)

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,10 +35,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.deviceagent.app.FileCategory
 import dev.deviceagent.app.formatBytes
+import dev.deviceagent.core.fs.FileInfo
 import java.util.Calendar
 
 /** Colour used for a category's tile. Alpha-blended so it works on both the light and the dark theme. */
@@ -56,6 +59,9 @@ internal fun categoryColor(c: FileCategory): Color = when (c) {
  */
 @Composable
 internal fun DashboardScreen(
+    recent: List<FileInfo>,
+    favorites: List<FileInfo>,
+    onReveal: (FileInfo) -> Unit,
     onSearch: () -> Unit,
     onBrowse: () -> Unit,
     onOpenCategory: (FileCategory) -> Unit,
@@ -96,6 +102,16 @@ internal fun DashboardScreen(
             }
         }
 
+        if (recent.isNotEmpty()) {
+            item { Text("Recent files", style = MaterialTheme.typography.titleMedium) }
+            items(recent, key = { "recent:" + it.path }) { e -> FileRow(e, onReveal) }
+        }
+
+        if (favorites.isNotEmpty()) {
+            item { Text("Favorites", style = MaterialTheme.typography.titleMedium) }
+            items(favorites, key = { "fav:" + it.path }) { e -> FileRow(e, onReveal) }
+        }
+
         item { Text("Categories", style = MaterialTheme.typography.titleMedium) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -105,6 +121,21 @@ internal fun DashboardScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FileRow(e: FileInfo, onClick: (FileInfo) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onClick(e) }.padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        EntryIcon(e)
+        Column(Modifier.weight(1f)) {
+            Text(e.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Hint(entrySubtitle(e))
         }
     }
 }
