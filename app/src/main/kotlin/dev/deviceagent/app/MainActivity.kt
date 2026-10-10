@@ -16,11 +16,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -43,6 +38,8 @@ import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
 import dev.deviceagent.app.ui.ApprovalDialog
 import dev.deviceagent.app.ui.HomeScreen
+import dev.deviceagent.app.ui.FileoraIcon
+import dev.deviceagent.app.ui.FileoraIconName
 import dev.deviceagent.app.ui.QuestionDialog
 import dev.deviceagent.app.ui.SettingsScreen
 
@@ -126,15 +123,15 @@ private fun AppRoot(vm: AgentViewModel) {
             NavigationBar {
                 NavigationBarItem(
                     selected = tab == TAB_HOME, onClick = { tab = TAB_HOME },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = null) }, label = { Text("Home") },
+                    icon = { FileoraIcon(FileoraIconName.Home, contentDescription = null) }, label = { Text("Home") },
                 )
                 NavigationBarItem(
                     selected = tab == TAB_ACTIVITY, onClick = { tab = TAB_ACTIVITY },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) }, label = { Text("Activity") },
+                    icon = { FileoraIcon(FileoraIconName.History, contentDescription = null) }, label = { Text("Activity") },
                 )
                 NavigationBarItem(
                     selected = tab == TAB_SETTINGS, onClick = { tab = TAB_SETTINGS },
-                    icon = { Icon(Icons.Filled.Settings, contentDescription = null) }, label = { Text("Settings") },
+                    icon = { FileoraIcon(FileoraIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
                 )
             }
         },

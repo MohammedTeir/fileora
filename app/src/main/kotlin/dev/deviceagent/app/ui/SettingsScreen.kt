@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -191,11 +189,11 @@ private fun FoldersCard(s: UiState, vm: AgentViewModel) {
         s.roots.forEach { r ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(r.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                IconButton(onClick = { removeTarget = r }) { Icon(Icons.Filled.Delete, contentDescription = "Remove ${r.name}") }
+                IconButton(onClick = { removeTarget = r }) { FileoraIcon(FileoraIconName.Delete, contentDescription = "Remove ${r.name}") }
             }
         }
         OutlinedButton(onClick = { pickFolder.launch(null) }) {
-            Icon(Icons.Filled.Add, contentDescription = null)
+            FileoraIcon(FileoraIconName.Add, contentDescription = null)
             Text("  Add a folder")
         }
 

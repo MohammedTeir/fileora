@@ -9,6 +9,10 @@ This document tracks the supplied design assets that are currently used by the A
 | `app/src/main/res/drawable-nodpi/fileora_launcher.png` | `assets/brand/official/launcher_icon/android_sizes/ic_launcher_512.png` | Approved Fileora launcher artwork, copied into an Android `drawable-nodpi` resource so Android does not rescale it by density. |
 | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` | `assets/brand/official/launcher_icon/android_sizes/ic_launcher_512.png` | The standard adaptive launcher icon uses the approved artwork as its foreground and monochrome source. |
 | `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml` | `assets/brand/official/launcher_icon/android_sizes/ic_launcher_512.png` | The round launcher icon uses the same approved artwork. |
+| `app/src/main/res/drawable-nodpi/fileora_icon_*.png` | 20 selected 48 px exports from `assets/icons/sized/` | Phase 1 runtime catalog for Home, navigation, Settings, approval, privacy, and task-status UI. |
+| `app/src/main/res/drawable-night-nodpi/fileora_icon_{home,history,settings,undo}.png` | Matching files from `assets/icons/sized-dark/48px/` | Automatic dark-theme contrast variants for the four supplied icons that have dedicated dark exports. |
+
+The reusable Compose API is `FileoraIcon` with `FileoraIconName` in `app/src/main/kotlin/dev/deviceagent/app/ui/FileoraIcons.kt`. Phase 1 now uses the catalog for bottom navigation, Home notifications/status/privacy/start controls, Settings folder actions, and the change-approval risk indicator. Important actions still retain visible text labels.
 
 The existing application ID, package namespace, Room database name, and secret aliases were not changed. This keeps the app upgrade-compatible for existing installations.
 

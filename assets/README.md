@@ -45,6 +45,6 @@ The archive README says that the six logo concepts are not marked official. The 
 
 ## Current app integration
 
-The approved 512 px launcher export is now integrated as the Android launcher foreground in `app/src/main/res/drawable-nodpi/fileora_launcher.png`. The standard and round adaptive launcher resources both use it. The Android package/application ID remains unchanged so existing Fileora installations can upgrade without losing app data.
+The approved 512 px launcher export is now integrated as the Android launcher foreground in `app/src/main/res/drawable-nodpi/fileora_launcher.png`. The standard and round adaptive launcher resources both use it. A Phase 1 catalog of 20 high-value 48 px icons is also packaged under `app/src/main/res/drawable-nodpi/`, with four supplied dark-theme overrides under `drawable-night-nodpi/`. The Android package/application ID remains unchanged so existing Fileora installations can upgrade without losing app data.
 
 See [`docs/ASSET_USAGE.md`](../docs/ASSET_USAGE.md) for the exact source-to-resource mapping and the recommended future uses for the icon library.

@@ -13,16 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -85,7 +77,7 @@ internal fun HomeScreen(
 
         if (!s.notificationsEnabled) item {
             Banner(
-                Tone.WARNING, Icons.Filled.Notifications, "Turn on notifications",
+                Tone.WARNING, FileoraIconName.Notifications, "Turn on notifications",
                 "I'll tell you when a task needs your OK or is finished — even when the app is closed.",
             ) { Button(onClick = onTurnOnNotifications) { Text("Turn on") } }
         }
@@ -112,7 +104,7 @@ internal fun HomeScreen(
 
         if (s.checkpointAvailable && !s.running) item {
             Banner(
-                Tone.WARNING, Icons.Filled.Warning, "A task was interrupted",
+                Tone.WARNING, FileoraIconName.Warning, "A task was interrupted",
                 "It stopped before it finished (the app closed or the phone restarted)." +
                     if (s.checkpointDescription.isNotBlank()) "\nLast step: ${cleanProgress(s.checkpointDescription)}" else "",
             ) {
@@ -130,7 +122,7 @@ internal fun HomeScreen(
                 val tone = statusTone(o.status)
                 Banner(
                     tone,
-                    if (tone == Tone.SUCCESS) Icons.Filled.CheckCircle else if (tone == Tone.INFO) Icons.Filled.Info else Icons.Filled.Warning,
+                    if (tone == Tone.SUCCESS) FileoraIconName.Success else if (tone == Tone.INFO) FileoraIconName.AiAssistant else FileoraIconName.Warning,
                     statusTitle(o.status),
                     statusExplanation(o.status),
                 ) {
@@ -195,7 +187,7 @@ private fun RecentTaskCard(task: HistoryItem, onUndo: () -> Unit) {
     val tone = statusTone(status)
     Banner(
         tone,
-        if (tone == Tone.SUCCESS) Icons.Filled.CheckCircle else if (tone == Tone.INFO) Icons.Filled.Info else Icons.Filled.Warning,
+        if (tone == Tone.SUCCESS) FileoraIconName.Success else if (tone == Tone.INFO) FileoraIconName.AiAssistant else FileoraIconName.Warning,
         "Your last task: ${statusTitle(status)}",
         "${task.goal}\n${statusExplanation(status)}",
     ) {
@@ -246,7 +238,7 @@ private fun TaskCard(
         if (s.manualMode) Hint("Suggest-only mode is on (Settings → Advanced): I'll list changes but never make them.")
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            FileoraIcon(FileoraIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
             Text(
                 if (s.sendFileContents) "$ai can read the contents of files it needs." else "$ai only sees file and folder names.",
@@ -258,7 +250,7 @@ private fun TaskCard(
         }
 
         Button(onClick = onStart, enabled = s.goal.isNotBlank() && ready, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+            FileoraIcon(FileoraIconName.AiAssistant, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text(if (s.dryRun) "Show me the plan" else "Start")
         }

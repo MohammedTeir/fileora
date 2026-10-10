@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,7 +76,7 @@ internal fun Hint(text: String) {
 @Composable
 internal fun Banner(
     tone: Tone,
-    icon: ImageVector,
+    icon: FileoraIconName,
     title: String,
     body: String? = null,
     content: @Composable ColumnScope.() -> Unit = {},
@@ -85,7 +84,7 @@ internal fun Banner(
     val (bg, fg) = toneColors(tone)
     Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = bg, contentColor = fg)) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(icon, contentDescription = null)
+            FileoraIcon(icon, contentDescription = null)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (body != null) Text(body, style = MaterialTheme.typography.bodyMedium)

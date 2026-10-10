@@ -8,13 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -64,7 +60,11 @@ internal fun ApprovalDialog(req: ConfirmationRequest, onAnswer: (ConfirmationRes
 
                 Surface(shape = RoundedCornerShape(50), color = bg) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (tone == Tone.INFO) Icons.Filled.Info else Icons.Filled.Warning, contentDescription = null, tint = fg, modifier = Modifier.padding(end = 6.dp))
+                        FileoraIcon(
+                            if (tone == Tone.INFO) FileoraIconName.Permissions else FileoraIconName.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 6.dp),
+                        )
                         Text(riskLabel(req.risk), style = MaterialTheme.typography.labelLarge, color = fg)
                     }
                 }
