@@ -172,7 +172,7 @@ class AgentTaskService : Service() {
             if (outcome.canUndo) {
                 getSharedPreferences("agent", MODE_PRIVATE).edit()
                     .putBoolean("undo_all_files_${outcome.taskId}", useAllFilesAccess)
-                    .putStringSet("undo_roots_${outcome.taskId}", roots.map { "${it.name}\u0000${it.uri}" }.toSet())
+                    .putStringSet("undo_roots_${outcome.taskId}", roots.map { "${it.name}\u0000${it.treeUri}" }.toSet())
                     .apply()
             }
             sendBroadcast(Intent(ACTION_RESULT).setPackage(packageName).apply {
