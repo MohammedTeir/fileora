@@ -3,7 +3,8 @@ package dev.deviceagent.app.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,11 +29,14 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -80,6 +84,7 @@ internal fun FileBrowserScreen(
 ) {
     val b by browser.state.collectAsState()
     val favorites by browser.favorites.collectAsState()
+    var details by remember { mutableStateOf<FileInfo?>(null) }
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
     BackHandler(enabled = b.path != null) { browser.up() }
 
@@ -107,6 +112,7 @@ internal fun FileBrowserScreen(
                     }
                     SortMenu(b.sort, b.ascending, browser::setSort)
                 }
+                if (b.selected.isEmpty()) Hint("Tap a file for details. Press and hold to select.")
             }
             if (b.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         }
@@ -121,7 +127,7 @@ internal fun FileBrowserScreen(
                     }
                 }
                 !inFolder -> RootList(b.roots, hasFolders = s.roots.isNotEmpty() || s.useAllFilesAccess, onOpen = browser::open)
-                else -> FolderList(b.visible, b.selected, favorites, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected, browser::toggleFavorite)
+                else -> FolderList(b.visible, b.selected, favorites, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected, browser::toggleFavorite) { details = it }
             }
         }
 
@@ -134,6 +140,16 @@ internal fun FileBrowserScreen(
                 }
             }
         }
+    }
+
+    details?.let { e ->
+        FileDetailsSheet(
+            e = e,
+            starred = e.path in favorites,
+            onToggleFavorite = { browser.toggleFavorite(e.path) },
+            onAskAi = { details = null; onUseInTask(listOf(e.path)) },
+            onDismiss = { details = null },
+        )
     }
 }
 
@@ -204,6 +220,7 @@ private fun RootList(roots: List<String>, hasFolders: Boolean, onOpen: (String) 
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderList(
     entries: List<FileInfo>,
@@ -213,6 +230,7 @@ private fun FolderList(
     onOpen: (String) -> Unit,
     onToggle: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
+    onDetails: (FileInfo) -> Unit,
 ) {
     if (entries.isEmpty()) {
         Column(Modifier.padding(16.dp)) {
@@ -232,7 +250,16 @@ private fun FolderList(
                     .padding(vertical = 2.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                    .clickable { if (selected.isNotEmpty() || !e.isDirectory) onToggle(e.path) else onOpen(e.path) }
+                    .combinedClickable(
+                        onClick = {
+                            when {
+                                selected.isNotEmpty() -> onToggle(e.path)
+                                e.isDirectory -> onOpen(e.path)
+                                else -> onDetails(e)
+                            }
+                        },
+                        onLongClick = { onToggle(e.path) },
+                    )
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -278,5 +305,50 @@ internal fun EntryIcon(e: FileInfo) {
             Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
         ) { Text(c?.emoji ?: "📄", style = MaterialTheme.typography.titleMedium) }
+    }
+}
+
+/** What kind of file this is, in words: "Documents", or "MKV file" when it fits no category. */
+private fun typeLabel(e: FileInfo): String = categoryOf(e.name)?.label?.removeSuffix("s") ?: (extensionBadge(e.name) + " file")
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FileDetailsSheet(
+    e: FileInfo,
+    starred: Boolean,
+    onToggleFavorite: () -> Unit,
+    onAskAi: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                EntryIcon(e)
+                Column(Modifier.weight(1f)) {
+                    Text(e.name, style = MaterialTheme.typography.titleMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    Hint(typeLabel(e) + " · " + formatBytes(e.size))
+                }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            DetailRow("Location", parentLabel(e.path))
+            DetailRow("Size", formatBytes(e.size))
+            DetailRow("Modified", formatWhen(e.modifiedMs))
+            DetailRow("Type", typeLabel(e))
+            Hint("Changes to this file, like moving or renaming it, are done from the AI tab so you can review and undo them.")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onToggleFavorite, modifier = Modifier.weight(1f)) {
+                    Text(if (starred) "Remove favorite" else "Add to favorites")
+                }
+                Button(onClick = onAskAi, modifier = Modifier.weight(1f)) { Text("Ask AI") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
+        Text(value, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
     }
 }
