@@ -52,6 +52,7 @@ agent-core/   pure Kotlin/JVM, no Android imports (enforced by review; checked b
   security/   Redactor, SecretStore
   history/    AuditLog, UndoManager
 app/          Android shell: Compose UI, KeystoreSecretStore, SafFileSystem, optional All Files Access
+assets/       Fileora logos, launcher variants, UI icons, sized exports, concepts and originals ([asset index](assets/README.md))
 scripts/      test-core.sh (offline build+test), kotlin-env.sh
 ```
 
