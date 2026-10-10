@@ -1,5 +1,19 @@
 package dev.deviceagent.app.ui
 
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -44,20 +58,131 @@ import dev.deviceagent.app.UiState
 import dev.deviceagent.app.providerName
 import dev.deviceagent.app.suggestModel
 
+private enum class SettingsPage(val title: String) {
+    AI("AI service"),
+    FOLDERS("Folders and access"),
+    PRIVACY("Privacy"),
+    ADVANCED("Advanced"),
+    ABOUT("About Fileora"),
+}
+
+/** Settings is a short list of groups; each group opens on its own page. */
 @Composable
 internal fun SettingsScreen(s: UiState, vm: AgentViewModel) {
-    LazyColumn(
-        Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        item { ScreenTitle("Settings") }
-        item { AiServiceCard(s, vm) }
-        item { FoldersCard(s, vm) }
-        item { PrivacyCard(s, vm) }
-        item { AdvancedCard(s, vm) }
-        item { AboutCard() }
+    var pageName by rememberSaveable { mutableStateOf<String?>(null) }
+    val page = SettingsPage.entries.firstOrNull { it.name == pageName }
+    BackHandler(enabled = page != null) { pageName = null }
+    if (page == null) SettingsHome(s) { pageName = it.name } else SettingsDetail(page, s, vm) { pageName = null }
+}
+
+@Composable
+private fun SettingsHome(s: UiState, onOpen: (SettingsPage) -> Unit) {
+    val context = LocalContext.current
+    val name = providerName(s.provider)
+    val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        item { Text("Settings", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(start = 4.dp)) }
+        item {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column {
+                    SettingsRow(
+                        { FileoraIcon(FileoraIconName.AiSparkle, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        "AI service",
+                        if (s.apiKeyMask == null) "Add your API key" else "$name · ${s.model.ifBlank { "choose a model" }}",
+                    ) { onOpen(SettingsPage.AI) }
+                    RowDivider()
+                    SettingsRow(
+                        { FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        "Folders and access",
+                        when {
+                            s.useAllFilesAccess && s.allFilesAccessGranted -> "All shared storage"
+                            s.useAllFilesAccess -> "Waiting for Android permission"
+                            s.roots.isEmpty() -> "No folders yet"
+                            else -> "${s.roots.size} folder" + if (s.roots.size == 1) "" else "s"
+                        },
+                    ) { onOpen(SettingsPage.FOLDERS) }
+                    RowDivider()
+                    SettingsRow(
+                        { FileoraIcon(FileoraIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        "Privacy",
+                        if (s.sendFileContents) "$name can read file contents" else "$name sees file names only",
+                    ) { onOpen(SettingsPage.PRIVACY) }
+                    RowDivider()
+                    SettingsRow(
+                        { FileoraIcon(FileoraIconName.Notifications, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        "Notifications",
+                        if (s.notificationsEnabled) "On · opens Android settings" else "Off · tap to turn on",
+                    ) { openNotificationSettings(context) }
+                    RowDivider()
+                    SettingsRow(
+                        { FileoraIcon(FileoraIconName.Settings, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        "Advanced",
+                        if (s.manualMode) "Suggest only is on" else "Suggest-only mode, backup model",
+                    ) { onOpen(SettingsPage.ADVANCED) }
+                    RowDivider()
+                    SettingsRow(
+                        { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) },
+                        "About Fileora",
+                        if (version.isNotBlank()) "Version $version" else "Version and privacy",
+                    ) { onOpen(SettingsPage.ABOUT) }
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun RowDivider() {
+    HorizontalDivider(Modifier.padding(start = 68.dp), color = MaterialTheme.colorScheme.outlineVariant)
+}
+
+@Composable
+private fun SettingsRow(icon: @Composable () -> Unit, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { icon() }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Hint(subtitle)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SettingsDetail(page: SettingsPage, s: UiState, vm: AgentViewModel, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.padding(start = 8.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = onBack) { Text("‹ Settings") }
+        }
+        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            item { Text(page.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(start = 4.dp)) }
+            item {
+                when (page) {
+                    SettingsPage.AI -> AiServiceCard(s, vm)
+                    SettingsPage.FOLDERS -> FoldersCard(s, vm)
+                    SettingsPage.PRIVACY -> PrivacyCard(s, vm)
+                    SettingsPage.ADVANCED -> AdvancedCard(s, vm)
+                    SettingsPage.ABOUT -> AboutCard()
+                }
+            }
+        }
+    }
+}
+
+private fun openNotificationSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(intent) }
 }
 
 private val KEY_HELP = mapOf(
