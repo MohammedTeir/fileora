@@ -40,4 +40,26 @@ class FileBrowserTests {
         assertEquals("FILE", extensionBadge(".hidden"))
         assertEquals("GZ", extensionBadge("x.tar.gz"))
     }
+
+    @Test fun categoriesAreDetectedFromTheExtension() {
+        assertEquals(FileCategory.DOCUMENTS, categoryOf("Report.PDF"))
+        assertEquals(FileCategory.VIDEOS, categoryOf("a.b.mkv"))
+        assertEquals(null, categoryOf("README"))
+        assertEquals(null, categoryOf("weird.xyz"))
+    }
+
+    @Test fun categoryFilterKeepsFoldersButOnlyMatchingFiles() {
+        // sample = b.txt, A.pdf, zdir, adir: both files are documents, both folders always stay.
+        assertEquals(listOf("b.txt", "A.pdf", "zdir", "adir"), filterEntries(sample, "", FileCategory.DOCUMENTS).map { it.name })
+        // No image files in the sample, so only the folders remain.
+        assertEquals(listOf("zdir", "adir"), filterEntries(sample, "", FileCategory.IMAGES).map { it.name })
+    }
+
+    @Test fun searchNeedsAQueryOrACategoryAndSkipsFoldersForCategories() {
+        assertEquals(false, matchesSearch(f("a.pdf"), "", null))
+        assertEquals(true, matchesSearch(f("Plan.pdf"), "plan", null))
+        assertEquals(true, matchesSearch(f("docs", dir = true), "doc", null))
+        assertEquals(false, matchesSearch(f("docs", dir = true), "", FileCategory.DOCUMENTS))
+        assertEquals(true, matchesSearch(f("x.jpg"), "", FileCategory.IMAGES))
+    }
 }

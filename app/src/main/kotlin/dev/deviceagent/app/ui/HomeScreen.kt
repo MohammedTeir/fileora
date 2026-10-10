@@ -12,7 +12,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -60,11 +58,13 @@ import dev.deviceagent.app.statusExplanation
 import dev.deviceagent.app.statusTitle
 import dev.deviceagent.app.statusTone
 
-private val EXAMPLES = listOf(
-    "Move all PDFs from Download into Documents/PDFs",
-    "Show me the 20 biggest files in my folders",
-    "Zip everything in Pictures/Trip into one file",
-    "Copy every .mp4 from Download into Music/Lessons",
+private class Suggestion(val emoji: String, val title: String, val subtitle: String, val prompt: String)
+
+private val SUGGESTIONS = listOf(
+    Suggestion("\uD83D\uDD0D", "Find files", "Search using natural language", "Find all PDF files in my folders"),
+    Suggestion("\uD83D\uDDC2\uFE0F", "Organize files", "Sort files into folders", "Move all PDFs from Download into Documents/PDFs"),
+    Suggestion("\uD83E\uDDF9", "Clean up storage", "Find your biggest files", "Show me the 20 biggest files in my folders"),
+    Suggestion("\uD83D\uDDDC\uFE0F", "Archive files", "Zip a folder into one file", "Zip everything in Pictures/Trip into one file"),
 )
 
 @Composable
@@ -74,6 +74,7 @@ internal fun HomeScreen(
     onOpenSettings: () -> Unit,
     onTurnOnNotifications: () -> Unit,
     onStart: () -> Unit,
+    onOpenTasks: () -> Unit,
 ) {
     var showSchedule by remember { mutableStateOf(false) }
     var showUndo by remember { mutableStateOf(false) }
@@ -89,7 +90,15 @@ internal fun HomeScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Text("Fileora", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp, start = 4.dp)) }
+        item {
+            Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("AI Assistant", style = MaterialTheme.typography.headlineSmall)
+                    Text("Your intelligent file companion", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                }
+                TextButton(onClick = onOpenTasks) { Text("Tasks") }
+            }
+        }
 
         if (!s.notificationsEnabled) item {
             Banner(
@@ -134,8 +143,12 @@ internal fun HomeScreen(
         if (s.running) item { RunningCard(s, vm) }
 
         if (idle && s.goal.isBlank()) {
-            item { Hero(Modifier.fillParentMaxHeight(0.38f)) }
-            items(EXAMPLES) { example -> SuggestionRow(example) { vm.setGoal(example) } }
+            item {
+                AppCard {
+                    CardTitle("How can I help you today?")
+                    SUGGESTIONS.forEach { sg -> SuggestionRow(sg) { vm.setGoal(sg.prompt) } }
+                }
+            }
         }
 
         if (!s.running) s.outcome?.let { o ->
@@ -224,25 +237,26 @@ private fun RecentTaskCard(task: HistoryItem, onUndo: () -> Unit) {
 }
 
 @Composable
-private fun Hero(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        FileoraIcon(FileoraIconName.AiSparkle, contentDescription = null, modifier = Modifier.size(40.dp))
-        Spacer(Modifier.height(16.dp))
-        Text("What should I do with your files?", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(6.dp))
-        Text("I'll show you the plan and ask before I change anything.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-private fun SuggestionRow(text: String, onClick: () -> Unit) {
+private fun SuggestionRow(sg: Suggestion, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
-    ) { Text(text, Modifier.padding(horizontal = 16.dp, vertical = 14.dp), style = MaterialTheme.typography.bodyMedium) }
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(40.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Text(sg.emoji, style = MaterialTheme.typography.titleMedium) }
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(sg.title, style = MaterialTheme.typography.titleSmall)
+                Hint(sg.subtitle)
+            }
+        }
+    }
 }
 
 /** The ChatGPT/Claude-style input pinned to the bottom: write the request, pick preview-only, send. */
@@ -266,7 +280,7 @@ private fun Composer(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 1,
                     maxLines = 6,
-                    placeholder = { Text("Ask Fileora to organize your files…") },
+                    placeholder = { Text("Ask me anything…") },
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,

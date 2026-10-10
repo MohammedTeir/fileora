@@ -1,23 +1,34 @@
 package dev.deviceagent.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -29,23 +40,33 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.deviceagent.app.FileBrowserViewModel
+import dev.deviceagent.app.FileCategory
 import dev.deviceagent.app.SortMode
 import dev.deviceagent.app.UiState
 import dev.deviceagent.app.breadcrumbs
+import dev.deviceagent.app.categoryOf
 import dev.deviceagent.app.extensionBadge
 import dev.deviceagent.app.formatBytes
 import dev.deviceagent.app.formatWhen
 import dev.deviceagent.core.fs.FileInfo
 
+/** Shows "Internal storage" instead of the raw Android path for the main shared-storage root. */
+internal fun friendlyRootName(root: String): String =
+    if (root.trimEnd('/') == "/storage/emulated/0") "Internal storage" else root
+
 /**
  * A read-only visual file browser over the same sandboxed folders the agent can use.
- * Nothing here changes files. "Use in a task" hands the selected paths to Home as a draft goal,
+ * Nothing here changes files. "Use in a task" hands the selected paths to the AI tab as a draft request,
  * so every change still goes through the agent's confirmation, verification and undo.
  */
 @Composable
@@ -60,8 +81,8 @@ internal fun FileBrowserScreen(
 
     val inFolder = b.path != null
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ScreenTitle("Files", "Look around. To change anything, ask me from Home.")
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Browse Files", style = MaterialTheme.typography.headlineSmall)
             if (inFolder) {
                 Crumbs(b.path!!, b.root!!, onOpen = browser::open, onRoots = browser::openRoots)
                 OutlinedTextField(
@@ -70,17 +91,17 @@ internal fun FileBrowserScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(24.dp),
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     placeholder = { Text("Search this folder") },
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(SortMode.entries.toList()) { mode ->
-                        val label = when (mode) { SortMode.NAME -> "Name"; SortMode.SIZE -> "Size"; SortMode.MODIFIED -> "Date" }
-                        FilterChip(
-                            selected = b.sort == mode,
-                            onClick = { browser.setSort(mode) },
-                            label = { Text(if (b.sort == mode) label + if (b.ascending) " ↑" else " ↓" else label) },
-                        )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item { CategoryChip("All", b.category == null) { browser.setCategory(null) } }
+                        items(FileCategory.entries.filter { it != FileCategory.ARCHIVES && it != FileCategory.APPS }) { c ->
+                            CategoryChip(c.label, b.category == c) { browser.setCategory(if (b.category == c) null else c) }
+                        }
                     }
+                    SortMenu(b.sort, b.ascending, browser::setSort)
                 }
             }
             if (b.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -96,7 +117,7 @@ internal fun FileBrowserScreen(
                     }
                 }
                 !inFolder -> RootList(b.roots, hasFolders = s.roots.isNotEmpty() || s.useAllFilesAccess, onOpen = browser::open)
-                else -> FolderList(b.visible, b.selected, b.query.isNotBlank(), browser::open, browser::toggleSelected)
+                else -> FolderList(b.visible, b.selected, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected)
             }
         }
 
@@ -105,16 +126,38 @@ internal fun FileBrowserScreen(
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${b.selected.size} selected", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     TextButton(onClick = browser::clearSelection) { Text("Clear") }
-                    Button(onClick = { onUseInTask(b.selected.sorted()); browser.clearSelection() }) { Text("Use in a task") }
+                    Button(onClick = { onUseInTask(b.selected.sorted()); browser.clearSelection() }) { Text("Ask AI") }
                 }
             }
         }
     }
 }
 
-/** Shows "Internal storage" instead of the raw Android path for the main shared-storage root. */
-private fun friendlyRootName(root: String): String =
-    if (root.trimEnd('/') == "/storage/emulated/0") "Internal storage" else root
+@Composable
+internal fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(selected = selected, onClick = onClick, label = { Text(label) }, shape = CircleShape)
+}
+
+@Composable
+private fun SortMenu(sort: SortMode, ascending: Boolean, onSort: (SortMode) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }) {
+            Text(
+                when (sort) { SortMode.NAME -> "Name"; SortMode.SIZE -> "Size"; SortMode.MODIFIED -> "Date" } + if (ascending) " ↑" else " ↓",
+            )
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            SortMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(when (mode) { SortMode.NAME -> "Name"; SortMode.SIZE -> "Size"; SortMode.MODIFIED -> "Date modified" }) },
+                    trailingIcon = { if (mode == sort) Icon(Icons.Filled.Check, contentDescription = "Selected", modifier = Modifier.size(18.dp)) },
+                    onClick = { onSort(mode); open = false },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun Crumbs(path: String, root: String, onOpen: (String) -> Unit, onRoots: () -> Unit) {
@@ -140,10 +183,17 @@ private fun RootList(roots: List<String>, hasFolders: Boolean, onOpen: (String) 
             }
         }
         items(roots) { root ->
-            AppCard(Modifier.clickable { onOpen(root) }) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(28.dp))
-                    Text(friendlyRootName(root), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Surface(
+                onClick = { onOpen(root) },
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
+                    Text(friendlyRootName(root), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -162,34 +212,55 @@ private fun FolderList(
         Column(Modifier.padding(16.dp)) {
             AppCard {
                 Text(if (filtering) "No matches" else "This folder is empty", style = MaterialTheme.typography.titleSmall)
-                if (filtering) Hint("Try a shorter name.")
+                if (filtering) Hint("Try a shorter name or clear the filter.")
             }
         }
         return
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
         items(entries, key = { it.path }) { e ->
+            val isSelected = e.path in selected
             Row(
                 Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
                     .clickable { if (selected.isNotEmpty() || !e.isDirectory) onToggle(e.path) else onOpen(e.path) }
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Checkbox(checked = e.path in selected, onCheckedChange = { onToggle(e.path) })
-                if (e.isDirectory) {
-                    FileoraIcon(FileoraIconName.Folder, contentDescription = "Folder", modifier = Modifier.size(28.dp))
-                } else {
-                    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.size(width = 44.dp, height = 28.dp)) {
-                        Box(contentAlignment = Alignment.Center) { Text(extensionBadge(e.name), style = MaterialTheme.typography.labelSmall, maxLines = 1) }
-                    }
-                }
+                EntryIcon(e)
                 Column(Modifier.weight(1f)) {
                     Text(e.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Hint(if (e.isDirectory) formatWhen(e.modifiedMs) else formatBytes(e.size) + " · " + formatWhen(e.modifiedMs))
+                    Hint(entrySubtitle(e))
+                }
+                when {
+                    isSelected -> Icon(Icons.Filled.Check, contentDescription = "Selected", tint = MaterialTheme.colorScheme.primary)
+                    e.isDirectory && selected.isEmpty() -> Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
+    }
+}
+
+internal fun entrySubtitle(e: FileInfo): String =
+    if (e.isDirectory) formatWhen(e.modifiedMs) else extensionBadge(e.name) + " · " + formatBytes(e.size) + " · " + formatWhen(e.modifiedMs)
+
+/** Folder icon for folders; a coloured emoji tile for files, tinted by their category. */
+@Composable
+internal fun EntryIcon(e: FileInfo) {
+    if (e.isDirectory) {
+        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            FileoraIcon(FileoraIconName.Folder, contentDescription = "Folder", modifier = Modifier.size(32.dp))
+        }
+    } else {
+        val c = categoryOf(e.name)
+        val tint = if (c != null) categoryColor(c) else MaterialTheme.colorScheme.onSurfaceVariant
+        Box(
+            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) { Text(c?.emoji ?: "📄", style = MaterialTheme.typography.titleMedium) }
     }
 }

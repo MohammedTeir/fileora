@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,9 +16,13 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -26,6 +31,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,11 +48,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
 import dev.deviceagent.app.ui.ApprovalDialog
+import dev.deviceagent.app.ui.DashboardScreen
 import dev.deviceagent.app.ui.HomeScreen
 import dev.deviceagent.app.ui.FileBrowserScreen
 import dev.deviceagent.app.ui.FileoraIcon
 import dev.deviceagent.app.ui.FileoraIconName
 import dev.deviceagent.app.ui.QuestionDialog
+import dev.deviceagent.app.ui.SearchScreen
 import dev.deviceagent.app.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
@@ -76,9 +84,10 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val TAB_HOME = 0
-private const val TAB_FILES = 1
-private const val TAB_ACTIVITY = 2
-private const val TAB_SETTINGS = 3
+private const val TAB_BROWSE = 1
+private const val TAB_SEARCH = 2
+private const val TAB_AI = 3
+private const val TAB_SETTINGS = 4
 
 @Composable
 private fun AppRoot(vm: AgentViewModel) {
@@ -86,6 +95,9 @@ private fun AppRoot(vm: AgentViewModel) {
     val context = LocalContext.current
     val browser: FileBrowserViewModel = viewModel()
     var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    var showTasks by rememberSaveable { mutableStateOf(false) }
+    val go: (Int) -> Unit = { tab = it; showTasks = false }
+    LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
     var startAfterPermission by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
@@ -132,19 +144,23 @@ private fun AppRoot(vm: AgentViewModel) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                 NavigationBarItem(
-                    selected = tab == TAB_HOME, onClick = { tab = TAB_HOME },
+                    selected = tab == TAB_HOME, onClick = { go(TAB_HOME) },
                     icon = { FileoraIcon(FileoraIconName.Home, contentDescription = null) }, label = { Text("Home") },
                 )
                 NavigationBarItem(
-                    selected = tab == TAB_FILES, onClick = { tab = TAB_FILES },
-                    icon = { FileoraIcon(FileoraIconName.Folder, contentDescription = null) }, label = { Text("Files") },
+                    selected = tab == TAB_BROWSE, onClick = { go(TAB_BROWSE) },
+                    icon = { FileoraIcon(FileoraIconName.Folder, contentDescription = null) }, label = { Text("Browse") },
                 )
                 NavigationBarItem(
-                    selected = tab == TAB_ACTIVITY, onClick = { tab = TAB_ACTIVITY },
-                    icon = { FileoraIcon(FileoraIconName.History, contentDescription = null) }, label = { Text("Activity") },
+                    selected = tab == TAB_SEARCH, onClick = { go(TAB_SEARCH) },
+                    icon = { Icon(Icons.Filled.Search, contentDescription = null) }, label = { Text("Search") },
                 )
                 NavigationBarItem(
-                    selected = tab == TAB_SETTINGS, onClick = { tab = TAB_SETTINGS },
+                    selected = tab == TAB_AI, onClick = { go(TAB_AI) },
+                    icon = { FileoraIcon(FileoraIconName.AiSparkle, contentDescription = null) }, label = { Text("AI") },
+                )
+                NavigationBarItem(
+                    selected = tab == TAB_SETTINGS, onClick = { go(TAB_SETTINGS) },
                     icon = { FileoraIcon(FileoraIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
                 )
             }
@@ -152,18 +168,35 @@ private fun AppRoot(vm: AgentViewModel) {
         },
     ) { padding ->
         Box(Modifier.padding(padding).consumeWindowInsets(padding).imePadding()) {
-            when (tab) {
-                TAB_HOME -> HomeScreen(
+            if (showTasks) {
+                BackHandler { showTasks = false }
+                Column(Modifier.fillMaxSize()) {
+                    TextButton(onClick = { showTasks = false }, modifier = Modifier.padding(start = 8.dp)) { Text("‹ Back") }
+                    Box(Modifier.weight(1f)) { ActivityScreen(s, vm) }
+                }
+            } else when (tab) {
+                TAB_HOME -> DashboardScreen(
+                    onSearch = { go(TAB_SEARCH) },
+                    onBrowse = { go(TAB_BROWSE) },
+                    onOpenCategory = { c -> browser.updateSearch(query = "", category = c); go(TAB_SEARCH) },
+                    onAskAi = { prompt -> prompt?.let(vm::setGoal); go(TAB_AI) },
+                    onOpenTasks = { showTasks = true },
+                )
+                TAB_BROWSE -> FileBrowserScreen(s, browser) { paths ->
+                    vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
+                    go(TAB_AI)
+                }
+                TAB_SEARCH -> SearchScreen(s, browser) { info ->
+                    browser.reveal(info)
+                    go(TAB_BROWSE)
+                }
+                TAB_AI -> HomeScreen(
                     s = s, vm = vm,
-                    onOpenSettings = { tab = TAB_SETTINGS },
+                    onOpenSettings = { go(TAB_SETTINGS) },
                     onTurnOnNotifications = turnOnNotifications,
                     onStart = start,
+                    onOpenTasks = { showTasks = true },
                 )
-                TAB_FILES -> FileBrowserScreen(s, browser) { paths ->
-                    vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
-                    tab = TAB_HOME
-                }
-                TAB_ACTIVITY -> ActivityScreen(s, vm)
                 else -> SettingsScreen(s, vm)
             }
         }

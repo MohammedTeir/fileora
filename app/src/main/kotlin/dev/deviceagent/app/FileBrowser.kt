@@ -21,10 +21,42 @@ fun sortEntries(entries: List<FileInfo>, mode: SortMode, ascending: Boolean): Li
     )
 }
 
-/** Case-insensitive name filter; a blank query keeps everything. */
-fun filterEntries(entries: List<FileInfo>, query: String): List<FileInfo> {
+/** Broad kinds of files, used by the category chips, the Home categories and Search. */
+enum class FileCategory(val label: String, val emoji: String, val extensions: Set<String>) {
+    DOCUMENTS("Documents", "\uD83D\uDCC4", setOf("pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "csv", "ppt", "pptx", "md")),
+    IMAGES("Images", "\uD83D\uDDBC\uFE0F", setOf("jpg", "jpeg", "png", "gif", "webp", "heic", "bmp")),
+    VIDEOS("Videos", "\uD83C\uDFAC", setOf("mp4", "mkv", "mov", "avi", "webm", "3gp")),
+    AUDIO("Audio", "\uD83C\uDFB5", setOf("mp3", "m4a", "wav", "flac", "ogg", "aac", "opus")),
+    ARCHIVES("Archives", "\uD83D\uDDDC\uFE0F", setOf("zip", "rar", "7z", "tar", "gz")),
+    APPS("Apps", "\uD83D\uDCE6", setOf("apk", "xapk")),
+}
+
+/** The category a file name belongs to, or null if it fits none of them. */
+fun categoryOf(name: String): FileCategory? {
+    val ext = name.substringAfterLast('.', "").lowercase()
+    if (ext.isEmpty()) return null
+    return FileCategory.entries.firstOrNull { ext in it.extensions }
+}
+
+/**
+ * Case-insensitive name filter; a blank query keeps everything.
+ * With a [category], folders stay visible (so you can keep navigating) and files must match it.
+ */
+fun filterEntries(entries: List<FileInfo>, query: String, category: FileCategory? = null): List<FileInfo> {
     val q = query.trim()
-    return if (q.isEmpty()) entries else entries.filter { it.name.contains(q, ignoreCase = true) }
+    return entries.filter { e ->
+        (q.isEmpty() || e.name.contains(q, ignoreCase = true)) &&
+            (category == null || e.isDirectory || categoryOf(e.name) == category)
+    }
+}
+
+/** True if [e] should be listed for a search. With a category, only files of that category match. */
+fun matchesSearch(e: FileInfo, query: String, category: FileCategory?): Boolean {
+    val q = query.trim()
+    if (q.isEmpty() && category == null) return false
+    if (q.isNotEmpty() && !e.name.contains(q, ignoreCase = true)) return false
+    if (category != null && (e.isDirectory || categoryOf(e.name) != category)) return false
+    return true
 }
 
 data class Crumb(val label: String, val path: String)

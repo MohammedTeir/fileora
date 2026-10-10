@@ -18,7 +18,7 @@ import dev.deviceagent.app.Tone
 
 /*
  * Visual language: calm, neutral and content-first, like a modern chat app.
- * - One near-black accent instead of a coloured one; colour is reserved for status (green/amber/red).
+ * - One blue accent (light: soft blue-white, dark: deep navy); green/amber/red are reserved for status.
  * - Flat surfaces separated by hairline borders, not tinted fills or shadows.
  * - Large rounded shapes, normal letter spacing, generous line height.
  * Wallpaper-based dynamic colour is intentionally NOT used: it tinted every screen lavender and made the
@@ -26,55 +26,55 @@ import dev.deviceagent.app.Tone
  */
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1A1A19),
+    primary = Color(0xFF1B6BF5),
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEFEEEA),
-    onPrimaryContainer = Color(0xFF1A1A19),
-    secondary = Color(0xFF5F5E5A),
+    primaryContainer = Color(0xFFDCE9FF),
+    onPrimaryContainer = Color(0xFF0A2A66),
+    secondary = Color(0xFF4C6A9C),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFE9E8E3),
-    onSecondaryContainer = Color(0xFF1A1A19),
-    tertiary = Color(0xFF5F5E5A),
-    background = Color(0xFFFAFAF8),
-    onBackground = Color(0xFF1A1A19),
-    surface = Color(0xFFFAFAF8),
-    onSurface = Color(0xFF1A1A19),
-    surfaceVariant = Color(0xFFEFEEEA),
-    onSurfaceVariant = Color(0xFF6B6A66),
-    surfaceTint = Color(0xFF1A1A19),
+    secondaryContainer = Color(0xFFE0ECFF),
+    onSecondaryContainer = Color(0xFF0A2A66),
+    tertiary = Color(0xFF7A5AF8),
+    background = Color(0xFFF3F8FF),
+    onBackground = Color(0xFF0B1B36),
+    surface = Color(0xFFF3F8FF),
+    onSurface = Color(0xFF0B1B36),
+    surfaceVariant = Color(0xFFE6EEFB),
+    onSurfaceVariant = Color(0xFF5B6F8F),
+    surfaceTint = Color(0xFF1B6BF5),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
-    surfaceContainer = Color(0xFFF5F4F0),
-    surfaceContainerHigh = Color(0xFFF1F0EC),
-    surfaceContainerHighest = Color(0xFFEAE9E4),
-    outline = Color(0xFF8F8E89),
-    outlineVariant = Color(0xFFE3E2DD),
+    surfaceContainer = Color(0xFFEDF3FD),
+    surfaceContainerHigh = Color(0xFFE6EEFB),
+    surfaceContainerHighest = Color(0xFFDCE7F8),
+    outline = Color(0xFF8A9BB8),
+    outlineVariant = Color(0xFFD6E2F5),
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFECECEA),
-    onPrimary = Color(0xFF1A1A19),
-    primaryContainer = Color(0xFF353534),
-    onPrimaryContainer = Color(0xFFECECEA),
-    secondary = Color(0xFFB5B4AF),
-    onSecondary = Color(0xFF1A1A19),
-    secondaryContainer = Color(0xFF3A3A39),
-    onSecondaryContainer = Color(0xFFECECEA),
-    tertiary = Color(0xFFB5B4AF),
-    background = Color(0xFF1F1F1E),
-    onBackground = Color(0xFFECECEA),
-    surface = Color(0xFF1F1F1E),
-    onSurface = Color(0xFFECECEA),
-    surfaceVariant = Color(0xFF2E2E2D),
-    onSurfaceVariant = Color(0xFFA3A29E),
-    surfaceTint = Color(0xFFECECEA),
-    surfaceContainerLowest = Color(0xFF1A1A19),
-    surfaceContainerLow = Color(0xFF262625),
-    surfaceContainer = Color(0xFF2B2B2A),
-    surfaceContainerHigh = Color(0xFF30302F),
-    surfaceContainerHighest = Color(0xFF3A3A39),
-    outline = Color(0xFF7E7D79),
-    outlineVariant = Color(0xFF3D3D3B),
+    primary = Color(0xFF4C9BFF),
+    onPrimary = Color(0xFF001B44),
+    primaryContainer = Color(0xFF123C80),
+    onPrimaryContainer = Color(0xFFD6E6FF),
+    secondary = Color(0xFF9DB6E3),
+    onSecondary = Color(0xFF0A1F44),
+    secondaryContainer = Color(0xFF14305F),
+    onSecondaryContainer = Color(0xFFD6E6FF),
+    tertiary = Color(0xFFB69CFF),
+    background = Color(0xFF051329),
+    onBackground = Color(0xFFE8F0FF),
+    surface = Color(0xFF051329),
+    onSurface = Color(0xFFE8F0FF),
+    surfaceVariant = Color(0xFF0F2447),
+    onSurfaceVariant = Color(0xFF93A8CC),
+    surfaceTint = Color(0xFF4C9BFF),
+    surfaceContainerLowest = Color(0xFF040F22),
+    surfaceContainerLow = Color(0xFF0A1D3C),
+    surfaceContainer = Color(0xFF0D2347),
+    surfaceContainerHigh = Color(0xFF112A54),
+    surfaceContainerHighest = Color(0xFF17335F),
+    outline = Color(0xFF4A6290),
+    outlineVariant = Color(0xFF1D3A6B),
 )
 
 private val AppShapes = Shapes(
@@ -117,6 +117,6 @@ internal fun toneColors(tone: Tone): Pair<Color, Color> {
         Tone.SUCCESS -> if (dark) Color(0xFF1C2E21) to Color(0xFFB7E4C2) else Color(0xFFEAF6EC) to Color(0xFF14532D)
         Tone.WARNING -> if (dark) Color(0xFF35290E) to Color(0xFFF3D898) else Color(0xFFFDF3DC) to Color(0xFF6B4A00)
         Tone.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        Tone.INFO -> MaterialTheme.colorScheme.surfaceContainerHigh to MaterialTheme.colorScheme.onSurface
+        Tone.INFO -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
     }
 }
