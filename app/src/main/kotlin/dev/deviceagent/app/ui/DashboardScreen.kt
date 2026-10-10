@@ -172,7 +172,7 @@ private class StorageUsage(val used: Long, val total: Long) {
 private fun storageUsage(): StorageUsage? = runCatching {
     val st = StatFs(Environment.getExternalStorageDirectory().path)
     val total = st.blockCountLong * st.blockSizeLong
-    StorageUsage(used = total - st.availableBytesLong, total = total)
+    StorageUsage(used = total - st.availableBytes, total = total)
 }.getOrNull()?.takeIf { it.total > 0 }
 
 @Composable
