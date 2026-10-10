@@ -45,4 +45,6 @@ The archive README says that the six logo concepts are not marked official. The 
 
 ## Current app integration
 
-The assets are organized here for implementation and review. The Android package/application ID remains unchanged so existing Fileora installations can upgrade without losing app data. Android launcher resources can be wired from `brand/official/launcher_icon/` in a separate UI asset-integration change after selecting the desired adaptive-icon treatment.
+The approved 512 px launcher export is now integrated as the Android launcher foreground in `app/src/main/res/drawable-nodpi/fileora_launcher.png`. The standard and round adaptive launcher resources both use it. The Android package/application ID remains unchanged so existing Fileora installations can upgrade without losing app data.
+
+See [`docs/ASSET_USAGE.md`](../docs/ASSET_USAGE.md) for the exact source-to-resource mapping and the recommended future uses for the icon library.

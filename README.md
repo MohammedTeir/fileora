@@ -56,6 +56,8 @@ assets/       Fileora logos, launcher variants, UI icons, sized exports, concept
 scripts/      test-core.sh (offline build+test), kotlin-env.sh
 ```
 
+The current Android asset integration and future icon mappings are tracked in [`docs/ASSET_USAGE.md`](docs/ASSET_USAGE.md).
+
 ## Run the tests
 
 ```bash
