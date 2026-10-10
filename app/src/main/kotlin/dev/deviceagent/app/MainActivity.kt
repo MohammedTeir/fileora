@@ -13,9 +13,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -34,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
@@ -124,7 +128,9 @@ private fun AppRoot(vm: AgentViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            NavigationBar {
+            Column {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                 NavigationBarItem(
                     selected = tab == TAB_HOME, onClick = { tab = TAB_HOME },
                     icon = { FileoraIcon(FileoraIconName.Home, contentDescription = null) }, label = { Text("Home") },
@@ -141,6 +147,7 @@ private fun AppRoot(vm: AgentViewModel) {
                     selected = tab == TAB_SETTINGS, onClick = { tab = TAB_SETTINGS },
                     icon = { FileoraIcon(FileoraIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
                 )
+            }
             }
         },
     ) { padding ->

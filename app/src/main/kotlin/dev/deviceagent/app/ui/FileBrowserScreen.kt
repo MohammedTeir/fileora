@@ -69,7 +69,8 @@ internal fun FileBrowserScreen(
                     onValueChange = browser::setQuery,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    placeholder = { Text("Filter this folder by name") },
+                    shape = RoundedCornerShape(24.dp),
+                    placeholder = { Text("Search this folder") },
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(SortMode.entries.toList()) { mode ->
@@ -111,6 +112,10 @@ internal fun FileBrowserScreen(
     }
 }
 
+/** Shows "Internal storage" instead of the raw Android path for the main shared-storage root. */
+private fun friendlyRootName(root: String): String =
+    if (root.trimEnd('/') == "/storage/emulated/0") "Internal storage" else root
+
 @Composable
 private fun Crumbs(path: String, root: String, onOpen: (String) -> Unit, onRoots: () -> Unit) {
     val crumbs = breadcrumbs(path, root)
@@ -119,7 +124,7 @@ private fun Crumbs(path: String, root: String, onOpen: (String) -> Unit, onRoots
         items(crumbs) { c ->
             Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = { onOpen(c.path) }, enabled = c.path != path) {
-                Text(c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(if (c.path == root) friendlyRootName(root) else c.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -138,7 +143,7 @@ private fun RootList(roots: List<String>, hasFolders: Boolean, onOpen: (String) 
             AppCard(Modifier.clickable { onOpen(root) }) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(28.dp))
-                    Text(root, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(friendlyRootName(root), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
