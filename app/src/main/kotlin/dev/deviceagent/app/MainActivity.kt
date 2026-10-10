@@ -34,10 +34,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
 import dev.deviceagent.app.ui.ApprovalDialog
 import dev.deviceagent.app.ui.HomeScreen
+import dev.deviceagent.app.ui.FileBrowserScreen
 import dev.deviceagent.app.ui.FileoraIcon
 import dev.deviceagent.app.ui.FileoraIconName
 import dev.deviceagent.app.ui.QuestionDialog
@@ -70,13 +72,15 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val TAB_HOME = 0
-private const val TAB_ACTIVITY = 1
-private const val TAB_SETTINGS = 2
+private const val TAB_FILES = 1
+private const val TAB_ACTIVITY = 2
+private const val TAB_SETTINGS = 3
 
 @Composable
 private fun AppRoot(vm: AgentViewModel) {
     val s by vm.state.collectAsState()
     val context = LocalContext.current
+    val browser: FileBrowserViewModel = viewModel()
     var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
     var startAfterPermission by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -126,6 +130,10 @@ private fun AppRoot(vm: AgentViewModel) {
                     icon = { FileoraIcon(FileoraIconName.Home, contentDescription = null) }, label = { Text("Home") },
                 )
                 NavigationBarItem(
+                    selected = tab == TAB_FILES, onClick = { tab = TAB_FILES },
+                    icon = { FileoraIcon(FileoraIconName.Folder, contentDescription = null) }, label = { Text("Files") },
+                )
+                NavigationBarItem(
                     selected = tab == TAB_ACTIVITY, onClick = { tab = TAB_ACTIVITY },
                     icon = { FileoraIcon(FileoraIconName.History, contentDescription = null) }, label = { Text("Activity") },
                 )
@@ -144,6 +152,10 @@ private fun AppRoot(vm: AgentViewModel) {
                     onTurnOnNotifications = turnOnNotifications,
                     onStart = start,
                 )
+                TAB_FILES -> FileBrowserScreen(s, browser) { paths ->
+                    vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
+                    tab = TAB_HOME
+                }
                 TAB_ACTIVITY -> ActivityScreen(s, vm)
                 else -> SettingsScreen(s, vm)
             }
