@@ -88,3 +88,81 @@ fun isHiddenName(name: String): Boolean = name.startsWith('.')
 /** The newest visible files, newest first. Folders and hidden names are skipped. */
 fun mostRecentFiles(entries: List<FileInfo>, limit: Int): List<FileInfo> =
     entries.filter { !it.isDirectory && !isHiddenName(it.name) }.sortedByDescending { it.modifiedMs }.take(limit)
+
+// ───────── Collection pages (Documents, Images, Downloads, Recent, Favorites, Large files…) ─────────
+
+enum class CollectionKind { CATEGORY, DOWNLOADS, RECENT, FAVORITES, LARGE }
+
+/** Which dedicated page to show. Every page is read-only: it lists files, it never changes them. */
+data class CollectionSpec(val kind: CollectionKind, val category: FileCategory? = null) {
+    val title: String
+        get() = when (kind) {
+            CollectionKind.CATEGORY -> category?.label ?: "Files"
+            CollectionKind.DOWNLOADS -> "Downloads"
+            CollectionKind.RECENT -> "Recent files"
+            CollectionKind.FAVORITES -> "Favorites"
+            CollectionKind.LARGE -> "Large files"
+        }
+
+    val emoji: String
+        get() = when (kind) {
+            CollectionKind.CATEGORY -> category?.emoji ?: "📁"
+            CollectionKind.DOWNLOADS -> "⬇️"
+            CollectionKind.RECENT -> "🕒"
+            CollectionKind.FAVORITES -> "⭐"
+            CollectionKind.LARGE -> "📊"
+        }
+
+    /** Stable text form, so the open page survives a screen rotation. */
+    val key: String get() = if (kind == CollectionKind.CATEGORY) "CATEGORY:${category?.name}" else kind.name
+
+    companion object {
+        fun fromKey(key: String?): CollectionSpec? {
+            if (key == null) return null
+            val kind = runCatching { CollectionKind.valueOf(key.substringBefore(':')) }.getOrNull() ?: return null
+            if (kind != CollectionKind.CATEGORY) return CollectionSpec(kind)
+            val category = runCatching { FileCategory.valueOf(key.substringAfter(':', "")) }.getOrNull() ?: return null
+            return CollectionSpec(kind, category)
+        }
+    }
+}
+
+const val COLLECTION_TOP_LIMIT = 100
+const val COLLECTION_MAX_ITEMS = 2_000
+const val COLLECTION_MAX_VISITED = 20_000
+
+/** Newest first for most pages, biggest first for Large files, A to Z for Favorites. */
+fun defaultSort(spec: CollectionSpec): Pair<SortMode, Boolean> = when (spec.kind) {
+    CollectionKind.LARGE -> SortMode.SIZE to false
+    CollectionKind.FAVORITES -> SortMode.NAME to true
+    else -> SortMode.MODIFIED to false
+}
+
+/** True if a folder named Download or Downloads is somewhere above the file. */
+fun isInDownloads(path: String): Boolean =
+    path.split('/').filter { it.isNotEmpty() }.dropLast(1).any { it.equals("download", true) || it.equals("downloads", true) }
+
+/** Which scanned files belong on a page. Folders and dot-named (hidden) files never do. Favorites are not scanned. */
+fun matchesCollection(e: FileInfo, spec: CollectionSpec): Boolean {
+    if (e.isDirectory || isHiddenName(e.name)) return false
+    return when (spec.kind) {
+        CollectionKind.CATEGORY -> categoryOf(e.name) == spec.category
+        CollectionKind.DOWNLOADS -> isInDownloads(e.path)
+        CollectionKind.RECENT, CollectionKind.LARGE -> true
+        CollectionKind.FAVORITES -> false
+    }
+}
+
+/** The biggest visible files, biggest first. */
+fun largestFiles(entries: List<FileInfo>, limit: Int): List<FileInfo> =
+    entries.filter { !it.isDirectory && !isHiddenName(it.name) }.sortedByDescending { it.size }.take(limit)
+
+/** Totals for the Folder details sheet. [truncated] means the scan stopped at its safety limit. */
+data class FolderSummary(val files: Int = 0, val folders: Int = 0, val bytes: Long = 0, val truncated: Boolean = false)
+
+/** Adds one folder's direct children to a running total. Files add their size; folders only count. */
+fun FolderSummary.plus(children: List<FileInfo>): FolderSummary = copy(
+    files = files + children.count { !it.isDirectory },
+    folders = folders + children.count { it.isDirectory },
+    bytes = bytes + children.filter { !it.isDirectory }.sumOf { it.size },
+)

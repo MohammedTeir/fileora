@@ -1,6 +1,7 @@
 package dev.deviceagent.app
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,6 +46,24 @@ data class SearchState(
     val error: String? = null,
 )
 
+/** State of one dedicated page (Documents, Downloads, Large files…). Read-only. */
+data class CollectionState(
+    val spec: CollectionSpec? = null,
+    val items: List<FileInfo> = emptyList(),
+    val scanning: Boolean = false,
+    val note: String? = null,
+    val error: String? = null,
+    val sort: SortMode = SortMode.MODIFIED,
+    val ascending: Boolean = false,
+)
+
+data class FolderSummaryState(
+    val path: String? = null,
+    val summary: FolderSummary = FolderSummary(),
+    val scanning: Boolean = false,
+    val error: String? = null,
+)
+
 private const val SEARCH_MAX_VISITED = 20_000
 private const val SEARCH_MAX_RESULTS = 200
 private const val RECENT_LIMIT = 5
@@ -76,6 +95,23 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
     private var recentJob: Job? = null
     private var lastRecentAt = 0L
 
+    private val _collection = MutableStateFlow(CollectionState())
+    val collection: StateFlow<CollectionState> = _collection.asStateFlow()
+    private var collectionJob: Job? = null
+
+    private val _folderSummary = MutableStateFlow(FolderSummaryState())
+    val folderSummary: StateFlow<FolderSummaryState> = _folderSummary.asStateFlow()
+    private var summaryJob: Job? = null
+
+    private val viewPrefs = app.getSharedPreferences("fileora_view", Context.MODE_PRIVATE)
+    private val _gridView = MutableStateFlow(viewPrefs.getBoolean("grid", false))
+    /** List or grid, remembered. Applies to Browse and to the collection pages. */
+    val gridView: StateFlow<Boolean> = _gridView.asStateFlow()
+    fun setGridView(on: Boolean) {
+        viewPrefs.edit().putBoolean("grid", on).apply()
+        _gridView.value = on
+    }
+
     private var fs: FileSystem? = null
     private var configKey: String? = null
     private var job: Job? = null
@@ -88,6 +124,8 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
         job?.cancel()
         searchJob?.cancel()
         recentJob?.cancel()
+        collectionJob?.cancel()
+        summaryJob?.cancel()
         lastRecentAt = 0L
         _recent.value = emptyList()
         _favoriteInfos.value = emptyList()
@@ -189,6 +227,111 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (isActive) _recent.value = best
         }
+    }
+
+    /**
+     * Fills a dedicated page by walking the accessible folders breadth first, bounded and cancellable.
+     * Read-only. Skips hidden names, the trash folder and symlinks. Favorites are not scanned; the page reads them directly.
+     */
+    fun openCollection(spec: CollectionSpec) {
+        collectionJob?.cancel()
+        val (sort, ascending) = defaultSort(spec)
+        if (spec.kind == CollectionKind.FAVORITES) {
+            _collection.value = CollectionState(spec, sort = sort, ascending = ascending)
+            return
+        }
+        val system = fs
+        if (system == null) {
+            _collection.value = CollectionState(spec, sort = sort, ascending = ascending, error = "Your folders aren't ready yet. Add a folder in Settings first.")
+            return
+        }
+        _collection.value = CollectionState(spec, scanning = true, sort = sort, ascending = ascending)
+        collectionJob = viewModelScope.launch(Dispatchers.IO) {
+            val topOnly = spec.kind == CollectionKind.RECENT || spec.kind == CollectionKind.LARGE
+            var best = emptyList<FileInfo>()
+            val found = ArrayList<FileInfo>()
+            val queue = ArrayDeque(system.roots)
+            var visited = 0
+            var dirs = 0
+            var capped = false
+            fun publish(done: Boolean) {
+                val items = if (topOnly) best else found.toList()
+                _collection.update {
+                    if (it.spec != spec) it else it.copy(
+                        items = items,
+                        scanning = !done,
+                        note = if (done && capped) {
+                            if (topOnly) "Looked at the first $COLLECTION_MAX_VISITED items. A bigger folder may hold more."
+                            else "Showing the first matches. Use Search to narrow it down."
+                        } else null,
+                    )
+                }
+            }
+            while (queue.isNotEmpty() && isActive && !capped) {
+                val dir = queue.removeFirst()
+                val children = try { system.list(dir) } catch (e: Exception) { continue }
+                val matches = ArrayList<FileInfo>()
+                for (c in children) {
+                    if (c.name == TRASH_DIR || c.isSymlink) continue
+                    if (++visited > COLLECTION_MAX_VISITED) { capped = true; break }
+                    if (c.isDirectory) {
+                        if (!isHiddenName(c.name)) queue.addLast(c.path)
+                    } else if (matchesCollection(c, spec)) {
+                        matches += c
+                    }
+                }
+                if (topOnly) {
+                    best = if (spec.kind == CollectionKind.RECENT) mostRecentFiles(best + matches, COLLECTION_TOP_LIMIT) else largestFiles(best + matches, COLLECTION_TOP_LIMIT)
+                } else {
+                    found += matches
+                    if (found.size >= COLLECTION_MAX_ITEMS) { capped = true }
+                }
+                if (++dirs % 25 == 0 && isActive) publish(done = false)
+            }
+            if (isActive) publish(done = true)
+        }
+    }
+
+    fun setCollectionSort(mode: SortMode) = _collection.update {
+        if (it.sort == mode) it.copy(ascending = !it.ascending) else it.copy(sort = mode, ascending = true)
+    }
+
+    /** Counts files, folders and bytes under [path] for the Folder details sheet. Read-only, bounded, cancellable. */
+    fun summarizeFolder(path: String) {
+        summaryJob?.cancel()
+        val system = fs
+        if (system == null) {
+            _folderSummary.value = FolderSummaryState(path, error = "Your folders aren't ready yet.")
+            return
+        }
+        _folderSummary.value = FolderSummaryState(path, scanning = true)
+        summaryJob = viewModelScope.launch(Dispatchers.IO) {
+            var total = FolderSummary()
+            val queue = ArrayDeque(listOf(path))
+            var visited = 0
+            var dirs = 0
+            while (queue.isNotEmpty() && isActive) {
+                val dir = queue.removeFirst()
+                val children = try {
+                    system.list(dir)
+                } catch (e: Exception) {
+                    if (dir == path) { _folderSummary.value = FolderSummaryState(path, error = "Couldn't read this folder."); return@launch }
+                    continue
+                }
+                val visible = children.filter { it.name != TRASH_DIR && !it.isSymlink }
+                visited += visible.size
+                visible.filter { it.isDirectory }.forEach { queue.addLast(it.path) }
+                total = total.plus(visible)
+                if (visited > COLLECTION_MAX_VISITED) { total = total.copy(truncated = true); break }
+                if (++dirs % 25 == 0 && isActive) _folderSummary.value = FolderSummaryState(path, total, scanning = true)
+            }
+            if (isActive) _folderSummary.value = FolderSummaryState(path, total, scanning = false)
+        }
+    }
+
+    fun clearFolderSummary() {
+        summaryJob?.cancel()
+        _folderSummary.value = FolderSummaryState()
     }
 
     fun setCategory(c: FileCategory?) = _state.update { it.copy(category = c) }

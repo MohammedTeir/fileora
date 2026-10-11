@@ -27,6 +27,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.CollectionKind
+import dev.deviceagent.app.CollectionSpec
 import dev.deviceagent.app.FileCategory
 import dev.deviceagent.app.formatBytes
 import dev.deviceagent.core.fs.FileInfo
@@ -64,7 +67,7 @@ internal fun DashboardScreen(
     onReveal: (FileInfo) -> Unit,
     onSearch: () -> Unit,
     onBrowse: () -> Unit,
-    onOpenCategory: (FileCategory) -> Unit,
+    onOpenCollection: (CollectionSpec) -> Unit,
     onAskAi: (String?) -> Unit,
     onOpenTasks: () -> Unit,
 ) {
@@ -99,16 +102,20 @@ internal fun DashboardScreen(
                     QuickTile("📁", "Browse", "Look through folders", Modifier.weight(1f), onClick = onBrowse)
                     QuickTile("🕒", "Tasks", "History and Undo", Modifier.weight(1f), onClick = onOpenTasks)
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    QuickTile("⬇️", "Downloads", "Files you downloaded", Modifier.weight(1f)) { onOpenCollection(CollectionSpec(CollectionKind.DOWNLOADS)) }
+                    QuickTile("📊", "Large files", "What takes the most space", Modifier.weight(1f)) { onOpenCollection(CollectionSpec(CollectionKind.LARGE)) }
+                }
             }
         }
 
         if (recent.isNotEmpty()) {
-            item { Text("Recent files", style = MaterialTheme.typography.titleMedium) }
+            item { SectionHeader("Recent files") { onOpenCollection(CollectionSpec(CollectionKind.RECENT)) } }
             items(recent, key = { "recent:" + it.path }) { e -> FileRow(e, onReveal) }
         }
 
         if (favorites.isNotEmpty()) {
-            item { Text("Favorites", style = MaterialTheme.typography.titleMedium) }
+            item { SectionHeader("Favorites") { onOpenCollection(CollectionSpec(CollectionKind.FAVORITES)) } }
             items(favorites, key = { "fav:" + it.path }) { e -> FileRow(e, onReveal) }
         }
 
@@ -117,11 +124,19 @@ internal fun DashboardScreen(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 FileCategory.entries.chunked(3).forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { c -> CategoryTile(c, Modifier.weight(1f)) { onOpenCategory(c) } }
+                        row.forEach { c -> CategoryTile(c, Modifier.weight(1f)) { onOpenCollection(CollectionSpec(CollectionKind.CATEGORY, c)) } }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, onSeeAll: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        TextButton(onClick = onSeeAll) { Text("See all") }
     }
 }
 

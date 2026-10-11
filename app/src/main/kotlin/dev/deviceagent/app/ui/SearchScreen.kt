@@ -172,8 +172,11 @@ private fun androidx.compose.foundation.layout.ColumnScope.Results(
 }
 
 /** "Internal storage › Download › Lessons" for the folder that holds [path]. */
-internal fun parentLabel(path: String): String {
-    val parent = path.trimEnd('/').substringBeforeLast('/', "")
+internal fun parentLabel(path: String): String = pathLabel(path.trimEnd('/').substringBeforeLast('/', ""))
+
+/** "Internal storage › Download" for a folder path. */
+internal fun pathLabel(folder: String): String {
+    val parent = folder.trimEnd('/')
     if (parent.isEmpty()) return "/"
     val shown = if (parent.startsWith("/storage/emulated/0")) "Internal storage" + parent.removePrefix("/storage/emulated/0") else parent
     return shown.trimStart('/').replace("/", " › ")

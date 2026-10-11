@@ -51,6 +51,7 @@ import kotlinx.coroutines.delay
 import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
 import dev.deviceagent.app.ui.ApprovalDialog
+import dev.deviceagent.app.ui.CollectionScreen
 import dev.deviceagent.app.ui.DashboardScreen
 import dev.deviceagent.app.ui.HomeScreen
 import dev.deviceagent.app.ui.OnboardingFlow
@@ -135,7 +136,10 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
     val favoriteInfos by browser.favoriteInfos.collectAsState()
     LaunchedEffect(tab) { if (tab == TAB_HOME) browser.refreshRecent() }
     var showTasks by rememberSaveable { mutableStateOf(false) }
-    val go: (Int) -> Unit = { tab = it; showTasks = false }
+    // The open collection page (Documents, Downloads, Large files…) is kept as text so it survives rotation.
+    var collectionKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val collectionSpec = CollectionSpec.fromKey(collectionKey)
+    val go: (Int) -> Unit = { tab = it; showTasks = false; collectionKey = null }
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
     var startAfterPermission by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
@@ -207,7 +211,17 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
         },
     ) { padding ->
         Box(Modifier.padding(padding).consumeWindowInsets(padding).imePadding()) {
-            if (showTasks) {
+            if (collectionSpec != null) {
+                BackHandler { collectionKey = null }
+                CollectionScreen(
+                    spec = collectionSpec,
+                    s = s,
+                    browser = browser,
+                    onBack = { collectionKey = null },
+                    onReveal = { info -> browser.reveal(info); go(TAB_BROWSE) },
+                    onAskAi = { prompt -> vm.setGoal(prompt); go(TAB_AI) },
+                )
+            } else if (showTasks) {
                 BackHandler { showTasks = false }
                 Column(Modifier.fillMaxSize()) {
                     TextButton(onClick = { showTasks = false }, modifier = Modifier.padding(start = 8.dp)) { Text("‹ Back") }
@@ -220,14 +234,18 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
                     onReveal = { info -> browser.reveal(info); go(TAB_BROWSE) },
                     onSearch = { go(TAB_SEARCH) },
                     onBrowse = { go(TAB_BROWSE) },
-                    onOpenCategory = { c -> browser.updateSearch(query = "", category = c); go(TAB_SEARCH) },
+                    onOpenCollection = { spec -> collectionKey = spec.key },
                     onAskAi = { prompt -> prompt?.let(vm::setGoal); go(TAB_AI) },
                     onOpenTasks = { showTasks = true },
                 )
-                TAB_BROWSE -> FileBrowserScreen(s, browser) { paths ->
-                    vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
-                    go(TAB_AI)
-                }
+                TAB_BROWSE -> FileBrowserScreen(
+                    s, browser,
+                    onUseInTask = { paths ->
+                        vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
+                        go(TAB_AI)
+                    },
+                    onAskAi = { prompt -> vm.setGoal(prompt); go(TAB_AI) },
+                )
                 TAB_SEARCH -> SearchScreen(s, browser) { info ->
                     browser.reveal(info)
                     go(TAB_BROWSE)

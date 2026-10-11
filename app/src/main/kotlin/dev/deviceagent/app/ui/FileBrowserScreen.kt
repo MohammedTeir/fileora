@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.deviceagent.app.FileBrowserViewModel
 import dev.deviceagent.app.FileCategory
+import dev.deviceagent.app.FolderSummaryState
 import dev.deviceagent.app.SortMode
 import dev.deviceagent.app.UiState
 import dev.deviceagent.app.breadcrumbs
@@ -81,8 +83,12 @@ internal fun FileBrowserScreen(
     s: UiState,
     browser: FileBrowserViewModel,
     onUseInTask: (List<String>) -> Unit,
+    onAskAi: (String) -> Unit,
 ) {
     val b by browser.state.collectAsState()
+    val grid by browser.gridView.collectAsState()
+    val folderSummary by browser.folderSummary.collectAsState()
+    var folderInfo by remember { mutableStateOf<String?>(null) }
     val favorites by browser.favorites.collectAsState()
     var details by remember { mutableStateOf<FileInfo?>(null) }
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
@@ -91,7 +97,13 @@ internal fun FileBrowserScreen(
     val inFolder = b.path != null
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Browse Files", style = MaterialTheme.typography.headlineSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Browse Files", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                if (inFolder) IconButton(onClick = { folderInfo = b.path; browser.summarizeFolder(b.path!!) }) {
+                    Icon(Icons.Filled.Info, contentDescription = "Folder details")
+                }
+                if (inFolder) ViewToggle(grid, browser::setGridView)
+            }
             if (inFolder) {
                 Crumbs(b.path!!, b.root!!, onOpen = browser::open, onRoots = browser::openRoots)
                 OutlinedTextField(
@@ -127,7 +139,7 @@ internal fun FileBrowserScreen(
                     }
                 }
                 !inFolder -> RootList(b.roots, hasFolders = s.roots.isNotEmpty() || s.useAllFilesAccess, onOpen = browser::open)
-                else -> FolderList(b.visible, b.selected, favorites, b.query.isNotBlank() || b.category != null, browser::open, browser::toggleSelected, browser::toggleFavorite) { details = it }
+                else -> FolderList(b.visible, b.selected, favorites, b.query.isNotBlank() || b.category != null, grid, browser::open, browser::toggleSelected, browser::toggleFavorite) { details = it }
             }
         }
 
@@ -151,6 +163,17 @@ internal fun FileBrowserScreen(
             onDismiss = { details = null },
         )
     }
+
+    folderInfo?.let { path ->
+        FolderDetailsSheet(
+            path = path,
+            summary = folderSummary,
+            starred = path in favorites,
+            onToggleFavorite = { browser.toggleFavorite(path) },
+            onAskAi = { prompt -> folderInfo = null; browser.clearFolderSummary(); onAskAi(prompt) },
+            onDismiss = { folderInfo = null; browser.clearFolderSummary() },
+        )
+    }
 }
 
 @Composable
@@ -159,7 +182,7 @@ internal fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit)
 }
 
 @Composable
-private fun SortMenu(sort: SortMode, ascending: Boolean, onSort: (SortMode) -> Unit) {
+internal fun SortMenu(sort: SortMode, ascending: Boolean, onSort: (SortMode) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
@@ -227,6 +250,7 @@ private fun FolderList(
     selected: Set<String>,
     favorites: Set<String>,
     filtering: Boolean,
+    grid: Boolean,
     onOpen: (String) -> Unit,
     onToggle: (String) -> Unit,
     onToggleFavorite: (String) -> Unit,
@@ -239,6 +263,20 @@ private fun FolderList(
                 if (filtering) Hint("Try a shorter name or clear the filter.")
             }
         }
+        return
+    }
+    if (grid) {
+        FileGrid(
+            entries, selected,
+            onClick = { e ->
+                when {
+                    selected.isNotEmpty() -> onToggle(e.path)
+                    e.isDirectory -> onOpen(e.path)
+                    else -> onDetails(e)
+                }
+            },
+            onLongClick = { e -> onToggle(e.path) },
+        )
         return
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
@@ -293,18 +331,18 @@ internal fun entrySubtitle(e: FileInfo): String =
 
 /** Folder icon for folders; a coloured emoji tile for files, tinted by their category. */
 @Composable
-internal fun EntryIcon(e: FileInfo) {
+internal fun EntryIcon(e: FileInfo, size: Int = 44) {
     if (e.isDirectory) {
-        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-            FileoraIcon(FileoraIconName.Folder, contentDescription = "Folder", modifier = Modifier.size(32.dp))
+        Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
+            FileoraIcon(FileoraIconName.Folder, contentDescription = "Folder", modifier = Modifier.size((size * 0.73f).dp))
         }
     } else {
         val c = categoryOf(e.name)
         val tint = if (c != null) categoryColor(c) else MaterialTheme.colorScheme.onSurfaceVariant
         Box(
-            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = 0.16f)),
+            Modifier.size(size.dp).clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = 0.16f)),
             contentAlignment = Alignment.Center,
-        ) { Text(c?.emoji ?: "📄", style = MaterialTheme.typography.titleMedium) }
+        ) { Text(c?.emoji ?: "📄", style = if (size >= 56) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -313,12 +351,13 @@ private fun typeLabel(e: FileInfo): String = categoryOf(e.name)?.label?.removeSu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FileDetailsSheet(
+internal fun FileDetailsSheet(
     e: FileInfo,
     starred: Boolean,
     onToggleFavorite: () -> Unit,
     onAskAi: () -> Unit,
     onDismiss: () -> Unit,
+    onShowInFolder: (() -> Unit)? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -335,6 +374,7 @@ private fun FileDetailsSheet(
             DetailRow("Modified", formatWhen(e.modifiedMs))
             DetailRow("Type", typeLabel(e))
             Hint("Changes to this file, like moving or renaming it, are done from the AI tab so you can review and undo them.")
+            if (onShowInFolder != null) OutlinedButton(onClick = onShowInFolder, modifier = Modifier.fillMaxWidth()) { Text("Show in folder") }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(onClick = onToggleFavorite, modifier = Modifier.weight(1f)) {
                     Text(if (starred) "Remove favorite" else "Add to favorites")
@@ -350,5 +390,51 @@ private fun DetailRow(label: String, value: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(84.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+    }
+}
+
+
+/** Read-only facts about a folder: where it is, how big, how many files. Changing it goes through the AI tab. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FolderDetailsSheet(
+    path: String,
+    summary: FolderSummaryState,
+    starred: Boolean,
+    onToggleFavorite: () -> Unit,
+    onAskAi: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val name = path.trimEnd('/').substringAfterLast('/').ifEmpty { "Folder" }
+    val ready = summary.path == path
+    val t = summary.summary
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                    FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
+                }
+                Text(friendlyRootName(name), style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+            if (ready && summary.scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            DetailRow("Path", pathLabel(path))
+            when {
+                !ready -> DetailRow("Size", "Counting…")
+                summary.error != null -> DetailRow("Size", summary.error)
+                else -> {
+                    DetailRow("Size", formatBytes(t.bytes) + if (summary.scanning) " so far" else "")
+                    DetailRow("Files", t.files.toString())
+                    DetailRow("Folders", t.folders.toString())
+                    if (t.truncated) Hint("This folder is very large, so only the first part was counted.")
+                }
+            }
+            Hint("Moving, renaming or cleaning up are done from the AI tab, so you can review and undo them.")
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = { onAskAi("Show me the 20 biggest files in $path") }, modifier = Modifier.weight(1f)) { Text("Biggest files") }
+                Button(onClick = { onAskAi("Look at the files in $path and suggest how to organize them. Show a plan before changing anything.") }, modifier = Modifier.weight(1f)) { Text("Organize") }
+            }
+            OutlinedButton(onClick = onToggleFavorite, modifier = Modifier.fillMaxWidth()) { Text(if (starred) "Remove favorite" else "Add to favorites") }
+        }
     }
 }
