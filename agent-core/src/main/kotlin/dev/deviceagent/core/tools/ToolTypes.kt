@@ -91,7 +91,22 @@ data class Plan(
     val bytes: Long = 0,
     val reversible: Boolean = true,
     val error: ToolError? = null,
+    /**
+     * The individual files a batch operation would touch, so a person can approve some and not others.
+     * Only tools that honour [APPROVED_ITEMS_ARG] fill this in. Empty means "all or nothing".
+     */
+    val items: List<ReviewItem> = emptyList(),
 )
+
+/** One reviewable file in a batch plan. [id] is what the tool needs back to know it was approved. */
+data class ReviewItem(val id: String, val label: String, val detail: String? = null, val bytes: Long = 0)
+
+/**
+ * Reserved argument the ENGINE (never the model) adds after a person approves only some of a plan's items:
+ * the allow-list of [ReviewItem.id]s. A tool that sets [Plan.items] must then act only on those ids, so a file
+ * that appeared after the review can never be touched.
+ */
+const val APPROVED_ITEMS_ARG = "_approved_items"
 
 class ToolContext(
     val taskId: String,

@@ -1,5 +1,6 @@
 package dev.deviceagent.app
 
+import dev.deviceagent.core.policy.ConfirmationAnswer
 import dev.deviceagent.core.policy.ConfirmationRequest
 import dev.deviceagent.core.policy.ConfirmationResponse
 import kotlinx.coroutines.CompletableDeferred
@@ -26,12 +27,12 @@ object TaskBridge {
     private val _question = MutableStateFlow<String?>(null)
     val question: StateFlow<String?> = _question.asStateFlow()
 
-    @Volatile private var confirmWaiter: CompletableDeferred<ConfirmationResponse>? = null
+    @Volatile private var confirmWaiter: CompletableDeferred<ConfirmationAnswer>? = null
     @Volatile private var questionWaiter: CompletableDeferred<String?>? = null
 
     /** Suspends until the user answers (in the app or from the notification). */
-    suspend fun requestConfirmation(request: ConfirmationRequest): ConfirmationResponse {
-        val waiter = CompletableDeferred<ConfirmationResponse>()
+    suspend fun requestConfirmation(request: ConfirmationRequest): ConfirmationAnswer {
+        val waiter = CompletableDeferred<ConfirmationAnswer>()
         confirmWaiter = waiter
         _confirmation.value = request
         try {
@@ -42,8 +43,11 @@ object TaskBridge {
         }
     }
 
-    fun answerConfirmation(response: ConfirmationResponse) {
-        confirmWaiter?.complete(response)
+    fun answerConfirmation(response: ConfirmationResponse) = answerReview(response, null)
+
+    /** [approvedIds] is the set of files the person ticked on the review page; null for a plain Allow or Deny. */
+    fun answerReview(response: ConfirmationResponse, approvedIds: Set<String>?) {
+        confirmWaiter?.complete(ConfirmationAnswer(response, approvedIds))
         _confirmation.value = null
     }
 

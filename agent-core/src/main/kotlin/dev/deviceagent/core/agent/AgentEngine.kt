@@ -19,6 +19,7 @@ import dev.deviceagent.core.policy.PolicyView
 import dev.deviceagent.core.policy.UserChannel
 import dev.deviceagent.core.recovery.ErrorAnalyzer
 import dev.deviceagent.core.security.Redactor
+import dev.deviceagent.core.tools.APPROVED_ITEMS_ARG
 import dev.deviceagent.core.tools.ArgValidator
 import dev.deviceagent.core.tools.ErrorKind
 import dev.deviceagent.core.tools.ParamSpec
@@ -36,6 +37,7 @@ import dev.deviceagent.core.util.str
 import dev.deviceagent.core.verify.VerificationResult
 import dev.deviceagent.core.verify.VerifierRegistry
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
@@ -190,7 +192,9 @@ class AgentEngine(
 
     // ───────────────────────────── one tool call ─────────────────────────────
 
-    private suspend fun handle(run: Run, call: ToolCall, config: AgentConfig): JsonObject {
+    private suspend fun handle(run: Run, incoming: ToolCall, config: AgentConfig): JsonObject {
+        // A partial approval (see below) narrows the call, so from here on `call` and `plan` are what is really executed.
+        var call = incoming
         run.toolCalls++
         audit.record(run.taskId, "tool_call", jsonObjectOf("tool" to call.name, "args" to call.args))
         if (run.toolCalls > config.maxToolCallsPerTask) {
@@ -223,10 +227,11 @@ class AgentEngine(
         }
 
         // 1. plan: what would this do? (no side effects)
-        val plan = tool.plan(call.args, run.ctx)
+        var plan = tool.plan(call.args, run.ctx)
         if (plan.error != null) return failed(run, tool, call, plan, plan.error, config)
 
         // 2. policy: who allows it?
+        var partiallyKept = 0
         val decision = policy.evaluate(tool.spec, plan, PolicyView(run.filesTouched, run.bytesTouched, run.grants))
         audit.record(run.taskId, "policy", jsonObjectOf("tool" to call.name, "decision" to decision::class.simpleName, "plan" to plan.summary))
         when (decision) {
@@ -237,9 +242,12 @@ class AgentEngine(
             }
             is PolicyDecision.Confirm -> {
                 if (config.dryRun) return proposed(run, plan, "Dry run: would ask the user to confirm (${decision.request.risk}).")
-                val answer = user.confirm(decision.request)
-                audit.record(run.taskId, "confirmation", jsonObjectOf("tool" to call.name, "answer" to answer.name))
-                when (answer) {
+                val answer = user.review(decision.request)
+                audit.record(
+                    run.taskId, "confirmation",
+                    jsonObjectOf("tool" to call.name, "answer" to answer.response.name, "approved_items" to answer.approvedIds?.size, "offered_items" to decision.request.items.size.takeIf { it > 0 }),
+                )
+                when (answer.response) {
                     ConfirmationResponse.ALLOW_ONCE -> {}
                     ConfirmationResponse.ALLOW_FOR_TASK -> decision.request.grantScope?.let { run.grants += it }
                     ConfirmationResponse.DENY -> {
@@ -250,6 +258,30 @@ class AgentEngine(
                         run.cancelled = true
                         return jsonObjectOf("ok" to false, "error" to jsonObjectOf("kind" to "CANCELLED", "message" to "The user cancelled the task."))
                     }
+                }
+                // Partial approval: act ONLY on the ids the person ticked. Unknown ids are ignored, and the tool re-plans
+                // against the allow-list, so a file that appeared after the review is never touched.
+                val approvedIds = answer.approvedIds
+                if (decision.request.selectable && approvedIds != null) {
+                    val offered = decision.request.items.map { it.id }.toSet()
+                    val approved = approvedIds.intersect(offered)
+                    if (approved.isEmpty()) {
+                        run.issues += Issue(call.name, keysOf(call.args), IssueKind.DECLINED, null, "the user rejected every file: ${plan.summary}")
+                        return jsonObjectOf("ok" to false, "error" to jsonObjectOf("kind" to "DECLINED_BY_USER", "message" to "The user declined this action.", "guidance" to "Do not retry it or work around it. Offer an alternative or finish."))
+                    }
+                    // Always narrow to the allow-list after a review, even when everything was ticked: it is what
+                    // guarantees that a file which appeared while the person was looking is not swept in.
+                    val narrowed = ToolCall(call.id, call.name, JsonObject(call.args + (APPROVED_ITEMS_ARG to JsonArray(approved.sorted().map { JsonPrimitive(it) }))))
+                    val narrowedPlan = tool.plan(narrowed.args, run.ctx)
+                    if (narrowedPlan.error != null) return failed(run, tool, narrowed, narrowedPlan, narrowedPlan.error, config)
+                    val kept = offered.size - approved.size
+                    if (kept > 0) {
+                        run.issues += Issue(call.name, keysOf(call.args), IssueKind.DECLINED, null, "the user chose to leave $kept file(s) where they are: ${plan.summary}")
+                        audit.record(run.taskId, "partial_approval", jsonObjectOf("tool" to call.name, "approved" to approved.size, "kept_by_user" to kept))
+                        partiallyKept = kept
+                    }
+                    call = narrowed
+                    plan = narrowedPlan
                 }
             }
             is PolicyDecision.Allow -> {}
@@ -298,7 +330,8 @@ class AgentEngine(
             run.issues.removeAll { it.tool == call.name && it.kind == IssueKind.FAILED && it.keys.any { k -> k in keys } }
         }
         audit.record(run.taskId, "tool_result", jsonObjectOf("tool" to call.name, "ok" to true, "verification" to verification?.let { jsonObjectOf("passed" to it.passed, "checks" to it.checks) }))
-        return successResponse(result, verification, mutating, config)
+        val shown = if (partiallyKept > 0) result.copy(data = JsonObject(result.data + ("kept_in_place_by_user" to JsonPrimitive(partiallyKept)))) else result
+        return successResponse(shown, verification, mutating, config)
     }
 
     private suspend fun handleAsk(run: Run, call: ToolCall): JsonObject {

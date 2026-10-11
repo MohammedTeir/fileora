@@ -13,6 +13,7 @@ import dev.deviceagent.core.ai.ProviderException
 import dev.deviceagent.core.ai.ToolResponse
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.JvmFileSystem
+import dev.deviceagent.core.policy.ConfirmationAnswer
 import dev.deviceagent.core.policy.ConfirmationRequest
 import dev.deviceagent.core.policy.ConfirmationResponse
 import dev.deviceagent.core.policy.InteractionMode
@@ -95,11 +96,18 @@ class FakeUser(
     var onConfirm: (ConfirmationRequest) -> ConfirmationResponse = { ConfirmationResponse.DENY },
     var onAsk: (String) -> String? = { null },
 ) : UserChannel {
+    /** When set, answers file-by-file reviews; otherwise a review falls back to [onConfirm] (all or nothing). */
+    var onReview: ((ConfirmationRequest) -> ConfirmationAnswer)? = null
     val confirmations = ArrayList<ConfirmationRequest>()
     val questions = ArrayList<String>()
     override suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse {
         confirmations += request
         return onConfirm(request)
+    }
+    override suspend fun review(request: ConfirmationRequest): ConfirmationAnswer {
+        val handler = onReview ?: return super.review(request)
+        confirmations += request
+        return handler(request)
     }
     override suspend fun ask(question: String): String? { questions += question; return onAsk(question) }
 }

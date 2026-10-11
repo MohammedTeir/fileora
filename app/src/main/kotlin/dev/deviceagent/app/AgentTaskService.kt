@@ -22,6 +22,7 @@ import dev.deviceagent.core.ai.gemini.GeminiProvider
 import dev.deviceagent.core.ai.openai.OpenAIProvider
 import dev.deviceagent.core.ai.claude.ClaudeProvider
 import dev.deviceagent.core.history.UndoManager
+import dev.deviceagent.core.policy.ConfirmationAnswer
 import dev.deviceagent.core.policy.ConfirmationRequest
 import dev.deviceagent.core.policy.ConfirmationResponse
 import dev.deviceagent.core.policy.InteractionMode
@@ -119,11 +120,14 @@ class AgentTaskService : Service() {
         val undoManager = UndoManager(RoomUndoStore(AgentDatabase.get(this).undoDao()))
         val audit = RoomAuditLog(AgentDatabase.get(this).auditDao(), redactor)
         val channel = object : UserChannel {
-            override suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse {
+            override suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse = review(request).response
+
+            override suspend fun review(request: ConfirmationRequest): ConfirmationAnswer {
                 updateProgress("Waiting for your OK…")
                 // Keep a shade notification available if the user backgrounds the app while this dialog is open.
-                showApproval(approvalTitle(request.tool), request.summary, approvalDetails(request), withButtons = true)
-                val answer = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { TaskBridge.requestConfirmation(request) } ?: ConfirmationResponse.DENY
+                // A file-by-file review has no Allow button here (you can still decline or stop): approving a batch without opening the review would skip it.
+                showApproval(approvalTitle(request.tool), request.summary, approvalDetails(request), withButtons = true, allowHere = !request.selectable)
+                val answer = withTimeoutOrNull(APPROVAL_TIMEOUT_MS) { TaskBridge.requestConfirmation(request) } ?: ConfirmationAnswer(ConfirmationResponse.DENY)
                 clearApproval()
                 updateProgress("Continuing…")
                 return answer
@@ -273,7 +277,7 @@ class AgentTaskService : Service() {
     }
 
     /** A separate, high-priority notification so a request for approval can actually be noticed. */
-    private fun showApproval(title: String, text: String, details: String, withButtons: Boolean) {
+    private fun showApproval(title: String, text: String, details: String, withButtons: Boolean, allowHere: Boolean = true) {
         val builder = NotificationCompat.Builder(this, CHANNEL_APPROVAL)
             .setSmallIcon(R.drawable.ic_stat_agent)
             .setContentTitle(title)
@@ -284,7 +288,7 @@ class AgentTaskService : Service() {
             .setSilent(AppVisibility.inForeground)
             .setAutoCancel(false)
         if (withButtons) {
-            builder.addAction(0, "Allow", serviceAction(ACTION_ALLOW_ONCE))
+            if (allowHere) builder.addAction(0, "Allow", serviceAction(ACTION_ALLOW_ONCE))
             builder.addAction(0, "Don't allow", serviceAction(ACTION_DENY))
             builder.addAction(0, "Stop task", serviceAction(ACTION_CANCEL_CONFIRMATION))
         }

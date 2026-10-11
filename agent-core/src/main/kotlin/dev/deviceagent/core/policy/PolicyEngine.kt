@@ -1,6 +1,7 @@
 package dev.deviceagent.core.policy
 
 import dev.deviceagent.core.tools.Plan
+import dev.deviceagent.core.tools.ReviewItem
 import dev.deviceagent.core.tools.RiskLevel
 import dev.deviceagent.core.tools.ToolSpec
 
@@ -37,7 +38,17 @@ data class ConfirmationRequest(
     val reversible: Boolean,
     /** Non-null when the user may grant "always allow for this task" for this scope. */
     val grantScope: String?,
+    /** Every file the operation would touch, when the person can approve them one by one. */
+    val items: List<ReviewItem> = emptyList(),
+    /** True when [items] is complete and the tool will honour a partial approval. */
+    val selectable: Boolean = false,
 )
+
+/** What the person decided. [approvedIds] is only meaningful for a [ConfirmationRequest.selectable] request. */
+data class ConfirmationAnswer(val response: ConfirmationResponse, val approvedIds: Set<String>? = null)
+
+/** More files than this are not offered for one-by-one review; the person approves or rejects the whole batch. */
+const val MAX_REVIEW_ITEMS = 500
 
 sealed interface PolicyDecision {
     data class Allow(val reason: String) : PolicyDecision
@@ -97,12 +108,20 @@ class PolicyEngine(val config: PolicyConfig = PolicyConfig()) {
         bytes = plan.bytes,
         reversible = plan.reversible,
         grantScope = grantScope,
+        items = if (plan.items.size in 2..MAX_REVIEW_ITEMS) plan.items else emptyList(),
+        selectable = plan.items.size in 2..MAX_REVIEW_ITEMS,
     )
 }
 
 /** The UI side: confirmations and questions. Implemented by the app; faked in tests. */
 interface UserChannel {
     suspend fun confirm(request: ConfirmationRequest): ConfirmationResponse
+
+    /**
+     * Like [confirm], but the person may approve only some of a [ConfirmationRequest.selectable] request's files.
+     * Channels that cannot show a file-by-file review keep this default: all or nothing.
+     */
+    suspend fun review(request: ConfirmationRequest): ConfirmationAnswer = ConfirmationAnswer(confirm(request))
 
     /** Returns the user's answer, or null if nobody can answer right now. */
     suspend fun ask(question: String): String?

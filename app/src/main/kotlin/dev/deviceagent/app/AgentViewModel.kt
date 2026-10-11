@@ -438,6 +438,8 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
 
     fun answerConfirmation(response: ConfirmationResponse) = TaskBridge.answerConfirmation(response)
 
+    fun answerReview(response: ConfirmationResponse, approvedIds: Set<String>?) = TaskBridge.answerReview(response, approvedIds)
+
     fun answerQuestion(answer: String?) = TaskBridge.answerQuestion(answer?.takeIf { it.isNotBlank() })
 
     fun runTask() {

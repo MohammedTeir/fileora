@@ -3,10 +3,12 @@ package dev.deviceagent.core.tools.file
 import dev.deviceagent.core.fs.FileSystem
 import dev.deviceagent.core.fs.FsException
 import dev.deviceagent.core.tools.ErrorKind
+import dev.deviceagent.core.tools.APPROVED_ITEMS_ARG
 import dev.deviceagent.core.tools.ParamSpec
 import dev.deviceagent.core.tools.ParamType.BOOLEAN
 import dev.deviceagent.core.tools.ParamType.STRING
 import dev.deviceagent.core.tools.Plan
+import dev.deviceagent.core.tools.ReviewItem
 import dev.deviceagent.core.tools.RiskLevel
 import dev.deviceagent.core.tools.Tool
 import dev.deviceagent.core.tools.ToolContext
@@ -18,9 +20,15 @@ import dev.deviceagent.core.util.jsonObjectOf
 import dev.deviceagent.core.util.str
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 private const val MAX_BATCH_MATCHES = 5_000
+
+/** The ids (source paths) a person approved, or null when the whole batch stands. Set only by the engine. */
+private fun JsonObject.approvedSources(): Set<String>? =
+    (this[APPROVED_ITEMS_ARG] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }?.toSet()
 
 /** A source/destination pair planned by file.move_matching. */
 data class MoveMatch(val source: String, val destination: String, val bytes: Long)
@@ -105,7 +113,8 @@ class FileMoveMatchingTool : Tool {
         if (existingDestination != null && !existingDestination.isDirectory) {
             return@guardedPlan FileOps.failedPlan(summary, ErrorKind.ALREADY_EXISTS, "Destination is not a folder", destination)
         }
-        val matches = collectMoveMatches(ctx.fs, source, destination, pattern, recursive)
+        val approved = args.approvedSources()
+        val matches = collectMoveMatches(ctx.fs, source, destination, pattern, recursive).filter { approved == null || it.source in approved }
         val collision = matches.firstOrNull { ctx.fs.stat(it.destination) != null }
         if (collision != null) return@guardedPlan FileOps.failedPlan(summary, ErrorKind.ALREADY_EXISTS, "Destination already exists: ${collision.destination}", collision.destination)
         Plan(
@@ -114,14 +123,16 @@ class FileMoveMatchingTool : Tool {
             writes = matches.map { it.destination },
             fileCount = matches.size,
             bytes = matches.sumOf { it.bytes },
+            items = matches.map { ReviewItem(id = it.source, label = it.source, detail = it.destination, bytes = it.bytes) },
         )
     }
 
     override suspend fun execute(args: JsonObject, ctx: ToolContext): ToolResult = withContext(Dispatchers.IO) {
         val (source, destination, pattern) = inputs(args)
         val recursive = args.bool("recursive") ?: false
+        val approved = args.approvedSources()
         val matches = try {
-            collectMoveMatches(ctx.fs, source, destination, pattern, recursive)
+            collectMoveMatches(ctx.fs, source, destination, pattern, recursive).filter { approved == null || it.source in approved }
         } catch (e: FsException) {
             return@withContext ToolResult.failure(e.kind, e.message ?: "Could not find matching files", e.path)
         }

@@ -39,6 +39,7 @@ Spec phases: **Phase 1 ≈ 90%**, **Phase 3 ≈ 70%** (no stdout/stderr because 
 
 - [~] **#6 `file.read`** — implemented with size cap, untrusted_data wrapping, tests; not run on device
 - [x] **#7 `file.write` / `file.append` / `file.move_matching`** — core done (100 KiB cap for writes; bulk matching moves are confirmation-protected, verified, and undoable)
+- [~] **Review Changes page** — per-file approve/reject for `file.move_matching` (2–500 files): the engine re-plans against an allow-list of approved files, so unticked or newly appeared files are never touched; kept files are reported as PARTIAL_SUCCESS. Core: 9 tests (mutation-checked). UI and the notification path **need device validation**; other batch tools still approve all-or-nothing
 - [x] **#8 Persistent history (Room)** — `RoomAuditLog`, `RoomUndoStore`, history list in UI, latest task undoable after restart
 - [~] **#9 Background execution** — foreground `AgentTaskService` owns runs when the screen is off, shows progress/confirmation notifications, supports cancellation, and delivers progress/results to the UI. A delayed unique `AgentTaskRecoveryWorker` relaunches a checkpointed task after process death; device verification remains.
 - [~] **#10 Checkpoint and resume** — foreground service persists task inputs, provider-neutral messages after each tool-result turn, and latest progress; after process death the app offers Resume or Discard. Core coverage passes; device validation remains.

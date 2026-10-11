@@ -54,6 +54,7 @@ import dev.deviceagent.app.ui.FileBrowserScreen
 import dev.deviceagent.app.ui.FileoraIcon
 import dev.deviceagent.app.ui.FileoraIconName
 import dev.deviceagent.app.ui.QuestionDialog
+import dev.deviceagent.app.ui.ReviewChangesDialog
 import dev.deviceagent.app.ui.SearchScreen
 import dev.deviceagent.app.ui.SettingsScreen
 
@@ -209,7 +210,9 @@ private fun AppRoot(vm: AgentViewModel) {
     }
 
     // Dialogs sit above every tab, so an approval request is never hidden behind another screen.
-    s.pendingConfirmation?.let { ApprovalDialog(it, vm::answerConfirmation) }
+    s.pendingConfirmation?.let { req ->
+        if (req.selectable) ReviewChangesDialog(req, vm::answerReview) else ApprovalDialog(req, vm::answerConfirmation)
+    }
     s.pendingQuestion?.let { QuestionDialog(it, vm::answerQuestion) }
 }
 

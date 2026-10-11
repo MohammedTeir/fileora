@@ -9,6 +9,7 @@ fun main() {
     registerFileReadTests()
     registerAiAndSecurityTests()
     registerModelRoutingTests()
+    registerReviewChangesTests()
     val failed = runAllRegistered()
     if (failed > 0) exitProcess(1)
 }
