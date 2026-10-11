@@ -37,6 +37,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -411,8 +415,35 @@ private fun AdvancedCard(s: UiState, vm: AgentViewModel) {
                     )
                 }
             }
+            HorizontalDivider()
+            BackupSection(vm)
         }
     }
+}
+
+/** Export/restore of AI choices (never keys, folders or the privacy switch) and a way back to the welcome tour. */
+@Composable
+private fun BackupSection(vm: AgentViewModel) {
+    val scope = rememberCoroutineScope()
+    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { vm.exportSettingsTo(uri) }
+            vm.showNotice(if (ok) "Settings exported. Your API key is not in the file." else "Couldn't write the file.")
+        }
+    }
+    val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val ok = withContext(Dispatchers.IO) { vm.importSettingsFrom(uri) }
+            vm.showNotice(if (ok) "Settings restored. Add your API key if this is a new phone." else "That doesn't look like a Fileora settings file.")
+        }
+    }
+    CardTitle("Settings backup")
+    Hint("Saves your AI service and model choices to a file. API keys, folders and the privacy switch are never included, and a restored file can't change them.")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { export.launch("fileora-settings.json") }) { Text("Export") }
+        OutlinedButton(onClick = { restore.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Restore") }
+    }
+    OutlinedButton(onClick = vm::replayOnboarding) { Text("Show the welcome tour again") }
 }
 
 @Composable

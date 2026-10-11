@@ -104,6 +104,8 @@ data class UiState(
     val scheduledTasks: List<ScheduledTask> = emptyList(),
     val notificationsEnabled: Boolean = true,
     val busy: Boolean = false,
+    /** False only on a brand-new install, until the person finishes (or skips) the first-run setup. */
+    val onboardingDone: Boolean = true,
 )
 
 class AgentViewModel(app: Application) : AndroidViewModel(app) {
@@ -173,6 +175,8 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         val choice = runCatching { ProviderChoice.valueOf(prefs.getString("provider", ProviderChoice.GEMINI.name) ?: ProviderChoice.GEMINI.name) }.getOrDefault(ProviderChoice.GEMINI)
         val key = secrets.get(secretKey(choice))
         key?.let { redactor.addSecret(it) }
+        val loadedRoots = loadRoots()
+        val usesAllFiles = prefs.getBoolean(KEY_USE_ALL_FILES_ACCESS, false)
         _state.update {
             it.copy(
                 provider = choice,
@@ -183,12 +187,14 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
                 sendFileContents = prefs.getBoolean("send_file_contents", false),
                 running = AgentTaskService.isRunning,
                 notificationsEnabled = NotificationManagerCompat.from(app).areNotificationsEnabled(),
-                roots = loadRoots(),
+                roots = loadedRoots,
                 allFilesAccessSupported = AllFilesAccess.isSupported(),
                 allFilesAccessGranted = AllFilesAccess.hasAccess(),
-                useAllFilesAccess = prefs.getBoolean(KEY_USE_ALL_FILES_ACCESS, false),
+                useAllFilesAccess = usesAllFiles,
                 checkpointAvailable = AgentTaskService.hasCheckpoint(app),
                 checkpointDescription = if (AgentTaskService.hasCheckpoint(app)) AgentTaskService.checkpointDescription(app) else "",
+                // Someone who already set the app up before onboarding existed must not be sent back through it.
+                onboardingDone = prefs.getBoolean(KEY_ONBOARDING_DONE, false) || loadedRoots.isNotEmpty() || key != null || usesAllFiles,
             )
         }
         refreshHistory()
@@ -394,6 +400,70 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun completeOnboarding() {
+        prefs.edit().putBoolean(KEY_ONBOARDING_DONE, true).apply()
+        _state.update { it.copy(onboardingDone = true) }
+    }
+
+    fun replayOnboarding() {
+        prefs.edit().putBoolean(KEY_ONBOARDING_DONE, false).apply()
+        _state.update { it.copy(onboardingDone = false) }
+    }
+
+    /** AI choices only: no keys, no folders, no privacy switches (see [SettingsBackup]). */
+    fun exportSettings(): String {
+        val providers = ProviderChoice.entries
+        return SettingsBackupCodec.encode(
+            SettingsBackup(
+                provider = _state.value.provider.name,
+                models = providers.mapNotNull { p -> modelFor(p).takeIf { it.isNotBlank() }?.let { p.name to it } }.toMap(),
+                recoveryModels = providers.mapNotNull { p -> (prefs.getString(recoveryModelPreference(p), "") ?: "").takeIf { it.isNotBlank() }?.let { p.name to it } }.toMap(),
+                automaticModelRouting = _state.value.automaticModelRouting,
+            ),
+        )
+    }
+
+    /** Returns true if [text] was a valid settings file and was applied. Never touches keys, folders or privacy switches. */
+    fun importSettings(text: String): Boolean {
+        val b = SettingsBackupCodec.decode(text, ProviderChoice.entries.map { it.name }.toSet()) ?: return false
+        val edit = prefs.edit()
+        b.models.forEach { (p, m) -> edit.putString(modelPreference(ProviderChoice.valueOf(p)), m) }
+        b.recoveryModels.forEach { (p, m) -> edit.putString(recoveryModelPreference(ProviderChoice.valueOf(p)), m) }
+        edit.putBoolean("automatic_model_routing", b.automaticModelRouting).apply()
+        _state.update { it.copy(automaticModelRouting = b.automaticModelRouting) }
+        setProvider(ProviderChoice.valueOf(b.provider))
+        return true
+    }
+
+    fun showNotice(text: String) = _state.update { it.copy(notice = text) }
+
+    /** Blocking, small file: call from a background dispatcher. */
+    fun exportSettingsTo(uri: Uri): Boolean = runCatching {
+        getApplication<Application>().contentResolver.openOutputStream(uri, "wt")?.use {
+            it.write(exportSettings().toByteArray(Charsets.UTF_8)); true
+        } ?: false
+    }.getOrDefault(false)
+
+    /** Blocking, small file: call from a background dispatcher. Files over [SettingsBackupCodec.MAX_BYTES] are refused unread. */
+    fun importSettingsFrom(uri: Uri): Boolean {
+        val text = runCatching {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+                val out = java.io.ByteArrayOutputStream()
+                val buf = ByteArray(8 * 1024)
+                var total = 0
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    total += n
+                    if (total > SettingsBackupCodec.MAX_BYTES) return@use null
+                    out.write(buf, 0, n)
+                }
+                out.toString("UTF-8")
+            }
+        }.getOrNull() ?: return false
+        return importSettings(text)
+    }
+
     fun dismissNotice() = _state.update { it.copy(notice = null) }
 
     fun scheduleCurrent(intervalHours: Long) {
@@ -548,6 +618,7 @@ class AgentViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val KEY_NAME = "gemini_api_key"
         const val KEY_USE_ALL_FILES_ACCESS = "use_all_files_access"
+        private const val KEY_ONBOARDING_DONE = "onboarding_done"
         private fun undoFsPreference(taskId: String) = "undo_all_files_$taskId"
         fun modelPreference(provider: ProviderChoice) = "model_${provider.name.lowercase()}"
         fun recoveryModelPreference(provider: ProviderChoice) = "recovery_model_${provider.name.lowercase()}"

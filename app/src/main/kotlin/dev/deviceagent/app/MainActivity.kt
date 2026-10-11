@@ -13,6 +13,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -45,11 +47,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import dev.deviceagent.app.ui.ActivityScreen
 import dev.deviceagent.app.ui.AgentTheme
 import dev.deviceagent.app.ui.ApprovalDialog
 import dev.deviceagent.app.ui.DashboardScreen
 import dev.deviceagent.app.ui.HomeScreen
+import dev.deviceagent.app.ui.OnboardingFlow
+import dev.deviceagent.app.ui.SplashScreen
 import dev.deviceagent.app.ui.FileBrowserScreen
 import dev.deviceagent.app.ui.FileoraIcon
 import dev.deviceagent.app.ui.FileoraIconName
@@ -90,12 +95,42 @@ private const val TAB_SEARCH = 2
 private const val TAB_AI = 3
 private const val TAB_SETTINGS = 4
 
+/**
+ * Splash → first-run onboarding (only on a new install) → the app. Existing installs skip onboarding
+ * because the ViewModel treats any saved folder, key or all-files choice as "already set up".
+ */
 @Composable
 private fun AppRoot(vm: AgentViewModel) {
     val s by vm.state.collectAsState()
+    var splashDone by rememberSaveable { mutableStateOf(false) }
+    val firstLaunch = rememberSaveable { !vm.state.value.onboardingDone }
+    var openAiSettings by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!splashDone) {
+            delay(if (firstLaunch) 1500L else 800L)
+            splashDone = true
+        }
+    }
+    val phase = when {
+        !splashDone -> 0
+        !s.onboardingDone -> 1
+        else -> 2
+    }
+    Crossfade(targetState = phase, animationSpec = tween(350), label = "appPhase") { p ->
+        when (p) {
+            0 -> SplashScreen(firstLaunch)
+            1 -> OnboardingFlow(s, vm) { openAi -> openAiSettings = openAi }
+            else -> MainApp(vm, startOnSettings = openAiSettings)
+        }
+    }
+}
+
+@Composable
+private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
+    val s by vm.state.collectAsState()
     val context = LocalContext.current
     val browser: FileBrowserViewModel = viewModel()
-    var tab by rememberSaveable { mutableIntStateOf(TAB_HOME) }
+    var tab by rememberSaveable { mutableIntStateOf(if (startOnSettings) TAB_SETTINGS else TAB_HOME) }
     val recent by browser.recent.collectAsState()
     val favoriteInfos by browser.favoriteInfos.collectAsState()
     LaunchedEffect(tab) { if (tab == TAB_HOME) browser.refreshRecent() }
@@ -216,7 +251,7 @@ private fun AppRoot(vm: AgentViewModel) {
     s.pendingQuestion?.let { QuestionDialog(it, vm::answerQuestion) }
 }
 
-private fun openNotificationSettings(context: Context) {
+internal fun openNotificationSettings(context: Context) {
     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
