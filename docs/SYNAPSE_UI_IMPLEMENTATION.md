@@ -135,3 +135,8 @@ These tests do not replace physical-device checks for TalkBack traversal,
 keyboard/IME behavior, Android system pickers, OEM background execution,
 root/package backends, or actual cloud-provider responses. Those remain device
 and backend integration work.
+
+
+## Additional visual-design coverage (October 2026)
+
+The separate visual design catalog contains **31 illustrated pages**: the existing 27 numbered specifications, dedicated **Permissions**, **Appearance**, and **About** Settings designs, and a **Task Completed / Result** state. This does **not** change the 27-route implementation claim above. The additional designs are not certified as separate Compose routes or live integrations until verified in code and tests. Refer to [the design catalog](SYNAPSE_UI_DESIGN_CATALOG.md) for the navigation ordering and acceptance checklist.
