@@ -16,26 +16,15 @@ The reusable Compose API is `FileoraIcon` with `FileoraIconName` in `app/src/mai
 
 The existing application ID, package namespace, Room database name, and secret aliases were not changed. This keeps the app upgrade-compatible for existing installations.
 
-## Not integrated as runtime UI yet
+## Policy for future changes
 
-The app still uses Compose Material vector icons for navigation and actions such as Home, Activity, Settings, Add, Delete, Warning, Undo, and Expand. That is intentional:
+Do not use files from `assets/` for future implementation work. Do not copy,
+convert, trace, or derive new application resources from that folder. Use the
+existing Compose Material icon dependency or independently authored Android
+resources instead. This rule is also recorded in the root `AGENTS.md`.
 
-- Material vectors remain crisp at every density and support Compose tinting and accessibility consistently.
-- The supplied PNG icon library is raster artwork, so replacing every vector would require choosing density, tint, and dark-theme behavior for each control.
-- The supplied library is nevertheless ready for selective use in richer file lists, task cards, empty states, onboarding, or branded illustrations.
-
-Recommended mappings for future selective integration:
-
-| App feature | Asset group | Candidate assets |
-|---|---|---|
-| File list type indicators | `assets/icons/source/file_types/` | `pdf`, `image` (when added), `video` (when added), `spreadsheet`, `word_document`, `archive`-style types |
-| Home/task status illustrations | `assets/icons/source/interface_icon_library/` | `ai_assistant`, `ai_sparkle`, `success`, `error`, `warning`, `history`, `undo` |
-| Folder and SAF actions | `assets/icons/source/navigation_actions/` | `folder`, `folder_open`, `folder_tree`, `add`, `refresh`, `checkmark`, `close` |
-| Settings and privacy | `assets/icons/source/settings_system/` | `privacy_lock`, `eye`, `eye_off`, `notifications`, `storage_cleanup`, `restore_file` |
-| Task progress and recovery | `assets/icons/source/task_actions/` | `review_changes`, `apply_changes`, `retry`, `resume_task`, `pause_task`, `partial_success`, `file_conflict` |
-| Search, sort, and view controls | `assets/icons/source/ui_controls/` | `clear_search`, `filter_clear`, `list_view`, `grid_view`, `sort_ascending`, `sort_descending`, `view_details` |
-
-For a raster icon in Compose, use `painterResource()` with the appropriate `drawable-nodpi` or density-specific resource. Use the 48 px or 96 px exports from `assets/icons/sized/` for small UI elements; use `assets/icons/sized-dark/` only on dark surfaces where the contrast-adjusted version is needed.
+The resources already integrated above may remain in use. No replacement of
+existing icons or launcher artwork is required. Keep the asset archive intact.
 
 ## Brand assets kept for design/reference use
 

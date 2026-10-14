@@ -32,7 +32,9 @@ enum class FileoraIconName {
 }
 
 /**
- * Renders a Fileora raster icon without applying a tint, preserving its supplied artwork.
+ * Renders an existing integrated Fileora raster icon without applying a tint.
+ * For future changes, use Material icons or independently authored resources;
+ * do not add or derive resources from assets/ (see AGENTS.md).
  * Android automatically selects drawable-night-nodpi variants for the four icons that have
  * contrast-adjusted dark-theme exports; other icons safely fall back to the standard asset.
  */
