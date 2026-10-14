@@ -234,7 +234,7 @@ private fun RootList(roots: List<String>, hasFolders: Boolean, onOpen: (String) 
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
+                    SynapseIcon(SynapseIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
                     Text(friendlyRootName(root), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -334,7 +334,7 @@ internal fun entrySubtitle(e: FileInfo): String =
 internal fun EntryIcon(e: FileInfo, size: Int = 44) {
     if (e.isDirectory) {
         Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
-            FileoraIcon(FileoraIconName.Folder, contentDescription = "Folder", modifier = Modifier.size((size * 0.73f).dp))
+            SynapseIcon(SynapseIconName.Folder, contentDescription = "Folder", modifier = Modifier.size((size * 0.73f).dp))
         }
     } else {
         val c = categoryOf(e.name)
@@ -412,7 +412,7 @@ private fun FolderDetailsSheet(
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                    FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
+                    SynapseIcon(SynapseIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
                 }
                 Text(friendlyRootName(name), style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }

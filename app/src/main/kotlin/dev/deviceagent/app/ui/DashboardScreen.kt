@@ -79,9 +79,9 @@ internal fun DashboardScreen(
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
+                SynapseIcon(SynapseIconName.Folder, contentDescription = null, modifier = Modifier.size(32.dp))
                 Spacer(Modifier.size(10.dp))
-                Text("Fileora", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text("Synapse", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, contentDescription = "Search") }
             }
         }
@@ -174,7 +174,7 @@ private fun GreetingBanner() {
                 Text(hello, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 Text("Your files, organized and always within reach.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
             }
-            FileoraIcon(FileoraIconName.FolderOpen, contentDescription = null, modifier = Modifier.size(64.dp))
+            SynapseIcon(SynapseIconName.FolderOpen, contentDescription = null, modifier = Modifier.size(64.dp))
         }
     }
 }

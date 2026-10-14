@@ -103,6 +103,7 @@ class FileBrowserViewModel(app: Application) : AndroidViewModel(app) {
     val folderSummary: StateFlow<FolderSummaryState> = _folderSummary.asStateFlow()
     private var summaryJob: Job? = null
 
+    // Keep the persisted preference name so existing installations retain their settings.
     private val viewPrefs = app.getSharedPreferences("fileora_view", Context.MODE_PRIVATE)
     private val _gridView = MutableStateFlow(viewPrefs.getBoolean("grid", false))
     /** List or grid, remembered. Applies to Browse and to the collection pages. */

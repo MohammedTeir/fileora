@@ -79,7 +79,7 @@ internal fun Hint(text: String) {
 @Composable
 internal fun Banner(
     tone: Tone,
-    icon: FileoraIconName,
+    icon: SynapseIconName,
     title: String,
     body: String? = null,
     content: @Composable ColumnScope.() -> Unit = {},
@@ -87,7 +87,7 @@ internal fun Banner(
     val (bg, fg) = toneColors(tone)
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = bg, contentColor = fg)) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FileoraIcon(icon, contentDescription = null)
+            SynapseIcon(icon, contentDescription = null)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (body != null) Text(body, style = MaterialTheme.typography.bodyMedium)

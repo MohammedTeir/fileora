@@ -1,4 +1,4 @@
-# Fileora — Android AI file assistant — Full Product Specification (v4, Cloud AI only)
+# Synapse — Android cloud-AI device operator — Full Product Specification (v4, Cloud AI only)
 
 ## 1. Vision
 

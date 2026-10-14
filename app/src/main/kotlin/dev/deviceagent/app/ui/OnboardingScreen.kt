@@ -100,9 +100,9 @@ internal fun SplashScreen(firstLaunch: Boolean) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(Modifier.size(104.dp).clip(RoundedCornerShape(28.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                Image(painterResource(R.drawable.fileora_launcher), contentDescription = null, modifier = Modifier.size(80.dp))
+                Image(painterResource(R.drawable.synapse_launcher), contentDescription = null, modifier = Modifier.size(80.dp))
             }
-            Text("Fileora", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
+            Text("Synapse", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
             Text("Your files, organized by just asking.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
         }
         if (firstLaunch) {
@@ -118,16 +118,16 @@ internal fun SplashScreen(firstLaunch: Boolean) {
     }
 }
 
-private class WelcomePage(val icon: FileoraIconName, val title: String, val body: String, val bullets: List<String> = emptyList())
+private class WelcomePage(val icon: SynapseIconName, val title: String, val body: String, val bullets: List<String> = emptyList())
 
 private val WELCOME_PAGES = listOf(
     WelcomePage(
-        FileoraIconName.AiSparkle,
-        "Meet Fileora",
-        "Tell your phone what you want in plain words, like “move my PDFs into Documents”, and Fileora plans it, shows you, and only then does it.",
+        SynapseIconName.AiSparkle,
+        "Meet Synapse",
+        "Tell your phone what you want in plain words, like “move my PDFs into Documents”, and Synapse plans it, shows you, and only then does it.",
     ),
     WelcomePage(
-        FileoraIconName.Folder,
+        SynapseIconName.Folder,
         "What you can do",
         "Everything you need to keep storage tidy.",
         listOf(
@@ -139,7 +139,7 @@ private val WELCOME_PAGES = listOf(
         ),
     ),
     WelcomePage(
-        FileoraIconName.PrivacyLock,
+        SynapseIconName.PrivacyLock,
         "Private by design",
         "You stay in control of your files.",
         listOf(
@@ -280,15 +280,15 @@ private fun ColumnScope.SetupStep(s: UiState, vm: AgentViewModel, onBack: () -> 
             }
         },
     ) {
-        StepHeader(FileoraIconName.Permissions, "Let's set up access", "Fileora asks for as little as possible. Here is what and why. You can change all of this later in Settings.")
+        StepHeader(SynapseIconName.Permissions, "Let's set up access", "Synapse asks for as little as possible. Here is what and why. You can change all of this later in Settings.")
 
         AppCard {
             CardTitle("📁  Your files")
-            Hint("Fileora can only work inside folders you pick. Android shows its own folder picker, and Fileora gets that folder and what's inside it, nothing else. Pick a folder you want tidied, like Download or Documents.")
+            Hint("Synapse can only work inside folders you pick. Android shows its own folder picker, and Synapse gets that folder and what's inside it, nothing else. Pick a folder you want tidied, like Download or Documents.")
             when (folders) {
                 FolderAccess.GRANTED -> {
                     Banner(
-                        Tone.SUCCESS, FileoraIconName.Success,
+                        Tone.SUCCESS, SynapseIconName.Success,
                         if (s.useAllFilesAccess && s.roots.isEmpty()) "Full file access is on" else "Folder added",
                         if (s.roots.isNotEmpty()) s.roots.joinToString { it.name } else null,
                     )
@@ -296,8 +296,8 @@ private fun ColumnScope.SetupStep(s: UiState, vm: AgentViewModel, onBack: () -> 
                 }
                 FolderAccess.CANCELLED -> {
                     Banner(
-                        Tone.WARNING, FileoraIconName.Warning, "No folder chosen",
-                        "Fileora can't see any files until you pick a folder. Nothing was shared. You can also do this later in Settings.",
+                        Tone.WARNING, SynapseIconName.Warning, "No folder chosen",
+                        "Synapse can't see any files until you pick a folder. Nothing was shared. You can also do this later in Settings.",
                     ) {
                         Button(onClick = { pickFolder.launch(null) }) { Text("Choose a folder") }
                     }
@@ -309,18 +309,18 @@ private fun ColumnScope.SetupStep(s: UiState, vm: AgentViewModel, onBack: () -> 
 
         AppCard {
             CardTitle("🔔  Notifications")
-            Hint("So you hear back when a task finishes or needs your OK while you are in another app. Fileora never sends ads.")
+            Hint("So you hear back when a task finishes or needs your OK while you are in another app. Synapse never sends ads.")
             when (notifications) {
-                NotificationAccess.GRANTED -> Banner(Tone.SUCCESS, FileoraIconName.Success, "Notifications are on")
+                NotificationAccess.GRANTED -> Banner(Tone.SUCCESS, SynapseIconName.Success, "Notifications are on")
                 NotificationAccess.NOT_ASKED -> Button(onClick = requestNotifications, modifier = Modifier.fillMaxWidth()) { Text("Allow notifications") }
                 NotificationAccess.DENIED -> Banner(
-                    Tone.WARNING, FileoraIconName.Warning, "Notifications are off",
-                    "Without them you won't be told when a task needs your approval. Fileora still works.",
+                    Tone.WARNING, SynapseIconName.Warning, "Notifications are off",
+                    "Without them you won't be told when a task needs your approval. Synapse still works.",
                 ) {
                     Button(onClick = requestNotifications) { Text("Try again") }
                 }
                 NotificationAccess.BLOCKED -> Banner(
-                    Tone.WARNING, FileoraIconName.Warning, "Notifications are blocked",
+                    Tone.WARNING, SynapseIconName.Warning, "Notifications are blocked",
                     "Android won't show the permission prompt again, so this can only be changed in Android Settings.",
                 ) {
                     Button(onClick = { openNotificationSettings(context) }) { Text("Open Android settings") }
@@ -344,7 +344,7 @@ private fun ColumnScope.AiStep(s: UiState, vm: AgentViewModel, onBack: () -> Uni
     val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             val ok = withContext(Dispatchers.IO) { vm.importSettingsFrom(uri) }
-            restoreMessage = if (ok) true to "Settings restored. Add your API key to finish." else false to "That doesn't look like a Fileora settings file."
+            restoreMessage = if (ok) true to "Settings restored. Add your API key to finish." else false to "That doesn't look like a Synapse settings file."
         }
     }
     val hasKey = s.apiKeyMask != null
@@ -361,24 +361,24 @@ private fun ColumnScope.AiStep(s: UiState, vm: AgentViewModel, onBack: () -> Uni
         },
     ) {
         StepHeader(
-            FileoraIconName.AiSparkle, "AI is optional",
+            SynapseIconName.AiSparkle, "AI is optional",
             "Browsing, search and favorites work without it. To ask in plain words, add your own API key from Gemini, OpenAI or Claude.",
         )
-        if (hasKey) Banner(Tone.SUCCESS, FileoraIconName.Success, "AI is already set up", s.model.ifBlank { null })
+        if (hasKey) Banner(Tone.SUCCESS, SynapseIconName.Success, "AI is already set up", s.model.ifBlank { null })
 
         AppCard {
             CardTitle("How it stays private")
             Hint("• Your key is kept in this phone's secure storage and never shown in full.")
             Hint("• By default only file names and sizes are sent. File contents are sent only if you turn that on in Settings → Privacy.")
-            Hint("• The AI proposes, Fileora checks, and you approve. Nothing is changed behind your back.")
-            Hint("• You pay your AI provider directly for what you use. Fileora doesn't add a charge.")
+            Hint("• The AI proposes, Synapse checks, and you approve. Nothing is changed behind your back.")
+            Hint("• You pay your AI provider directly for what you use. Synapse doesn't add a charge.")
         }
 
         AppCard {
             CardTitle("Moving from another phone?")
             Hint("Restore your AI choices from a settings file you exported earlier. API keys and folders are never in the file, so you add them again.")
             OutlinedButton(onClick = { restore.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Restore from a file") }
-            restoreMessage?.let { (ok, text) -> Banner(if (ok) Tone.SUCCESS else Tone.ERROR, if (ok) FileoraIconName.Success else FileoraIconName.Error, text) }
+            restoreMessage?.let { (ok, text) -> Banner(if (ok) Tone.SUCCESS else Tone.ERROR, if (ok) SynapseIconName.Success else SynapseIconName.Error, text) }
         }
     }
 }
@@ -392,10 +392,10 @@ private fun ColumnScope.DoneStep(s: UiState, onBack: () -> Unit, onFinish: () ->
     val allDone = hasFolder && s.notificationsEnabled && hasKey
     StepScaffold(
         onBack = onBack,
-        footer = { Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Start using Fileora") } },
+        footer = { Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Start using Synapse") } },
     ) {
         StepHeader(
-            if (allDone) FileoraIconName.Success else FileoraIconName.Folder,
+            if (allDone) SynapseIconName.Success else SynapseIconName.Folder,
             if (allDone) "You're all set" else "Ready when you are",
             if (allDone) "Everything is on. Have a look around, or ask the AI to tidy something." else "Anything below that is not ticked can be finished later in Settings.",
         )
@@ -404,7 +404,7 @@ private fun ColumnScope.DoneStep(s: UiState, onBack: () -> Unit, onFinish: () ->
             StepRow(2, s.notificationsEnabled, "Notifications", if (s.notificationsEnabled) "You'll hear when a task needs you." else "Turn them on so you don't miss approvals.")
             StepRow(3, hasKey, "AI assistant", if (hasKey) "Ready to take requests." else "Add an API key in Settings → AI service.")
         }
-        if (!hasFolder) Banner(Tone.INFO, FileoraIconName.Folder, "No folder yet", "Browse, Search and the AI have nothing to look at until you add one.")
+        if (!hasFolder) Banner(Tone.INFO, SynapseIconName.Folder, "No folder yet", "Browse, Search and the AI have nothing to look at until you add one.")
     }
 }
 
@@ -423,7 +423,7 @@ private fun ColumnScope.StepScaffold(onBack: () -> Unit, footer: @Composable () 
 }
 
 @Composable
-private fun StepHeader(icon: FileoraIconName, title: String, subtitle: String) {
+private fun StepHeader(icon: SynapseIconName, title: String, subtitle: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         IconTile(icon, 64)
         Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
@@ -432,11 +432,11 @@ private fun StepHeader(icon: FileoraIconName, title: String, subtitle: String) {
 }
 
 @Composable
-private fun IconTile(icon: FileoraIconName, size: Int) {
+private fun IconTile(icon: SynapseIconName, size: Int) {
     Box(
         Modifier.size(size.dp).clip(RoundedCornerShape((size / 3.5f).dp)).background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
-    ) { FileoraIcon(icon, contentDescription = null, modifier = Modifier.size((size * 0.6f).dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
+    ) { SynapseIcon(icon, contentDescription = null, modifier = Modifier.size((size * 0.6f).dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

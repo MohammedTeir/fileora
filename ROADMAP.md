@@ -1,4 +1,4 @@
-# Roadmap and handoff
+# Synapse — Roadmap and handoff
 
 Read first: `README.md` (status), `docs/SPEC.md` (design), `docs/RELEASING.md` (CI and signing).
 

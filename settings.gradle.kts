@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Fileora"
+rootProject.name = "Synapse"
 include(":agent-core", ":app")

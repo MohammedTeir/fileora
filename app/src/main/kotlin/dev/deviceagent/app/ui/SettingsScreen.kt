@@ -67,7 +67,7 @@ private enum class SettingsPage(val title: String) {
     FOLDERS("Folders and access"),
     PRIVACY("Privacy"),
     ADVANCED("Advanced"),
-    ABOUT("About Fileora"),
+    ABOUT("About Synapse"),
 }
 
 /** Settings is a short list of groups; each group opens on its own page. */
@@ -95,13 +95,13 @@ private fun SettingsHome(s: UiState, onOpen: (SettingsPage) -> Unit) {
             ) {
                 Column {
                     SettingsRow(
-                        { FileoraIcon(FileoraIconName.AiSparkle, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        { SynapseIcon(SynapseIconName.AiSparkle, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         "AI service",
                         if (s.apiKeyMask == null) "Add your API key" else "$name · ${s.model.ifBlank { "choose a model" }}",
                     ) { onOpen(SettingsPage.AI) }
                     RowDivider()
                     SettingsRow(
-                        { FileoraIcon(FileoraIconName.Folder, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        { SynapseIcon(SynapseIconName.Folder, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         "Folders and access",
                         when {
                             s.useAllFilesAccess && s.allFilesAccessGranted -> "All shared storage"
@@ -112,26 +112,26 @@ private fun SettingsHome(s: UiState, onOpen: (SettingsPage) -> Unit) {
                     ) { onOpen(SettingsPage.FOLDERS) }
                     RowDivider()
                     SettingsRow(
-                        { FileoraIcon(FileoraIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        { SynapseIcon(SynapseIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         "Privacy",
                         if (s.sendFileContents) "$name can read file contents" else "$name sees file names only",
                     ) { onOpen(SettingsPage.PRIVACY) }
                     RowDivider()
                     SettingsRow(
-                        { FileoraIcon(FileoraIconName.Notifications, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        { SynapseIcon(SynapseIconName.Notifications, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         "Notifications",
                         if (s.notificationsEnabled) "On · opens Android settings" else "Off · tap to turn on",
                     ) { openNotificationSettings(context) }
                     RowDivider()
                     SettingsRow(
-                        { FileoraIcon(FileoraIconName.Settings, contentDescription = null, modifier = Modifier.size(28.dp)) },
+                        { SynapseIcon(SynapseIconName.Settings, contentDescription = null, modifier = Modifier.size(28.dp)) },
                         "Advanced",
                         if (s.manualMode) "Suggest only is on" else "Suggest-only mode, backup model",
                     ) { onOpen(SettingsPage.ADVANCED) }
                     RowDivider()
                     SettingsRow(
                         { Icon(Icons.Filled.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp)) },
-                        "About Fileora",
+                        "About Synapse",
                         if (version.isNotBlank()) "Version $version" else "Version and privacy",
                     ) { onOpen(SettingsPage.ABOUT) }
                 }
@@ -318,11 +318,11 @@ private fun FoldersCard(s: UiState, vm: AgentViewModel) {
         s.roots.forEach { r ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(r.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                IconButton(onClick = { removeTarget = r }) { FileoraIcon(FileoraIconName.Delete, contentDescription = "Remove ${r.name}") }
+                IconButton(onClick = { removeTarget = r }) { SynapseIcon(SynapseIconName.Delete, contentDescription = "Remove ${r.name}") }
             }
         }
         OutlinedButton(onClick = { pickFolder.launch(null) }) {
-            FileoraIcon(FileoraIconName.Add, contentDescription = null)
+            SynapseIcon(SynapseIconName.Add, contentDescription = null)
             Text("  Add a folder")
         }
 
@@ -434,13 +434,13 @@ private fun BackupSection(vm: AgentViewModel) {
     val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             val ok = withContext(Dispatchers.IO) { vm.importSettingsFrom(uri) }
-            vm.showNotice(if (ok) "Settings restored. Add your API key if this is a new phone." else "That doesn't look like a Fileora settings file.")
+            vm.showNotice(if (ok) "Settings restored. Add your API key if this is a new phone." else "That doesn't look like a Synapse settings file.")
         }
     }
     CardTitle("Settings backup")
     Hint("Saves your AI service and model choices to a file. API keys, folders and the privacy switch are never included, and a restored file can't change them.")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { export.launch("fileora-settings.json") }) { Text("Export") }
+        OutlinedButton(onClick = { export.launch("synapse-settings.json") }) { Text("Export") }
         OutlinedButton(onClick = { restore.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text("Restore") }
     }
     OutlinedButton(onClick = vm::replayOnboarding) { Text("Show the welcome tour again") }
@@ -452,7 +452,7 @@ private fun AboutCard() {
     val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
     AppCard {
         CardTitle("About")
-        Text("Fileora${if (version.isNotBlank()) " · version $version" else ""}", style = MaterialTheme.typography.bodyMedium)
+        Text("Synapse${if (version.isNotBlank()) " · version $version" else ""}", style = MaterialTheme.typography.bodyMedium)
         Hint("Your key and your history stay on this phone. Only your request and file names (and file contents, if you allow it) are sent to the AI service you chose.")
     }
 }

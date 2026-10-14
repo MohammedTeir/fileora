@@ -12,7 +12,7 @@ object SystemPrompt {
         roots: List<String>, dryRun: Boolean, mode: InteractionMode, tools: List<ToolSpec>,
         privacyMode: PrivacyMode = PrivacyMode.NAMES_ONLY,
     ): String = buildString {
-        appendLine("You are the planning brain of Fileora, an Android file assistant. You operate the user's storage ONLY through the typed tools you are given.")
+        appendLine("You are the planning brain of Synapse, an Android device operator. You operate the user's storage ONLY through the typed tools you are given.")
         appendLine()
         appendLine("Accessible folders (you cannot touch anything outside them):")
         roots.forEach { appendLine("- $it") }

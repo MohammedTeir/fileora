@@ -1,17 +1,19 @@
-# Fileora
+# Synapse
 
 The planned Synapse redesign is documented in the [complete UI/UX specification](docs/SYNAPSE_UI_UX_SPEC.md), covering 27 screens, demo scenarios, and Compose implementation guidance.
 
-An Android AI agent that operates the device through **typed, policy-checked, verified tools**. You describe a goal; the agent inspects, plans, acts, checks the real result, and recovers from failures within strict limits. Cloud AI only (Gemini first, bring-your-own API key). Spec: [`docs/SPEC.md`](docs/SPEC.md).
+Synapse is a native Android cloud-AI-powered device operator built with Jetpack Compose and Material 3. It bridges natural-language requests with device inspection and control through **typed, policy-checked, verified tools**. You describe a goal; the agent inspects, plans, acts, checks the real result, and recovers from failures within strict limits. Cloud AI only (Gemini first, bring-your-own API key). Spec: [`docs/SPEC.md`](docs/SPEC.md).
+
+The visible app name is Synapse. The application ID (`dev.deviceagent.app`), stored preference names, database, and credential aliases remain stable so existing installations retain their data. New settings exports use `synapse-settings.json`; imports also accept backups from earlier versions. The existing launcher artwork is retained.
 
 ## Status: what is real and what is not
 
 | Part | State |
 |---|---|
-| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 100 tests pass; 8 deliberate bugs were injected and all were caught |
+| `agent-core` (loop, tools, policy, verification, recovery, undo, model routing, Gemini/OpenAI/Claude adapters) | **Built and tested**: 109 tests pass; 8 deliberate bugs were injected and all were caught |
 | Gemini adapter against the **live** API | **Works live** (reported in `ROADMAP.md`: model `gemini-3.5-flash-lite`, 0 errors). Unit tests still use a fake transport shaped from the public docs, so there is no automated live-API test yet |
-| `app` module (Compose Home/Activity/Settings, notification-linked approvals/questions, Keystore, SAF, optional All Files Access, Room audit/undo history) | **Debug APK and lint build locally on API 35; 6 UX-helper JVM tests pass.** SAF app has previously run on a real device (Redmi Note 8 Pro; reported by the owner). The owner has verified a real move, the change-approval dialog and complete Undo flow. New UX, All Files Access and delete-to-trash still need explicit device validation (`ROADMAP.md` P0 #1) |
-| Gradle build files / dependency versions | **Configured and locally verified**: `:app:assembleDebug` and `:app:lintDebug` pass with Android API 35; two non-blocking lint warnings remain for the intentionally declared `MANAGE_EXTERNAL_STORAGE` permission and the adaptive-icon qualifier |
+| `app` module (Compose Home/Activity/Settings, notification-linked approvals/questions, Keystore, SAF, optional All Files Access, Room audit/undo history) | **Debug APK and lint build locally on API 35; 35 app JVM tests pass.** SAF app has previously run on a real device (Redmi Note 8 Pro; reported by the owner). The owner has verified a real move, the change-approval dialog and complete Undo flow. New UX, All Files Access and delete-to-trash still need explicit device validation (`ROADMAP.md` P0 #1) |
+| Gradle build files / dependency versions | **Configured and locally verified**: `:app:assembleDebug` and `:app:lintDebug` pass with Android API 35; five non-blocking lint warnings remain |
 | GitHub Actions (`ci.yml`, `release.yml`) | **CI is green and the release workflow builds signed APKs** (reported by the owner; `apksigner verify` output not yet seen). See [`docs/RELEASING.md`](docs/RELEASING.md) for the signing-key and secrets setup |
 | Media (FFmpeg), Linux runtime, packages, root, scheduling | Core probe/convert/audio-extraction support and JVM FFmpeg backend are implemented. Android SAF supports local probe, MP4 remux, and M4A audio extraction; broader FFmpeg processing remains. Scheduling is implemented; other advanced runtimes/tools remain |
 
@@ -54,7 +56,7 @@ agent-core/   pure Kotlin/JVM, no Android imports (enforced by review; checked b
   security/   Redactor, SecretStore
   history/    AuditLog, UndoManager
 app/          Android shell: Compose UI, KeystoreSecretStore, SafFileSystem, optional All Files Access
-assets/       Fileora logos, launcher variants, UI icons, sized exports, concepts and originals ([asset index](assets/README.md))
+assets/       archived artwork; only the retained launcher is integrated ([asset index](assets/README.md))
 scripts/      test-core.sh (offline build+test), kotlin-env.sh
 ```
 

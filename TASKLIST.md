@@ -1,4 +1,4 @@
-# Fileora — Task List (done vs. not done)
+# Synapse — Task List (done vs. not done)
 
 Compared: `README.md`, `ROADMAP.md`, `docs/SPEC.md` (identical to the "full idea v4" file), current main, and the supplied UX archive.
 Date of review: 2026-10-09. The core suite (100), app-helper tests (6), API 35 debug APK build, and Android lint all pass locally. Physical-device validation remains outstanding.

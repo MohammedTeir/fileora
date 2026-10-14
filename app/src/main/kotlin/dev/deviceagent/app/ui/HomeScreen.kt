@@ -102,7 +102,7 @@ internal fun HomeScreen(
 
         if (!s.notificationsEnabled) item {
             Banner(
-                Tone.WARNING, FileoraIconName.Notifications, "Turn on notifications",
+                Tone.WARNING, SynapseIconName.Notifications, "Turn on notifications",
                 "I'll tell you when a task needs your OK or is finished — even when the app is closed.",
             ) { Button(onClick = onTurnOnNotifications) { Text("Turn on") } }
         }
@@ -129,7 +129,7 @@ internal fun HomeScreen(
 
         if (s.checkpointAvailable && !s.running) item {
             Banner(
-                Tone.WARNING, FileoraIconName.Warning, "A task was interrupted",
+                Tone.WARNING, SynapseIconName.Warning, "A task was interrupted",
                 "It stopped before it finished (the app closed or the phone restarted)." +
                     if (s.checkpointDescription.isNotBlank()) "\nLast step: ${cleanProgress(s.checkpointDescription)}" else "",
             ) {
@@ -156,7 +156,7 @@ internal fun HomeScreen(
                 val tone = statusTone(o.status)
                 Banner(
                     tone,
-                    if (tone == Tone.SUCCESS) FileoraIconName.Success else if (tone == Tone.INFO) FileoraIconName.AiAssistant else FileoraIconName.Warning,
+                    if (tone == Tone.SUCCESS) SynapseIconName.Success else if (tone == Tone.INFO) SynapseIconName.AiAssistant else SynapseIconName.Warning,
                     statusTitle(o.status),
                     statusExplanation(o.status),
                 ) {
@@ -223,7 +223,7 @@ private fun RecentTaskCard(task: HistoryItem, onUndo: () -> Unit) {
     val tone = statusTone(status)
     Banner(
         tone,
-        if (tone == Tone.SUCCESS) FileoraIconName.Success else if (tone == Tone.INFO) FileoraIconName.AiAssistant else FileoraIconName.Warning,
+        if (tone == Tone.SUCCESS) SynapseIconName.Success else if (tone == Tone.INFO) SynapseIconName.AiAssistant else SynapseIconName.Warning,
         "Your last task: ${statusTitle(status)}",
         "${task.goal}\n${statusExplanation(status)}",
     ) {
@@ -308,7 +308,7 @@ private fun Composer(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FileoraIcon(FileoraIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(14.dp))
+            SynapseIcon(SynapseIconName.PrivacyLock, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(6.dp))
             Text(
                 when {

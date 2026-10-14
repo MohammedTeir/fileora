@@ -1,17 +1,17 @@
-# Fileora asset usage
+# Synapse asset usage
 
 ## Launcher artwork
 
 The only supplied artwork integrated into the app is
-`app/src/main/res/drawable-nodpi/fileora_launcher.png`, originally copied from
+`app/src/main/res/drawable-nodpi/synapse_launcher.png`, originally copied from
 `assets/brand/official/launcher_icon/android_sizes/ic_launcher_512.png`.
 The standard and round adaptive launcher icons use this resource for their
 foreground and monochrome layers. The app launch screen displays the same icon.
 
 ## UI icons
 
-`FileoraIcon` and `FileoraIconName` in
-`app/src/main/kotlin/dev/deviceagent/app/ui/FileoraIcons.kt` render Compose
+`SynapseIcon` and `SynapseIconName` in
+`app/src/main/kotlin/dev/deviceagent/app/ui/SynapseIcons.kt` render Compose
 Material vectors, with theme-aware tinting and an automatically mirrored Undo
 icon. The former supplied UI PNGs and their dark variants have been removed
 from Android resources. Visible labels and accessibility descriptions remain.

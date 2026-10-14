@@ -57,8 +57,8 @@ import dev.deviceagent.app.ui.HomeScreen
 import dev.deviceagent.app.ui.OnboardingFlow
 import dev.deviceagent.app.ui.SplashScreen
 import dev.deviceagent.app.ui.FileBrowserScreen
-import dev.deviceagent.app.ui.FileoraIcon
-import dev.deviceagent.app.ui.FileoraIconName
+import dev.deviceagent.app.ui.SynapseIcon
+import dev.deviceagent.app.ui.SynapseIconName
 import dev.deviceagent.app.ui.QuestionDialog
 import dev.deviceagent.app.ui.ReviewChangesDialog
 import dev.deviceagent.app.ui.SearchScreen
@@ -188,11 +188,11 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
             NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                 NavigationBarItem(
                     selected = tab == TAB_HOME, onClick = { go(TAB_HOME) },
-                    icon = { FileoraIcon(FileoraIconName.Home, contentDescription = null) }, label = { Text("Home") },
+                    icon = { SynapseIcon(SynapseIconName.Home, contentDescription = null) }, label = { Text("Home") },
                 )
                 NavigationBarItem(
                     selected = tab == TAB_BROWSE, onClick = { go(TAB_BROWSE) },
-                    icon = { FileoraIcon(FileoraIconName.Folder, contentDescription = null) }, label = { Text("Browse") },
+                    icon = { SynapseIcon(SynapseIconName.Folder, contentDescription = null) }, label = { Text("Browse") },
                 )
                 NavigationBarItem(
                     selected = tab == TAB_SEARCH, onClick = { go(TAB_SEARCH) },
@@ -200,11 +200,11 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
                 )
                 NavigationBarItem(
                     selected = tab == TAB_AI, onClick = { go(TAB_AI) },
-                    icon = { FileoraIcon(FileoraIconName.AiSparkle, contentDescription = null) }, label = { Text("AI") },
+                    icon = { SynapseIcon(SynapseIconName.AiSparkle, contentDescription = null) }, label = { Text("AI") },
                 )
                 NavigationBarItem(
                     selected = tab == TAB_SETTINGS, onClick = { go(TAB_SETTINGS) },
-                    icon = { FileoraIcon(FileoraIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
+                    icon = { SynapseIcon(SynapseIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
                 )
             }
             }

@@ -28,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 
-enum class FileoraIconName {
+enum class SynapseIconName {
     AiAssistant,
     AiSparkle,
     Add,
@@ -53,8 +53,8 @@ enum class FileoraIconName {
 
 /** Uses theme-tinted Material vectors. Only launcher artwork may come from assets/. */
 @Composable
-fun FileoraIcon(
-    name: FileoraIconName,
+fun SynapseIcon(
+    name: SynapseIconName,
     contentDescription: String?,
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
@@ -67,26 +67,26 @@ fun FileoraIcon(
     )
 }
 
-private val FileoraIconName.imageVector: ImageVector
+private val SynapseIconName.imageVector: ImageVector
     get() = when (this) {
-        FileoraIconName.AiAssistant -> Icons.Filled.SmartToy
-        FileoraIconName.AiSparkle -> Icons.Filled.AutoAwesome
-        FileoraIconName.Add -> Icons.Filled.Add
-        FileoraIconName.Delete -> Icons.Filled.Delete
-        FileoraIconName.Error -> Icons.Filled.Error
-        FileoraIconName.Folder -> Icons.Filled.Folder
-        FileoraIconName.FolderOpen -> Icons.Filled.FolderOpen
-        FileoraIconName.History -> Icons.Filled.History
-        FileoraIconName.Home -> Icons.Filled.Home
-        FileoraIconName.Notifications -> Icons.Filled.Notifications
-        FileoraIconName.PauseTask -> Icons.Filled.Pause
-        FileoraIconName.Permissions -> Icons.Filled.Security
-        FileoraIconName.PrivacyLock -> Icons.Filled.Lock
-        FileoraIconName.ResumeTask -> Icons.Filled.PlayArrow
-        FileoraIconName.Retry -> Icons.Filled.Refresh
-        FileoraIconName.ReviewChanges -> Icons.Filled.FactCheck
-        FileoraIconName.Settings -> Icons.Filled.Settings
-        FileoraIconName.Success -> Icons.Filled.CheckCircle
-        FileoraIconName.Undo -> Icons.AutoMirrored.Filled.Undo
-        FileoraIconName.Warning -> Icons.Filled.Warning
+        SynapseIconName.AiAssistant -> Icons.Filled.SmartToy
+        SynapseIconName.AiSparkle -> Icons.Filled.AutoAwesome
+        SynapseIconName.Add -> Icons.Filled.Add
+        SynapseIconName.Delete -> Icons.Filled.Delete
+        SynapseIconName.Error -> Icons.Filled.Error
+        SynapseIconName.Folder -> Icons.Filled.Folder
+        SynapseIconName.FolderOpen -> Icons.Filled.FolderOpen
+        SynapseIconName.History -> Icons.Filled.History
+        SynapseIconName.Home -> Icons.Filled.Home
+        SynapseIconName.Notifications -> Icons.Filled.Notifications
+        SynapseIconName.PauseTask -> Icons.Filled.Pause
+        SynapseIconName.Permissions -> Icons.Filled.Security
+        SynapseIconName.PrivacyLock -> Icons.Filled.Lock
+        SynapseIconName.ResumeTask -> Icons.Filled.PlayArrow
+        SynapseIconName.Retry -> Icons.Filled.Refresh
+        SynapseIconName.ReviewChanges -> Icons.Filled.FactCheck
+        SynapseIconName.Settings -> Icons.Filled.Settings
+        SynapseIconName.Success -> Icons.Filled.CheckCircle
+        SynapseIconName.Undo -> Icons.AutoMirrored.Filled.Undo
+        SynapseIconName.Warning -> Icons.Filled.Warning
     }

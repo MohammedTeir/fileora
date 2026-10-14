@@ -1,4 +1,4 @@
-name: Release (signed APKs, all architectures)
+name: Synapse Release (signed APKs, all architectures)
 
 on:
   # Push a tag like v0.1.0 to build, sign and publish a GitHub Release.

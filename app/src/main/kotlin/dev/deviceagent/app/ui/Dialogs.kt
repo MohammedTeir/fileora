@@ -60,8 +60,8 @@ internal fun ApprovalDialog(req: ConfirmationRequest, onAnswer: (ConfirmationRes
 
                 Surface(shape = RoundedCornerShape(50), color = bg) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        FileoraIcon(
-                            if (tone == Tone.INFO) FileoraIconName.Permissions else FileoraIconName.Warning,
+                        SynapseIcon(
+                            if (tone == Tone.INFO) SynapseIconName.Permissions else SynapseIconName.Warning,
                             contentDescription = null,
                             modifier = Modifier.padding(end = 6.dp),
                         )

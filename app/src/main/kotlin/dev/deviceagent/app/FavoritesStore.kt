@@ -7,6 +7,7 @@ import android.content.Context
  * It only stores paths on this device; nothing here is sent to an AI service.
  */
 class FavoritesStore(context: Context) {
+    // Keep the persisted preference name so existing installations retain their settings.
     private val prefs = context.getSharedPreferences("fileora_favorites", Context.MODE_PRIVATE)
 
     fun load(): Set<String> = prefs.getStringSet(KEY, emptySet())?.toSet() ?: emptySet()

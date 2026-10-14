@@ -30,7 +30,7 @@ object SettingsBackupCodec {
 
     fun encode(b: SettingsBackup): String = JsonObject(
         mapOf(
-            "app" to JsonPrimitive("fileora"),
+            "app" to JsonPrimitive("synapse"),
             "version" to JsonPrimitive(VERSION),
             "provider" to JsonPrimitive(b.provider),
             "models" to JsonObject(b.models.mapValues { JsonPrimitive(it.value) }),
@@ -40,13 +40,15 @@ object SettingsBackupCodec {
     ).toString()
 
     /**
-     * Returns null for anything that is not a valid Fileora settings file. Unknown providers and
+     * Returns null for anything that is not a valid Synapse settings file. Unknown providers and
      * unexpected fields are dropped, never trusted, and model names must be short plain text.
      */
     fun decode(text: String, knownProviders: Set<String>): SettingsBackup? {
         if (text.length > MAX_BYTES) return null
         val root = runCatching { Json.parseToJsonElement(text) as? JsonObject }.getOrNull() ?: return null
-        if (root["app"]?.jsonPrimitiveOrNull()?.contentOrNull != "fileora") return null
+        // Accept backups exported before the Synapse rename.
+        val app = root["app"]?.jsonPrimitiveOrNull()?.contentOrNull
+        if (app != "synapse" && app != "fileora") return null
         if (root["version"]?.jsonPrimitiveOrNull()?.contentOrNull?.toIntOrNull() != VERSION) return null
         val provider = root["provider"]?.jsonPrimitiveOrNull()?.contentOrNull?.takeIf { it in knownProviders } ?: return null
         val routing = root["automaticModelRouting"]?.jsonPrimitiveOrNull()?.contentOrNull?.toBooleanStrictOrNull() ?: false

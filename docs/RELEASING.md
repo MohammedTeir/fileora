@@ -1,4 +1,4 @@
-# Releasing (direct distribution)
+# Releasing Synapse (direct distribution)
 
 Two workflows live in `.github/workflows/`:
 
@@ -8,6 +8,8 @@ Two workflows live in `.github/workflows/`:
 | `release.yml` | you push a tag like `v0.1.0`, or run it by hand | runs the tests again, builds **signed** release APKs for `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` plus a universal APK, verifies the signatures, writes `SHA256SUMS.txt`, and (for tags) publishes a GitHub Release |
 
 > The app is pure Kotlin right now, so the per-architecture APKs are functionally identical. They start to differ when native libraries (FFmpeg, proot) are added. Most phones need `arm64-v8a`; the universal APK works everywhere but is larger.
+
+The displayed app name is Synapse. Keep the existing application ID and release signing key when updating installed copies; the signing-key alias is independent of the displayed name.
 
 ## One-time setup
 
