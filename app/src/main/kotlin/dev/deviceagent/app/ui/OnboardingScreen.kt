@@ -103,7 +103,7 @@ internal fun SplashScreen(firstLaunch: Boolean) {
                 Image(painterResource(R.drawable.synapse_launcher), contentDescription = null, modifier = Modifier.size(80.dp))
             }
             Text("Synapse", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
-            Text("Your files, organized by just asking.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
+            Text("Your device, understood.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)
         }
         if (firstLaunch) {
             Column(

@@ -7,62 +7,20 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.deviceagent.app.ui.*
+import dev.deviceagent.app.ui.synapse.*
 import kotlinx.coroutines.delay
-import dev.deviceagent.app.ui.ActivityScreen
-import dev.deviceagent.app.ui.AgentTheme
-import dev.deviceagent.app.ui.ApprovalDialog
-import dev.deviceagent.app.ui.CollectionScreen
-import dev.deviceagent.app.ui.DashboardScreen
-import dev.deviceagent.app.ui.HomeScreen
-import dev.deviceagent.app.ui.OnboardingFlow
-import dev.deviceagent.app.ui.SplashScreen
-import dev.deviceagent.app.ui.FileBrowserScreen
-import dev.deviceagent.app.ui.SynapseIcon
-import dev.deviceagent.app.ui.SynapseIconName
-import dev.deviceagent.app.ui.QuestionDialog
-import dev.deviceagent.app.ui.ReviewChangesDialog
-import dev.deviceagent.app.ui.SearchScreen
-import dev.deviceagent.app.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
     private val vm: AgentViewModel by viewModels()
@@ -70,7 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { AgentTheme { AppRoot(vm) } }
+        setContent { AppRoot(vm) }
     }
 
     override fun onStart() {
@@ -90,61 +48,31 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private const val TAB_HOME = 0
-private const val TAB_BROWSE = 1
-private const val TAB_SEARCH = 2
-private const val TAB_AI = 3
-private const val TAB_SETTINGS = 4
-
-/**
- * Splash → first-run onboarding (only on a new install) → the app. Existing installs skip onboarding
- * because the ViewModel treats any saved folder, key or all-files choice as "already set up".
- */
 @Composable
 private fun AppRoot(vm: AgentViewModel) {
-    val s by vm.state.collectAsState()
+    val workspace: SynapseWorkspaceViewModel = viewModel()
+    val appearance by workspace.appearance.collectAsState()
+    val reducedMotion by workspace.reducedMotion.collectAsState()
     var splashDone by rememberSaveable { mutableStateOf(false) }
     val firstLaunch = rememberSaveable { !vm.state.value.onboardingDone }
-    var openAiSettings by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (!splashDone) {
-            delay(if (firstLaunch) 1500L else 800L)
-            splashDone = true
-        }
+        delay(if (reducedMotion) 0L else 500L)
+        splashDone = true
     }
-    val phase = when {
-        !splashDone -> 0
-        !s.onboardingDone -> 1
-        else -> 2
-    }
-    Crossfade(targetState = phase, animationSpec = tween(350), label = "appPhase") { p ->
-        when (p) {
-            0 -> SplashScreen(firstLaunch)
-            1 -> OnboardingFlow(s, vm) { openAi -> openAiSettings = openAi }
-            else -> MainApp(vm, startOnSettings = openAiSettings)
-        }
-    }
+    AgentTheme(appearance) { if (!splashDone) SplashScreen(firstLaunch) else MainApp(vm) }
 }
 
 @Composable
-private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
+private fun MainApp(vm: AgentViewModel) {
     val s by vm.state.collectAsState()
     val context = LocalContext.current
     val browser: FileBrowserViewModel = viewModel()
-    var tab by rememberSaveable { mutableIntStateOf(if (startOnSettings) TAB_SETTINGS else TAB_HOME) }
-    val recent by browser.recent.collectAsState()
-    val favoriteInfos by browser.favoriteInfos.collectAsState()
-    LaunchedEffect(tab) { if (tab == TAB_HOME) browser.refreshRecent() }
-    var showTasks by rememberSaveable { mutableStateOf(false) }
-    // The open collection page (Documents, Downloads, Large files…) is kept as text so it survives rotation.
-    var collectionKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val collectionSpec = CollectionSpec.fromKey(collectionKey)
-    val go: (Int) -> Unit = { tab = it; showTasks = false; collectionKey = null }
     LaunchedEffect(s.roots, s.useAllFilesAccess) { browser.configure(s.roots, s.useAllFilesAccess) }
     var startAfterPermission by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
-    // Messages appear at the bottom of whatever screen you're on (they used to be a card at the very top of a long page).
+    // Messages appear at the bottom of whatever screen you're on (they used to be a card at the
+    // very top of a long page).
     LaunchedEffect(s.notice) {
         s.notice?.let {
             snackbar.showSnackbar(it, withDismissAction = true, duration = SnackbarDuration.Long)
@@ -152,13 +80,14 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
         }
     }
 
-    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        vm.refreshNotificationStatus()
-        if (startAfterPermission) {
-            startAfterPermission = false
-            vm.runTask()
+    val notificationPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            vm.refreshNotificationStatus()
+            if (startAfterPermission) {
+                startAfterPermission = false
+                vm.runTask()
+            }
         }
-    }
 
     val turnOnNotifications: () -> Unit = {
         if (Build.VERSION.SDK_INT >= 33 && !vm.notificationsAsked()) {
@@ -169,7 +98,8 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
         }
     }
 
-    // The first time someone starts a task, ask for notification permission so they hear back when they leave the app.
+    // The first time someone starts a task, ask for notification permission so they hear back when
+    // they leave the app.
     val start: () -> Unit = {
         if (Build.VERSION.SDK_INT >= 33 && !s.notificationsEnabled && !vm.notificationsAsked()) {
             vm.markNotificationsAsked()
@@ -180,98 +110,50 @@ private fun MainApp(vm: AgentViewModel, startOnSettings: Boolean) {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            Column {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
-                NavigationBarItem(
-                    selected = tab == TAB_HOME, onClick = { go(TAB_HOME) },
-                    icon = { SynapseIcon(SynapseIconName.Home, contentDescription = null) }, label = { Text("Home") },
-                )
-                NavigationBarItem(
-                    selected = tab == TAB_BROWSE, onClick = { go(TAB_BROWSE) },
-                    icon = { SynapseIcon(SynapseIconName.Folder, contentDescription = null) }, label = { Text("Browse") },
-                )
-                NavigationBarItem(
-                    selected = tab == TAB_SEARCH, onClick = { go(TAB_SEARCH) },
-                    icon = { Icon(Icons.Filled.Search, contentDescription = null) }, label = { Text("Search") },
-                )
-                NavigationBarItem(
-                    selected = tab == TAB_AI, onClick = { go(TAB_AI) },
-                    icon = { SynapseIcon(SynapseIconName.AiSparkle, contentDescription = null) }, label = { Text("AI") },
-                )
-                NavigationBarItem(
-                    selected = tab == TAB_SETTINGS, onClick = { go(TAB_SETTINGS) },
-                    icon = { SynapseIcon(SynapseIconName.Settings, contentDescription = null) }, label = { Text("Settings") },
-                )
-            }
-            }
-        },
-    ) { padding ->
-        Box(Modifier.padding(padding).consumeWindowInsets(padding).imePadding()) {
-            if (collectionSpec != null) {
-                BackHandler { collectionKey = null }
-                CollectionScreen(
-                    spec = collectionSpec,
-                    s = s,
-                    browser = browser,
-                    onBack = { collectionKey = null },
-                    onReveal = { info -> browser.reveal(info); go(TAB_BROWSE) },
-                    onAskAi = { prompt -> vm.setGoal(prompt); go(TAB_AI) },
-                )
-            } else if (showTasks) {
-                BackHandler { showTasks = false }
-                Column(Modifier.fillMaxSize()) {
-                    TextButton(onClick = { showTasks = false }, modifier = Modifier.padding(start = 8.dp)) { Text("‹ Back") }
-                    Box(Modifier.weight(1f)) { ActivityScreen(s, vm) }
-                }
-            } else when (tab) {
-                TAB_HOME -> DashboardScreen(
-                    recent = recent,
-                    favorites = favoriteInfos,
-                    onReveal = { info -> browser.reveal(info); go(TAB_BROWSE) },
-                    onSearch = { go(TAB_SEARCH) },
-                    onBrowse = { go(TAB_BROWSE) },
-                    onOpenCollection = { spec -> collectionKey = spec.key },
-                    onAskAi = { prompt -> prompt?.let(vm::setGoal); go(TAB_AI) },
-                    onOpenTasks = { showTasks = true },
-                )
-                TAB_BROWSE -> FileBrowserScreen(
-                    s, browser,
-                    onUseInTask = { paths ->
-                        vm.setGoal("Do this with these items:\n" + paths.joinToString("\n") { "- $it" })
-                        go(TAB_AI)
-                    },
-                    onAskAi = { prompt -> vm.setGoal(prompt); go(TAB_AI) },
-                )
-                TAB_SEARCH -> SearchScreen(s, browser) { info ->
-                    browser.reveal(info)
-                    go(TAB_BROWSE)
-                }
-                TAB_AI -> HomeScreen(
-                    s = s, vm = vm,
-                    onOpenSettings = { go(TAB_SETTINGS) },
-                    onTurnOnNotifications = turnOnNotifications,
-                    onStart = start,
-                    onOpenTasks = { showTasks = true },
-                )
-                else -> SettingsScreen(s, vm)
-            }
-        }
+    val workspace: SynapseWorkspaceViewModel = viewModel()
+    val demo by workspace.demo.collectAsState()
+    val appearance by workspace.appearance.collectAsState()
+    val reducedMotion by workspace.reducedMotion.collectAsState()
+    SynapseWorkspace(
+        s = demo,
+        send = workspace::dispatch,
+        initialRoute = if (!s.onboardingDone) SynapseRoute.WELCOME else SynapseRoute.AGENT,
+        modelLabel = "${s.provider.name} · ${s.model.ifBlank { "Choose a model" }}",
+        snackbar = snackbar,
+        appearance = appearance,
+        onAppearance = workspace::appearance,
+        reducedMotion = reducedMotion,
+        onReducedMotion = workspace::reducedMotion,
+        reset = workspace::resetDemo,
+    ) { route, nav, explore ->
+        LiveRouteContent(
+            route,
+            s,
+            vm,
+            browser,
+            nav,
+            explore,
+            start,
+            turnOnNotifications,
+            appearance,
+            workspace::appearance,
+            reducedMotion,
+            workspace::reducedMotion,
+        )
     }
 
     // Dialogs sit above every tab, so an approval request is never hidden behind another screen.
     s.pendingConfirmation?.let { req ->
-        if (req.selectable) ReviewChangesDialog(req, vm::answerReview) else ApprovalDialog(req, vm::answerConfirmation)
+        if (req.selectable) ReviewChangesDialog(req, vm::answerReview)
+        else ApprovalDialog(req, vm::answerConfirmation)
     }
     s.pendingQuestion?.let { QuestionDialog(it, vm::answerQuestion) }
 }
 
 internal fun openNotificationSettings(context: Context) {
-    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    val intent =
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { context.startActivity(intent) }
 }

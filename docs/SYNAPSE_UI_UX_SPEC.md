@@ -2,6 +2,8 @@
 
 Native Android · Jetpack Compose · Material 3 · Cloud AI only
 
+Implementation: [Compose screen coverage, rendered examples, and live/demo boundaries](SYNAPSE_UI_IMPLEMENTATION.md).
+
 Design basis: the supplied Android AI Device Agent v4 specification and the existing Android project. This is a product design and implementation handoff, not a claim that the proposed runtimes, root tools, or device integrations already exist.
 
 ## 1. Product assumptions and design direction

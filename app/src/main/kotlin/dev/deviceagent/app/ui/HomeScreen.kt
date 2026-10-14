@@ -1,3 +1,4 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package dev.deviceagent.app.ui
 
 import androidx.compose.foundation.BorderStroke
@@ -75,6 +76,7 @@ internal fun HomeScreen(
     onTurnOnNotifications: () -> Unit,
     onStart: () -> Unit,
     onOpenTasks: () -> Unit,
+    onAttachments: () -> Unit,
 ) {
     var showSchedule by remember { mutableStateOf(false) }
     var showUndo by remember { mutableStateOf(false) }
@@ -93,8 +95,8 @@ internal fun HomeScreen(
         item {
             Row(Modifier.padding(start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("AI Assistant", style = MaterialTheme.typography.headlineSmall)
-                    Text("Your intelligent file companion", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Text("What can we do today?", style = MaterialTheme.typography.headlineSmall)
+                    Text("Synapse · inspect, plan, act and verify", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
                 TextButton(onClick = onOpenTasks) { Text("Tasks") }
             }
@@ -193,7 +195,7 @@ internal fun HomeScreen(
             }
         }
     }
-    if (!s.running) Composer(s, vm, ready, ai, onOpenSettings, onStart) { showSchedule = true }
+    if (!s.running) Composer(s, vm, ready, ai, onOpenSettings, onStart, onAttachments) { showSchedule = true }
     }
 
     if (showSchedule) ScheduleDialog(
@@ -268,6 +270,7 @@ private fun Composer(
     ai: String,
     onOpenSettings: () -> Unit,
     onStart: () -> Unit,
+    onAttachments: () -> Unit,
     onSchedule: () -> Unit,
 ) {
     val canSend = s.goal.isNotBlank() && ready
@@ -290,7 +293,8 @@ private fun Composer(
                         disabledIndicatorColor = Color.Transparent,
                     ),
                 )
-                Row(Modifier.padding(start = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                androidx.compose.foundation.layout.FlowRow(Modifier.padding(start = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = onAttachments) { Text("Attach") }
                     FilterChip(
                         selected = s.dryRun,
                         onClick = { vm.setDryRun(!s.dryRun) },
@@ -298,7 +302,6 @@ private fun Composer(
                         shape = CircleShape,
                     )
                     TextButton(onClick = onSchedule, enabled = canSend) { Text("Schedule") }
-                    Spacer(Modifier.weight(1f))
                     SendButton(enabled = canSend, onClick = onStart)
                 }
             }

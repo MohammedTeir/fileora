@@ -196,7 +196,7 @@ private val KEY_HELP = mapOf(
 )
 
 @Composable
-private fun AiServiceCard(s: UiState, vm: AgentViewModel) {
+internal fun AiServiceCard(s: UiState, vm: AgentViewModel) {
     var keyInput by remember { mutableStateOf("") }
     var replacing by remember { mutableStateOf(false) }
     var confirmRemove by remember { mutableStateOf(false) }
@@ -301,7 +301,7 @@ private fun ModelPicker(
 }
 
 @Composable
-private fun FoldersCard(s: UiState, vm: AgentViewModel) {
+internal fun FoldersCard(s: UiState, vm: AgentViewModel) {
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> if (uri != null) vm.addRoot(uri) }
     var removeTarget by remember { mutableStateOf<RootUi?>(null) }
 
@@ -355,7 +355,7 @@ private fun FoldersCard(s: UiState, vm: AgentViewModel) {
 }
 
 @Composable
-private fun PrivacyCard(s: UiState, vm: AgentViewModel) {
+internal fun PrivacyCard(s: UiState, vm: AgentViewModel) {
     val name = providerName(s.provider)
     AppCard {
         CardTitle("Privacy")
@@ -370,7 +370,7 @@ private fun PrivacyCard(s: UiState, vm: AgentViewModel) {
 }
 
 @Composable
-private fun AdvancedCard(s: UiState, vm: AgentViewModel) {
+internal fun AdvancedCard(s: UiState, vm: AgentViewModel) {
     var open by remember { mutableStateOf(false) }
     AppCard {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -423,7 +423,7 @@ private fun AdvancedCard(s: UiState, vm: AgentViewModel) {
 
 /** Export/restore of AI choices (never keys, folders or the privacy switch) and a way back to the welcome tour. */
 @Composable
-private fun BackupSection(vm: AgentViewModel) {
+internal fun BackupSection(vm: AgentViewModel) {
     val scope = rememberCoroutineScope()
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
@@ -447,7 +447,7 @@ private fun BackupSection(vm: AgentViewModel) {
 }
 
 @Composable
-private fun AboutCard() {
+internal fun AboutCard() {
     val context = LocalContext.current
     val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
     AppCard {

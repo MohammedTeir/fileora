@@ -10,7 +10,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,7 +28,7 @@ import dev.deviceagent.app.Tone
  */
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1B6BF5),
+    primary = Color(0xFF3157D5),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFDCE9FF),
     onPrimaryContainer = Color(0xFF0A2A66),
@@ -35,13 +37,15 @@ private val LightColors = lightColorScheme(
     secondaryContainer = Color(0xFFE0ECFF),
     onSecondaryContainer = Color(0xFF0A2A66),
     tertiary = Color(0xFF7A5AF8),
-    background = Color(0xFFF3F8FF),
+    tertiaryContainer = Color(0xFFEADDFF),
+    onTertiaryContainer = Color(0xFF35205C),
+    background = Color(0xFFF7F8FC),
     onBackground = Color(0xFF0B1B36),
-    surface = Color(0xFFF3F8FF),
+    surface = Color(0xFFF7F8FC),
     onSurface = Color(0xFF0B1B36),
     surfaceVariant = Color(0xFFE6EEFB),
     onSurfaceVariant = Color(0xFF5B6F8F),
-    surfaceTint = Color(0xFF1B6BF5),
+    surfaceTint = Color(0xFF3157D5),
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFEDF3FD),
@@ -61,18 +65,20 @@ private val DarkColors = darkColorScheme(
     secondaryContainer = Color(0xFF14305F),
     onSecondaryContainer = Color(0xFFD6E6FF),
     tertiary = Color(0xFFB69CFF),
-    background = Color(0xFF051329),
+    tertiaryContainer = Color(0xFF483563),
+    onTertiaryContainer = Color(0xFFF0DBFF),
+    background = Color(0xFF111318),
     onBackground = Color(0xFFE8F0FF),
-    surface = Color(0xFF051329),
+    surface = Color(0xFF111318),
     onSurface = Color(0xFFE8F0FF),
     surfaceVariant = Color(0xFF0F2447),
     onSurfaceVariant = Color(0xFF93A8CC),
     surfaceTint = Color(0xFF4C9BFF),
     surfaceContainerLowest = Color(0xFF040F22),
-    surfaceContainerLow = Color(0xFF0A1D3C),
-    surfaceContainer = Color(0xFF0D2347),
-    surfaceContainerHigh = Color(0xFF112A54),
-    surfaceContainerHighest = Color(0xFF17335F),
+    surfaceContainerLow = Color(0xFF1A1C22),
+    surfaceContainer = Color(0xFF20232B),
+    surfaceContainerHigh = Color(0xFF282C36),
+    surfaceContainerHighest = Color(0xFF313642),
     outline = Color(0xFF4A6290),
     outlineVariant = Color(0xFF1D3A6B),
 )
@@ -86,33 +92,34 @@ private val AppShapes = Shapes(
 )
 
 private fun style(size: Int, line: Int, weight: FontWeight = FontWeight.Normal) =
-    TextStyle(fontSize = size.sp, lineHeight = line.sp, fontWeight = weight, letterSpacing = 0.sp)
+    TextStyle(textDirection = TextDirection.Content, fontSize = size.sp, lineHeight = line.sp, fontWeight = weight, letterSpacing = 0.sp)
 
 /** Material's default tracking (0.5sp on body text) looked wide and dated; this sets it to zero. */
 private val AppTypography = Typography(
+    headlineLarge = style(32, 40, FontWeight.Medium),
     headlineMedium = style(28, 36, FontWeight.Medium),
-    headlineSmall = style(24, 32, FontWeight.Medium),
-    titleLarge = style(21, 28, FontWeight.Medium),
+    headlineSmall = style(22, 28, FontWeight.Medium),
+    titleLarge = style(22, 28, FontWeight.Medium),
     titleMedium = style(16, 24, FontWeight.Medium),
     titleSmall = style(15, 22, FontWeight.Medium),
     bodyLarge = style(16, 24),
-    bodyMedium = style(15, 22),
-    bodySmall = style(13, 19),
+    bodyMedium = style(14, 20),
+    bodySmall = style(12, 16),
     labelLarge = style(14, 20, FontWeight.Medium),
     labelMedium = style(12, 16, FontWeight.Medium),
     labelSmall = style(11, 16, FontWeight.Medium),
 )
 
 @Composable
-fun AgentTheme(content: @Composable () -> Unit) {
-    val colors: ColorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
+fun AgentTheme(appearance: String = "System", content: @Composable () -> Unit) {
+    val colors: ColorScheme = if (appearance == "Dark" || (appearance == "System" && isSystemInDarkTheme())) DarkColors else LightColors
     MaterialTheme(colorScheme = colors, typography = AppTypography, shapes = AppShapes, content = content)
 }
 
 /** Container / content colours for a status. Green = good, amber = needs attention, red = problem, neutral = information. */
 @Composable
 internal fun toneColors(tone: Tone): Pair<Color, Color> {
-    val dark = isSystemInDarkTheme()
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     return when (tone) {
         Tone.SUCCESS -> if (dark) Color(0xFF1C2E21) to Color(0xFFB7E4C2) else Color(0xFFEAF6EC) to Color(0xFF14532D)
         Tone.WARNING -> if (dark) Color(0xFF35290E) to Color(0xFFF3D898) else Color(0xFFFDF3DC) to Color(0xFF6B4A00)

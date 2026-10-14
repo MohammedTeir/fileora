@@ -38,7 +38,7 @@ jobs:
         run: ./gradlew :agent-core:check --stacktrace
 
   android-build:
-    name: Build debug APKs
+    name: Android UI tests, lint and APKs
     needs: core-tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -59,8 +59,8 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
-      - name: Build debug APKs
-        run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Test Compose UI, lint and build debug APKs
+        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
 
       - name: List APKs
         run: ls -la app/build/outputs/apk/debug/
@@ -70,4 +70,17 @@ jobs:
           name: debug-apks
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload UI validation reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: synapse-ui-validation
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+            app/build/reports/lint-results-debug.*
+            app/build/outputs/synapse-screenshots/
+          if-no-files-found: warn
           retention-days: 7

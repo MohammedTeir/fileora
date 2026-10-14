@@ -56,6 +56,7 @@ internal fun ReviewChangesDialog(req: ConfirmationRequest, onAnswer: (Confirmati
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Live task approval", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Text("Review changes", style = MaterialTheme.typography.headlineSmall)
                     Text(req.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
                     Text(

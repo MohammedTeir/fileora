@@ -56,6 +56,7 @@ internal fun ApprovalDialog(req: ConfirmationRequest, onAnswer: (ConfirmationRes
                 Modifier.padding(24.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                Text("Live task approval", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Text(approvalTitle(req.tool), style = MaterialTheme.typography.headlineSmall)
 
                 Surface(shape = RoundedCornerShape(50), color = bg) {

@@ -9,6 +9,15 @@ plugins {
 // GitHub secrets). Nothing secret is ever stored in the repository.
 val signingKeystorePath: String? = providers.environmentVariable("SIGNING_KEYSTORE_PATH").orNull
 
+// Resolve the Robolectric SDK through Gradle so tests work with a read-only home
+// and use the same dependency cache/repositories as the rest of the build.
+val robolectricRuntime by configurations.creating
+val robolectricResources by configurations.creating
+val prepareRobolectricRuntime by tasks.registering(Sync::class) {
+    from(robolectricRuntime, robolectricResources)
+    into(layout.buildDirectory.dir("robolectric-runtime"))
+}
+
 android {
     namespace = "dev.deviceagent.app"
     compileSdk = 35
@@ -59,6 +68,14 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            it.dependsOn(prepareRobolectricRuntime)
+            it.systemProperty("robolectric.offline", "true")
+            it.systemProperty("robolectric.dependency.dir", layout.buildDirectory.dir("robolectric-runtime").get().asFile.absolutePath)
+        }
+    }
 }
 
 dependencies {
@@ -78,4 +95,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)
     testImplementation(libs.junit)
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    robolectricRuntime("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+    robolectricResources("org.robolectric:android-all-instrumented:15-robolectric-12650502-i7")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
