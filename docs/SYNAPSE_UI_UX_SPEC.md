@@ -535,3 +535,28 @@ Acceptance checks:
 All 27 routes above are part of the design. Build shared tokens/components and deterministic demo state first, then implement Agent → Plan → Approval → Execution → Result. Add provider/privacy and Activity as the next connected journeys, then Device/runtime/security/memory. Bind each designed capability to real backend state as available; retain explicit demo/unsupported states until that binding is validated.
 
 The supplied spec covers the full product vision. This document does not assert that proposed screens, package operations, root support, or mock measurements have been implemented or validated on an Android device.
+
+
+## Visual design collection extension (October 2026)
+
+The visual design collection contains **31 illustrated pages** organized by primary navigation destination. This extends the original **27 numbered screen specifications** without renumbering their existing routes or implying that every visual design is a distinct implemented Compose route.
+
+| Primary destination | Visual pages, in navigation order |
+|---|---|
+| Agent (8) | 01 Welcome, 02 Agent, 03 Attachments, 04 Plan Preview, 05 Approval, 06 Monitor, 07 Recovery, **Task Completed / Result** |
+| Activity (5) | 08 Checkpoints, 09 History, 23 Schedules, 10 Audit / Verification, 11 Undo / Rollback |
+| Device (7) | 17 Overview, 18 Files / Sandbox, 25 Apps / APK, 24 Terminal, 26 Tools, 19 Packages, 20 Package Transaction |
+| Settings (11) | 27 Settings Overview, 12 Providers, 13 Credentials, 14 Models, 15 Privacy, 16 Usage, 21 Security, 22 Memory, **Permissions**, **Appearance**, **About** |
+
+### Additional Settings page designs
+
+- **Permissions:** Review actual Android runtime grants and special app accesses, explain why each is needed, and link to the relevant OS permission flow. Treat the screenshot's counts and granted states as demo data. Do not silently request Accessibility, root, broad storage, or other privileged access.
+- **Appearance:** Light/dark/system themes, accent preference, font scaling, layout density, reduced motion, high contrast, and screen-reader accessibility. Only display controls that are actually supported; preserve existing theme behavior.
+- **About:** App name and branding, version/build read from the installed app, updates where supported, documentation/support, open-source licenses, privacy/legal links, and build metadata. Screenshot version/build/date are illustrative, not release facts.
+- **Task Completed / Result:** A task outcome presentation state linked to Agent execution and task detail/audit; do not count it as a new standalone route unless implemented as such.
+
+### Fidelity and implementation boundary
+
+The 31 pages are **visual references**, not 31 verified Compose routes. Screenshots may show fictional providers, models, metrics, permission grants, package states, or device details. Verify these against runtime capabilities and real data. Task checkpoints are resumable work checkpoints, not full-device snapshots. Do not infer backend capabilities from mockups.
+
+The companion inventory is [SYNAPSE_UI_DESIGN_CATALOG.md](SYNAPSE_UI_DESIGN_CATALOG.md).
