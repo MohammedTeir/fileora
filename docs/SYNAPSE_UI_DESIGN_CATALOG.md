@@ -1,52 +1,43 @@
-# Synapse UI design catalog (October 2026)
+# Synapse UI design catalog — 31 visual designs
 
-This document supplements `SYNAPSE_UI_UX_SPEC.md` and `SYNAPSE_UI_IMPLEMENTATION.md`. It records visual mockups produced during the UI exploration. **Mockups are concepts, not evidence of implemented or tested Android functionality.**
+Updated October 2026. This catalog supplements [UI/UX specification](SYNAPSE_UI_UX_SPEC.md) and [Compose implementation](SYNAPSE_UI_IMPLEMENTATION.md).
 
-## Numbered screens
+**Inventory:** 27 originally numbered screen designs + 3 additional Settings designs (Permissions, Appearance, About) + 1 additional Task Completed/Result state = **31 illustrated pages**. All artwork was provided/generated during the design conversation and the final PDF has no placeholder pages.
 
-| # | Screen | Visual artwork available in exported catalog |
-|---|---|---|
-| 01 | Welcome / onboarding | Yes |
-| 02 | Agent dashboard | Yes |
-| 03 | Attachment picker / outbound-data review | Missing original image |
-| 04 | Interactive plan preview | Yes |
-| 05 | Scoped approval | Yes |
-| 06 | Execution monitor | Missing original image |
-| 07 | Diagnosis / recovery | Missing original image |
-| 08 | Checkpoints | Yes |
-| 09 | Activity history | Yes |
-| 10 | Audit / verification report | Yes |
-| 11 | Undo / rollback review | Yes |
-| 12 | AI providers | Yes |
-| 13 | Credentials | Yes |
-| 14 | Models | Yes |
-| 15 | Privacy | Yes |
-| 16 | Usage | Yes |
-| 17 | Device overview | Yes |
-| 18 | Files / sandbox | Yes |
-| 19 | Packages | Yes |
-| 20 | Package transaction | Yes |
-| 21 | Security | Yes |
-| 22 | Memory | Yes |
-| 23 | Schedules | Missing original image |
-| 24 | Terminal | Yes |
-| 25 | Android apps / APKs | Missing original image |
-| 26 | Tools | Yes |
-| 27 | App settings | Yes |
+## Visual design collection extension (October 2026)
 
-## Additional illustrated screen / state
+The visual design collection contains **31 illustrated pages** organized by primary navigation destination. This extends the original **27 numbered screen specifications** without renumbering their existing routes or implying that every visual design is a distinct implemented Compose route.
 
-- **Task Completed / Result** — an extra visual concept illustrating a successful execution result. It is not a new numbered route in the 27-screen specification; it is a state/detail presentation associated with Agent task results and Audit (10).
+| Primary destination | Visual pages, in navigation order |
+|---|---|
+| Agent (8) | 01 Welcome, 02 Agent, 03 Attachments, 04 Plan Preview, 05 Approval, 06 Monitor, 07 Recovery, **Task Completed / Result** |
+| Activity (5) | 08 Checkpoints, 09 History, 23 Schedules, 10 Audit / Verification, 11 Undo / Rollback |
+| Device (7) | 17 Overview, 18 Files / Sandbox, 25 Apps / APK, 24 Terminal, 26 Tools, 19 Packages, 20 Package Transaction |
+| Settings (11) | 27 Settings Overview, 12 Providers, 13 Credentials, 14 Models, 15 Privacy, 16 Usage, 21 Security, 22 Memory, **Permissions**, **Appearance**, **About** |
 
-## Export conventions
+### Additional Settings page designs
 
-- The complete catalog PDF has 27 numbered positions plus the additional Task Completed concept.
-- Unavailable artwork is represented by a plainly labeled placeholder, not a fabricated screenshot.
-- A separate PDF includes only available artworks.
-- Generated mockups contain fictional example data; model IDs, capabilities, package availability, filesystem access, and restore behavior must be verified against implementation.
-- The Checkpoints concept currently implies whole-device restore; the canonical spec describes **task-level resumable checkpoints**. The concept should be corrected before implementation.
-- Do not infer that the shell, root, package manager, or full agent memory backends are implemented merely because their UI appears in the mockups.
+- **Permissions:** Review actual Android runtime grants and special app accesses, explain why each is needed, and link to the relevant OS permission flow. Treat the screenshot's counts and granted states as demo data. Do not silently request Accessibility, root, broad storage, or other privileged access.
+- **Appearance:** Light/dark/system themes, accent preference, font scaling, layout density, reduced motion, high contrast, and screen-reader accessibility. Only display controls that are actually supported; preserve existing theme behavior.
+- **About:** App name and branding, version/build read from the installed app, updates where supported, documentation/support, open-source licenses, privacy/legal links, and build metadata. Screenshot version/build/date are illustrative, not release facts.
+- **Task Completed / Result:** A task outcome presentation state linked to Agent execution and task detail/audit; do not count it as a new standalone route unless implemented as such.
 
-## Follow-up
+### Fidelity and implementation boundary
 
-Recover or regenerate the five missing screen images (03, 06, 07, 23, 25), reconcile designs with the UI spec, and re-export a fully illustrated PDF.
+The 31 pages are **visual references**, not 31 verified Compose routes. Screenshots may show fictional providers, models, metrics, permission grants, package states, or device details. Verify these against runtime capabilities and real data. Task checkpoints are resumable work checkpoints, not full-device snapshots. Do not infer backend capabilities from mockups.
+
+The companion inventory is [SYNAPSE_UI_DESIGN_CATALOG.md](SYNAPSE_UI_DESIGN_CATALOG.md).
+
+
+## PDF collection
+
+The conversation artifact is **Synapse_Complete_31_Screens_By_Navigation.pdf**, ordered by navigation destination, with PDF bookmarks. The PDF is not committed to this repository; the filename documents the exported deliverable, not a repository link.
+
+## Implementation checklist
+
+- [ ] Verify whether Permissions, Appearance, and About require new routes or can reuse Settings navigation.
+- [ ] Verify Task Completed is a state of the task detail/execution workflow rather than a new route.
+- [ ] Compare all mockup labels, provider/model availability, sample data, and permissions against actual capabilities.
+- [ ] Validate contrast, TalkBack, font scaling, responsive layouts, RTL, and Android permission flows.
+- [ ] Verify package, sandbox, terminal, root, and checkpoint functionality without treating design fixtures as live data.
+- [ ] Finalize brand vectors from authoritative design sources; screenshot-derived reconstructions are not exact original vectors.
