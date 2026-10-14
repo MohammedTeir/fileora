@@ -436,7 +436,7 @@ private fun IconTile(icon: FileoraIconName, size: Int) {
     Box(
         Modifier.size(size.dp).clip(RoundedCornerShape((size / 3.5f).dp)).background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center,
-    ) { FileoraIcon(icon, contentDescription = null, modifier = Modifier.size((size * 0.6f).dp)) }
+    ) { FileoraIcon(icon, contentDescription = null, modifier = Modifier.size((size * 0.6f).dp), tint = MaterialTheme.colorScheme.onPrimaryContainer) }
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {

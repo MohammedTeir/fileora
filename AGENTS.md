@@ -1,10 +1,9 @@
 # Repository instructions
 
-## Assets for future changes
+## Asset policy
 
-Do not use files from `assets/` when implementing future changes. Do not copy,
-convert, trace, or derive new application resources from that folder. Use the
-existing Material icon dependency or independently authored Android resources.
-
-Existing assets already integrated into `app/src/main/res` may remain in use;
-this rule does not require replacing them. Keep the `assets/` archive intact.
+Only the existing Fileora launcher icon may use artwork from `assets/`.
+Do not copy, convert, trace, or derive other application resources from that
+folder. Use Compose Material icons or independently authored Android resources
+for UI changes. The launcher artwork may also appear on the app launch screen.
+Keep the `assets/` archive intact; it is not a runtime resource directory.
