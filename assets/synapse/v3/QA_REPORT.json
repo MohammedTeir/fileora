@@ -1,0 +1,264 @@
+{
+  "screens": 31,
+  "icons_svg": 38,
+  "reference_images_all_present": true,
+  "references_unchanged_from_pdf": true,
+  "min_reference_width": 847,
+  "min_reference_height": 1536,
+  "max_reference_width": 932,
+  "max_reference_height": 1689,
+  "svg_xml_parse_errors": [],
+  "exact_original_vector_geometry_verified": false,
+  "pixel_identical_icons_to_screen_verified": false,
+  "android_launcher_on_device_verified": false,
+  "screen_references": [
+    {
+      "page": 1,
+      "path": "references/screen_01.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "61bea8a243b2e522a5a9c42fac1dd0258f3e2cc2d07d7b9c66b056931e6306d0",
+      "source_pdf_xref": 7
+    },
+    {
+      "page": 2,
+      "path": "references/screen_02.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "8d7b6f658a7b75f710fcdfe653f93f6ebcf03c7d12667e4e74588e676f168de5",
+      "source_pdf_xref": 10
+    },
+    {
+      "page": 3,
+      "path": "references/screen_03.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "cd623cf7bc684cc7bc2e4ac9a05461f01cb8e3608b3c7afd31d744cb001e8898",
+      "source_pdf_xref": 13
+    },
+    {
+      "page": 4,
+      "path": "references/screen_04.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "c25d036b92d66c0b2ea0a92c2fe65eb40e00400a15aa2e069df1d56743751f52",
+      "source_pdf_xref": 16
+    },
+    {
+      "page": 5,
+      "path": "references/screen_05.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "27e122b93312b210d7aefa96f8e39ca263f11042b62edb6e66996248951c07bd",
+      "source_pdf_xref": 19
+    },
+    {
+      "page": 6,
+      "path": "references/screen_06.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+      "source_pdf_xref": 22
+    },
+    {
+      "page": 7,
+      "path": "references/screen_07.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "823c799f2e08f1ba9f751a90486f1689c9427554eb3e138f93c3b75f70ec79ca",
+      "source_pdf_xref": 25
+    },
+    {
+      "page": 8,
+      "path": "references/screen_08.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "9cf5db3bf2d538fcc68600191e5b2b00ff244ee28bea03341d175bfb9e7ba7c4",
+      "source_pdf_xref": 28
+    },
+    {
+      "page": 9,
+      "path": "references/screen_09.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "73a3c04b23f4afdd3de82503325a30c4dd204dc5ca391ce03c136c32c118c11d",
+      "source_pdf_xref": 31
+    },
+    {
+      "page": 10,
+      "path": "references/screen_10.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "17bcbe831ab1f083700f153720e3be1fbe934e05075b0a4ea81f4c76e3e94cb2",
+      "source_pdf_xref": 34
+    },
+    {
+      "page": 11,
+      "path": "references/screen_11.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "9ab21d7c3f1eb379d042b271eb54bddc6586cab748091774257cf08021a8b93b",
+      "source_pdf_xref": 37
+    },
+    {
+      "page": 12,
+      "path": "references/screen_12.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "472bd98506e7da1a1bf78b2b9f5e15b95ff1815ea2fd9be3c72a183e988ce9ee",
+      "source_pdf_xref": 40
+    },
+    {
+      "page": 13,
+      "path": "references/screen_13.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "7763b23dd3d20c21f400b9add32648d3d29faee95c6159ae96528a168ba64ad3",
+      "source_pdf_xref": 43
+    },
+    {
+      "page": 14,
+      "path": "references/screen_14.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "2769a843f6d7dcc1ac09d2069542553b7ff98754058f274f126e802ab6dc0368",
+      "source_pdf_xref": 46
+    },
+    {
+      "page": 15,
+      "path": "references/screen_15.png",
+      "width": 931,
+      "height": 1689,
+      "sha256": "d9139cc870093c258076fe8f46c31c60ca9103c85432266415413e22da1fe74c",
+      "source_pdf_xref": 49
+    },
+    {
+      "page": 16,
+      "path": "references/screen_16.png",
+      "width": 847,
+      "height": 1536,
+      "sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "source_pdf_xref": 52
+    },
+    {
+      "page": 17,
+      "path": "references/screen_17.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "a2b48ae0345ae26ced6f9c695044a537d82787895af26cf27725b72ad7c367bc",
+      "source_pdf_xref": 55
+    },
+    {
+      "page": 18,
+      "path": "references/screen_18.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "c081410218e8b29464104f002f4cb459f5f37706b31249b84a6d4c963d11f1f5",
+      "source_pdf_xref": 58
+    },
+    {
+      "page": 19,
+      "path": "references/screen_19.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "source_pdf_xref": 61
+    },
+    {
+      "page": 20,
+      "path": "references/screen_20.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "1237175e66db6cecfdfa0e72fd58116302bab26e7a72bb400d61d46f8cc57166",
+      "source_pdf_xref": 64
+    },
+    {
+      "page": 21,
+      "path": "references/screen_21.png",
+      "width": 848,
+      "height": 1536,
+      "sha256": "cb63e9146878f2f0fdfeacdadc5eea2d3d26be718c563467d67fba0c7df47186",
+      "source_pdf_xref": 67
+    },
+    {
+      "page": 22,
+      "path": "references/screen_22.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "520fa0e7a5dc0f4dc6e1c6cf6b8deece9640dc0c402d3b28662564d76bf3044a",
+      "source_pdf_xref": 70
+    },
+    {
+      "page": 23,
+      "path": "references/screen_23.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "53e23cf09f8c69aa7a54997c47bba39127d60a63440741f594f36d5a8a421e55",
+      "source_pdf_xref": 73
+    },
+    {
+      "page": 24,
+      "path": "references/screen_24.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "09887cb94b117f194db70f3888665993445f616e11609d736312f6eaca353950",
+      "source_pdf_xref": 76
+    },
+    {
+      "page": 25,
+      "path": "references/screen_25.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "6314231bd81b0c3ce7af6e9e624ccb3150bb7835e67339d5a0c186d5482e6a10",
+      "source_pdf_xref": 79
+    },
+    {
+      "page": 26,
+      "path": "references/screen_26.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "82512e49d346f6ba4c44d2a3a7c1b18134b125b20735cb3c3b97b89fd39ee9dc",
+      "source_pdf_xref": 82
+    },
+    {
+      "page": 27,
+      "path": "references/screen_27.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "7f11e74bd7367daaffd126c7bc8dccea0b27fe4c68e21a14a55388c21557bfc7",
+      "source_pdf_xref": 85
+    },
+    {
+      "page": 28,
+      "path": "references/screen_28.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "e800e54d76479687396d39448a2c567ec865b6f4021178d99abcea8524817e38",
+      "source_pdf_xref": 88
+    },
+    {
+      "page": 29,
+      "path": "references/screen_29.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "b40e6d9e0e93a873e0f26e0aca2f183500b766e889d70d5916a7f104da890679",
+      "source_pdf_xref": 91
+    },
+    {
+      "page": 30,
+      "path": "references/screen_30.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "3d347488acf06c09425cfa720ea7e95ff95dc3d6af0bc8dc247e5181f2f866c8",
+      "source_pdf_xref": 94
+    },
+    {
+      "page": 31,
+      "path": "references/screen_31.png",
+      "width": 932,
+      "height": 1688,
+      "sha256": "ddf7d1a36a178d2ae50f4b37386a5c7b8f86eac96158b8cef066d436a3c4129b",
+      "source_pdf_xref": 97
+    }
+  ]
+}

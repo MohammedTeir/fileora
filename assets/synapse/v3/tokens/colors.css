@@ -1,0 +1,13 @@
+:root {
+  --synapse-brand-blue: #0867F9;
+  --synapse-brand-blue-dark: #0346DB;
+  --synapse-brand-blue-light: #5CB9FF;
+  --synapse-background: #F8FAFF;
+  --synapse-surface: #FFFFFF;
+  --synapse-text-primary: #0B1530;
+  --synapse-text-secondary: #64748B;
+  --synapse-success: #00B84A;
+  --synapse-warning: #F59E0B;
+  --synapse-danger: #EF4444;
+  --synapse-purple: #9333EA;
+}

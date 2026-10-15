@@ -1,0 +1,271 @@
+{
+  "source": "Synapse_Complete_31_Screens_By_Navigation.pdf (original embedded raster extraction, no resizing)",
+  "screen_references": 31,
+  "icons": [
+    "agent",
+    "activity",
+    "device",
+    "settings",
+    "folder",
+    "file",
+    "image",
+    "apps",
+    "terminal",
+    "tools",
+    "packages",
+    "checkpoints",
+    "history",
+    "schedules",
+    "security",
+    "privacy",
+    "memory",
+    "usage",
+    "providers",
+    "credentials",
+    "models",
+    "approval",
+    "recovery",
+    "audit",
+    "undo",
+    "search",
+    "plus",
+    "download",
+    "upload",
+    "warning",
+    "delete",
+    "play",
+    "pause",
+    "network",
+    "root",
+    "permissions",
+    "appearance",
+    "about"
+  ],
+  "logo_sources": [
+    "extracted-raster",
+    "reconstructed-svg"
+  ],
+  "disclaimer": "Colors and reconstructed vectors are approximations inferred from AI-generated UI images, not original brand master files. Icons are newly redrawn approximations; not pixel-identical extraction. Verify against implementation and brand guidelines.",
+  "navigation_order": [
+    {
+      "page": 1,
+      "section": "Agent",
+      "screen": "Welcome / Onboarding",
+      "reference": "references/screen_01.png"
+    },
+    {
+      "page": 2,
+      "section": "Agent",
+      "screen": "Agent Dashboard",
+      "reference": "references/screen_02.png"
+    },
+    {
+      "page": 3,
+      "section": "Agent",
+      "screen": "Attachments",
+      "reference": "references/screen_03.png"
+    },
+    {
+      "page": 4,
+      "section": "Agent",
+      "screen": "Plan Preview",
+      "reference": "references/screen_04.png"
+    },
+    {
+      "page": 5,
+      "section": "Agent",
+      "screen": "Approval",
+      "reference": "references/screen_05.png"
+    },
+    {
+      "page": 6,
+      "section": "Agent",
+      "screen": "Execution Monitor",
+      "reference": "references/screen_06.png"
+    },
+    {
+      "page": 7,
+      "section": "Agent",
+      "screen": "Recovery",
+      "reference": "references/screen_07.png"
+    },
+    {
+      "page": 8,
+      "section": "Agent",
+      "screen": "Task Completed / Result",
+      "reference": "references/screen_08.png"
+    },
+    {
+      "page": 9,
+      "section": "Activity",
+      "screen": "Checkpoints",
+      "reference": "references/screen_09.png"
+    },
+    {
+      "page": 10,
+      "section": "Activity",
+      "screen": "History",
+      "reference": "references/screen_10.png"
+    },
+    {
+      "page": 11,
+      "section": "Activity",
+      "screen": "Schedules",
+      "reference": "references/screen_11.png"
+    },
+    {
+      "page": 12,
+      "section": "Activity",
+      "screen": "Audit",
+      "reference": "references/screen_12.png"
+    },
+    {
+      "page": 13,
+      "section": "Activity",
+      "screen": "Undo / Rollback",
+      "reference": "references/screen_13.png"
+    },
+    {
+      "page": 14,
+      "section": "Device",
+      "screen": "Overview",
+      "reference": "references/screen_14.png"
+    },
+    {
+      "page": 15,
+      "section": "Device",
+      "screen": "Files / Sandbox",
+      "reference": "references/screen_15.png"
+    },
+    {
+      "page": 16,
+      "section": "Device",
+      "screen": "Apps / APK",
+      "reference": "references/screen_16.png"
+    },
+    {
+      "page": 17,
+      "section": "Device",
+      "screen": "Terminal",
+      "reference": "references/screen_17.png"
+    },
+    {
+      "page": 18,
+      "section": "Device",
+      "screen": "Tools",
+      "reference": "references/screen_18.png"
+    },
+    {
+      "page": 19,
+      "section": "Device",
+      "screen": "Packages",
+      "reference": "references/screen_19.png"
+    },
+    {
+      "page": 20,
+      "section": "Device",
+      "screen": "Package Transaction",
+      "reference": "references/screen_20.png"
+    },
+    {
+      "page": 21,
+      "section": "Settings",
+      "screen": "Settings Overview",
+      "reference": "references/screen_21.png"
+    },
+    {
+      "page": 22,
+      "section": "Settings",
+      "screen": "AI Providers",
+      "reference": "references/screen_22.png"
+    },
+    {
+      "page": 23,
+      "section": "Settings",
+      "screen": "Credentials",
+      "reference": "references/screen_23.png"
+    },
+    {
+      "page": 24,
+      "section": "Settings",
+      "screen": "Models",
+      "reference": "references/screen_24.png"
+    },
+    {
+      "page": 25,
+      "section": "Settings",
+      "screen": "Privacy",
+      "reference": "references/screen_25.png"
+    },
+    {
+      "page": 26,
+      "section": "Settings",
+      "screen": "Usage",
+      "reference": "references/screen_26.png"
+    },
+    {
+      "page": 27,
+      "section": "Settings",
+      "screen": "Security",
+      "reference": "references/screen_27.png"
+    },
+    {
+      "page": 28,
+      "section": "Settings",
+      "screen": "Memory",
+      "reference": "references/screen_28.png"
+    },
+    {
+      "page": 29,
+      "section": "Settings",
+      "screen": "Permissions",
+      "reference": "references/screen_29.png"
+    },
+    {
+      "page": 30,
+      "section": "Settings",
+      "screen": "Appearance",
+      "reference": "references/screen_30.png"
+    },
+    {
+      "page": 31,
+      "section": "Settings",
+      "screen": "About",
+      "reference": "references/screen_31.png"
+    }
+  ],
+  "reference_extraction": "Direct extraction of highest-resolution embedded PDF image for each page; original bytes preserved. These are raster mockups, not original vector masters.",
+  "reference_sha256": {
+    "01": "61bea8a243b2e522a5a9c42fac1dd0258f3e2cc2d07d7b9c66b056931e6306d0",
+    "02": "8d7b6f658a7b75f710fcdfe653f93f6ebcf03c7d12667e4e74588e676f168de5",
+    "03": "cd623cf7bc684cc7bc2e4ac9a05461f01cb8e3608b3c7afd31d744cb001e8898",
+    "04": "c25d036b92d66c0b2ea0a92c2fe65eb40e00400a15aa2e069df1d56743751f52",
+    "05": "27e122b93312b210d7aefa96f8e39ca263f11042b62edb6e66996248951c07bd",
+    "06": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+    "07": "823c799f2e08f1ba9f751a90486f1689c9427554eb3e138f93c3b75f70ec79ca",
+    "08": "9cf5db3bf2d538fcc68600191e5b2b00ff244ee28bea03341d175bfb9e7ba7c4",
+    "09": "73a3c04b23f4afdd3de82503325a30c4dd204dc5ca391ce03c136c32c118c11d",
+    "10": "17bcbe831ab1f083700f153720e3be1fbe934e05075b0a4ea81f4c76e3e94cb2",
+    "11": "9ab21d7c3f1eb379d042b271eb54bddc6586cab748091774257cf08021a8b93b",
+    "12": "472bd98506e7da1a1bf78b2b9f5e15b95ff1815ea2fd9be3c72a183e988ce9ee",
+    "13": "7763b23dd3d20c21f400b9add32648d3d29faee95c6159ae96528a168ba64ad3",
+    "14": "2769a843f6d7dcc1ac09d2069542553b7ff98754058f274f126e802ab6dc0368",
+    "15": "d9139cc870093c258076fe8f46c31c60ca9103c85432266415413e22da1fe74c",
+    "16": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+    "17": "a2b48ae0345ae26ced6f9c695044a537d82787895af26cf27725b72ad7c367bc",
+    "18": "c081410218e8b29464104f002f4cb459f5f37706b31249b84a6d4c963d11f1f5",
+    "19": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+    "20": "1237175e66db6cecfdfa0e72fd58116302bab26e7a72bb400d61d46f8cc57166",
+    "21": "cb63e9146878f2f0fdfeacdadc5eea2d3d26be718c563467d67fba0c7df47186",
+    "22": "520fa0e7a5dc0f4dc6e1c6cf6b8deece9640dc0c402d3b28662564d76bf3044a",
+    "23": "53e23cf09f8c69aa7a54997c47bba39127d60a63440741f594f36d5a8a421e55",
+    "24": "09887cb94b117f194db70f3888665993445f616e11609d736312f6eaca353950",
+    "25": "6314231bd81b0c3ce7af6e9e624ccb3150bb7835e67339d5a0c186d5482e6a10",
+    "26": "82512e49d346f6ba4c44d2a3a7c1b18134b125b20735cb3c3b97b89fd39ee9dc",
+    "27": "7f11e74bd7367daaffd126c7bc8dccea0b27fe4c68e21a14a55388c21557bfc7",
+    "28": "e800e54d76479687396d39448a2c567ec865b6f4021178d99abcea8524817e38",
+    "29": "b40e6d9e0e93a873e0f26e0aca2f183500b766e889d70d5916a7f104da890679",
+    "30": "3d347488acf06c09425cfa720ea7e95ff95dc3d6af0bc8dc247e5181f2f866c8",
+    "31": "ddf7d1a36a178d2ae50f4b37386a5c7b8f86eac96158b8cef066d436a3c4129b"
+  }
+}

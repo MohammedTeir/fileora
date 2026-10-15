@@ -1,0 +1,13 @@
+{
+  "brand_blue": "#0867F9",
+  "brand_blue_dark": "#0346DB",
+  "brand_blue_light": "#5CB9FF",
+  "background": "#F8FAFF",
+  "surface": "#FFFFFF",
+  "text_primary": "#0B1530",
+  "text_secondary": "#64748B",
+  "success": "#00B84A",
+  "warning": "#F59E0B",
+  "danger": "#EF4444",
+  "purple": "#9333EA"
+}

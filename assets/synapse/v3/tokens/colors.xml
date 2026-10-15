@@ -1,0 +1,13 @@
+<resources>
+    <color name="synapse_brand_blue">#0867F9</color>
+    <color name="synapse_brand_blue_dark">#0346DB</color>
+    <color name="synapse_brand_blue_light">#5CB9FF</color>
+    <color name="synapse_background">#F8FAFF</color>
+    <color name="synapse_surface">#FFFFFF</color>
+    <color name="synapse_text_primary">#0B1530</color>
+    <color name="synapse_text_secondary">#64748B</color>
+    <color name="synapse_success">#00B84A</color>
+    <color name="synapse_warning">#F59E0B</color>
+    <color name="synapse_danger">#EF4444</color>
+    <color name="synapse_purple">#9333EA</color>
+</resources>
