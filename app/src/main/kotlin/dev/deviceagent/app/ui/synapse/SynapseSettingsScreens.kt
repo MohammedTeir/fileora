@@ -24,6 +24,9 @@ internal fun DemoSettingsRoute(
     reset: () -> Unit,
 ) {
     when (route) {
+        SynapseRoute.PERMISSIONS -> PermissionsDesign(nav)
+        SynapseRoute.APPEARANCE -> AppearanceDesign(appearance, onAppearance, reducedMotion, onReducedMotion)
+        SynapseRoute.ABOUT -> AboutDesign(nav)
         SynapseRoute.PROVIDERS ->
             ScreenPage(
                 "CONNECTED INTELLIGENCE",
@@ -261,6 +264,9 @@ internal fun DemoSettingsRoute(
                 LinkRow("Usage & budgets", "18 requests today", Icons.Default.DataUsage) {
                     nav(SynapseRoute.USAGE)
                 }
+                LinkRow("Permissions", "Access and grants", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
+                LinkRow("Appearance", "Theme and accessibility", Icons.Default.Palette) { nav(SynapseRoute.APPEARANCE) }
+                LinkRow("About", "App details", Icons.Default.Info) { nav(SynapseRoute.ABOUT) }
                 Section("Appearance & accessibility") {
                     ChoiceChips(listOf("System", "Light", "Dark"), appearance, onAppearance)
                     SwitchSetting(
@@ -573,5 +579,81 @@ private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit) {
         Primary("Save demo schedule", goal.isNotBlank() && validTime) {
             send(DemoAction.Schedule(goal, time, enabled))
         }
+    }
+}
+
+@Composable
+internal fun PermissionsDesign(nav: (SynapseRoute) -> Unit) {
+    ScreenPage("SETTINGS / PERMISSIONS", "Permissions", "Review access needed for device operations. Actual grants must be checked in Android settings.") {
+        Notice("Permission status", "This design preview does not read or request Android permissions. Never interpret example values as actual grants.")
+        Section("File access") {
+            LinkRow("Selected folders", "Android Storage Access Framework; grant only the folders you choose", Icons.Default.Folder) { nav(SynapseRoute.SANDBOX) }
+            Muted("Broad file access, if offered, requires a separate Android system consent flow.")
+        }
+        Section("Notifications") {
+            LabeledValue("Task alerts", "Check notification permission in Live settings")
+        }
+        Section("Special access") {
+            LabeledValue("Accessibility service", "Not requested or required by the current Synapse implementation")
+            LabeledValue("Modify system settings", "Not requested")
+            LabeledValue("Camera, microphone, location, contacts", "Not requested by the current app")
+        }
+        Secondary("Review security policy") { nav(SynapseRoute.SECURITY) }
+    }
+}
+
+@Composable
+internal fun AppearanceDesign(
+    appearance: String,
+    onAppearance: (String) -> Unit,
+    reducedMotion: Boolean,
+    onReducedMotion: (Boolean) -> Unit,
+) {
+    ScreenPage("SETTINGS / APPEARANCE", "Appearance", "Personalize the interface while keeping status and safety labels readable.") {
+        Section("Theme") {
+            ChoiceChips(listOf("Light", "Dark", "System"), appearance, onAppearance)
+        }
+        Section("Display & accessibility") {
+            SwitchSetting("Reduce motion", "Minimize decorative transitions.", reducedMotion, onChange = onReducedMotion)
+            LabeledValue("Text size", "Follows Android display and font settings")
+            LabeledValue("Screen reader", "Uses Android TalkBack; configure in system accessibility settings")
+            LabeledValue("Contrast", "Uses accessible semantic Material color roles")
+        }
+        Notice("Planned appearance options", "Custom accent swatches, typeface selection and density controls are visual concepts only; they are not currently persisted settings.")
+    }
+}
+
+@Composable
+internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
+    ScreenPage("SETTINGS / ABOUT", "About Synapse", "Your AI-powered device operator.") {
+        Section("Synapse") {
+            Text("Native Android · Jetpack Compose · Material 3")
+            Muted("Cloud-assisted planning, locally scoped permissions, execution evidence and review.")
+        }
+        Section("Build information") {
+            Muted("Version and build identifiers are shown in Live mode from the installed application.")
+            LabeledValue("Platform", "Android")
+        }
+        Section("Help & safety") {
+            LinkRow("Permissions", "Review the access model", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
+            LinkRow("Privacy", "Understand cloud data sharing", Icons.Default.PrivacyTip) { nav(SynapseRoute.PRIVACY) }
+            LinkRow("Security", "Review policy and privileged operations", Icons.Default.Security) { nav(SynapseRoute.SECURITY) }
+        }
+    }
+}
+
+@Composable
+internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
+    ScreenPage("AGENT / RESULT", "Task result", "Review recorded outcomes before considering a task complete.") {
+        Section(s.task.title) {
+            LabeledValue("Task", s.task.id)
+            LabeledValue("Status", s.task.status.name.lowercase().replaceFirstChar(Char::uppercase))
+            LabeledValue("Verified", "${s.task.verified} / ${s.task.total}")
+            LabeledValue("Skipped", s.task.skipped.toString())
+            LabeledValue("Blocked", s.task.blocked.toString())
+        }
+        Notice("Demo outcome", "Counts reflect simulated task state. A result is verified only when the underlying task records evidence.")
+        Secondary("View audit") { nav(SynapseRoute.AUDIT) }
+        Secondary("Back to agent") { nav(SynapseRoute.AGENT) }
     }
 }
