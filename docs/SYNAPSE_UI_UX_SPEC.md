@@ -12,7 +12,7 @@ Design basis: the supplied Android AI Device Agent v4 specification and the exis
 - Phones are the primary surface: design at 412 × 915 dp, verify at 360 dp width, and support landscape, tablets, foldables, RTL, and 200% font scaling. Measurements below use Android dp/sp, not literal display pixels.
 - Gemini is the first provider. Model names, capabilities, prices, and availability come from provider metadata when available. The example model aliases below are fictional fixture labels, not a current model catalog.
 - AI planning and diagnosis run in the cloud. Approved local operations, local verification, file browsing, and stored history can work offline. No local AI fallback is implied.
-- The only retained artwork from the repository's assets archive is the existing launcher icon. UI icons use Material vectors; illustrations use independently authored geometry or typography. The current launcher may appear in the launch screen; no new branding artwork is derived from the archive.
+- The approved v3 package is now the visual authority. Integrate its branding and icon concepts as documented in `SYNAPSE_ASSET_INTEGRATION.md`; retain originals and exclude design-reference screenshots from the APK.
 - Present concise action explanations, observations, policy decisions, and verification evidence. Never design an interface for exposing private model chain-of-thought. The expandable label is “Why this action?” or “Tool details,” not “Internal thoughts.”
 - Default mode is Normal. Root is off. File contents and media sharing are off. Destructive and privileged operations require operation-specific consent. Autonomous mode only grants explicitly chosen scopes.
 - All examples in this document are demo fixtures. A prototype has a persistent “Demo data” badge and a scenario switcher outside the product layout. Mock buttons change demo state only. Production screens must never present fixture values as device measurements, real execution, or verified security status.
@@ -523,7 +523,7 @@ Acceptance checks:
 - No task is called successful before the required verifier results exist.
 - No approval remains valid after a material scope change.
 - Package/source verification failures block installation/use; mock availability is never a runtime capability claim.
-- Only launcher artwork from assets is used; UI icons are Material vectors or independently authored resources.
+- Approved v3 branding and all 38 icon concepts are integrated through Android drawables. Design-reference screenshots are never runtime UI.
 - All controls have useful actions, accessibility labels, safe-area behavior, and loading/disabled feedback; no dead-end mock controls.
 - Screens preserve draft, selected task, and context after Back, permission handoff, rotation, and process restoration.
 - Credentials, hidden model reasoning, and unredacted secrets are absent from logs, previews, and exported examples.

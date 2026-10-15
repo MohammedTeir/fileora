@@ -1,0 +1,42 @@
+{
+  "date_utc": "2026-10-15",
+  "android_compile_sdk": 35,
+  "robolectric_sdk": 34,
+  "viewport_dp": [
+    412,
+    746
+  ],
+  "font_scale": 1,
+  "theme": "Light",
+  "core_harness": {
+    "task": ":agent-core:runAgentTests",
+    "passed": 109,
+    "failed": 0
+  },
+  "app_full_suite": {
+    "task": ":app:testDebugUnitTest",
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0
+  },
+  "build": [
+    ":app:compileDebugKotlin",
+    ":app:assembleDebug",
+    ":app:lintDebug"
+  ],
+  "lint": {
+    "errors": 0,
+    "warnings": 16
+  },
+  "apk_variants": 5,
+  "visual_comparisons": 31,
+  "visual_parity": "Incomplete; see SYNAPSE_VISUAL_PARITY.md",
+  "reference_images_in_apks": 0,
+  "source_svg_in_apks": 0,
+  "adaptive_foreground_pixels_outside_safe_circle": 0,
+  "source_commit": "ded803b54e3062eed0b60a7bad7c1763860a13c8",
+  "final_asset_capture_tests": {
+    "passed": 11,
+    "failed": 0
+  }
+}

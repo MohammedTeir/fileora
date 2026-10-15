@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Synapse v3 — actual Compose comparisons</title>
+<style>
+:root{font:15px system-ui;color:#0b1530;background:#f8faff}body{margin:24px}h1{font-size:24px;margin-bottom:8px}p{max-width:900px;line-height:1.5}label,button,select,input{font:inherit}button,select{min-height:44px;border:1px solid #bcc9dc;border-radius:8px;background:white;padding:8px 12px}nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}.panes{display:grid;grid-template-columns:repeat(3,minmax(220px,412px));gap:20px;overflow:auto}figure{margin:0}figcaption{margin-bottom:8px;font-weight:600}.phone{position:relative;aspect-ratio:412/746;border:1px solid #bcc9dc;background:white;overflow:hidden}.phone img{width:100%;height:100%;display:block}.overlay img{position:absolute;inset:0}.overlay .actual{opacity:.5}a{color:#0346db}small{display:block;margin-top:12px;line-height:1.5}input{width:170px}
+</style>
+<h1>Synapse v3 visual review</h1>
+<p>Approved reference, actual Compose capture, and adjustable overlay. These are reviewed implementation snapshots; visual parity remains incomplete. <a href="../SYNAPSE_VISUAL_PARITY.md">Read the per-screen gaps</a>.</p>
+<nav aria-label="Screen selection">
+<button id="previous" aria-label="Previous screen">←</button><label>Screen <select id="screen"></select></label><button id="next" aria-label="Next screen">→</button>
+<label>Overlay opacity <input id="opacity" type="range" min="0" max="100" value="50"></label><output id="opacityValue">50%</output>
+</nav>
+<div class="panes">
+<figure><figcaption>Approved reference</figcaption><div class="phone"><img id="reference" alt="Approved design reference"></div></figure>
+<figure><figcaption>Actual Compose</figcaption><div class="phone"><img id="render" alt="Actual native Compose rendering"></div></figure>
+<figure><figcaption>Overlay</figcaption><div class="phone overlay"><img id="overlayReference" alt="Reference underneath the rendering"><img id="overlayActual" class="actual" alt="Compose rendering over the reference"></div></figure>
+</div>
+<small>Native Robolectric Android canvas · API 34 · 412 × 746 dp · mdpi · font scale 1 · Light theme · Demo fixtures. Reference mock status bars are retained and normalized to the actual render dimensions. No reference images are used by the Android interface.</small>
+<p><a href="icon-catalog.png">38 Android icon concepts</a> · <a href="launcher-masks.png">Launcher mask review</a> · <a href="validation.json">Validation record</a></p>
+<script>
+const names=['Welcome','Agent Dashboard','Attachments','Plan Preview','Approval','Execution Monitor','Recovery','Task Completed / Result','Checkpoints','Activity History','Schedules','Audit','Undo','Device Overview','Files','Apps / APKs','Terminal','Tools','Packages','Package Transaction','App Settings','AI Providers','Credentials','Models','Privacy','Usage','Security','Memory','Permissions','Appearance','About'];
+const select=document.getElementById('screen');
+names.forEach((name,index)=>{const option=document.createElement('option');option.value=index+1;option.textContent=`${String(index+1).padStart(2,'0')} — ${name}`;select.append(option)});
+function show(){const n=Number(select.value),file=`screen_${String(n).padStart(2,'0')}.png`,ref=`../../assets/synapse/v3/references/${file}`,actual=`actual/${file}`;document.getElementById('reference').src=ref;document.getElementById('overlayReference').src=ref;document.getElementById('render').src=actual;document.getElementById('overlayActual').src=actual;document.getElementById('previous').disabled=n===1;document.getElementById('next').disabled=n===31;location.hash=String(n)}
+select.addEventListener('change',show);document.getElementById('previous').onclick=()=>{select.value=Number(select.value)-1;show()};document.getElementById('next').onclick=()=>{select.value=Number(select.value)+1;show()};document.getElementById('opacity').oninput=e=>{document.getElementById('overlayActual').style.opacity=e.target.value/100;document.getElementById('opacityValue').value=`${e.target.value}%`};const initial=Number(location.hash.slice(1));select.value=initial>=1&&initial<=31?initial:1;show();
+</script>
+</html>

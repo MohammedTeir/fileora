@@ -82,5 +82,6 @@ jobs:
             app/build/test-results/testDebugUnitTest/
             app/build/reports/lint-results-debug.*
             app/build/outputs/synapse-screenshots/
+            app/build/outputs/visual-parity/
           if-no-files-found: warn
           retention-days: 7

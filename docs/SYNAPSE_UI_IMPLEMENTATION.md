@@ -1,10 +1,8 @@
 # Synapse Compose workspace
 
-The [27-screen specification](SYNAPSE_UI_UX_SPEC.md) now has an executable
-Compose implementation. Open **Try demo** in the app bar to explore it, and
-use **All screens** (the grid icon) to reach any screen. **Go live** returns to
-actual device operations. The four primary destinations are Agent, Activity,
-Device and Settings.
+All 31 approved v3 reference screens have real interactive Compose implementations in Demo. Use **Try demo**, then **Workspace menu → All screens** to explore; **Go live** returns to existing device operations. The four destinations remain Agent, Activity, Device, and Settings.
+
+The [v3 parity report](SYNAPSE_VISUAL_PARITY.md) is the current reference mapping and visual QA record. Visual parity is incomplete; the report links native captures and lists remaining differences. The older coverage table below uses legacy route IDs and describes retained Live integration.
 
 ## Boundaries
 
@@ -17,7 +15,7 @@ credentials, files, task service, policy enforcement and audit storage remain
 separate. Live approval dialogs explicitly say **Live task approval**, including
 when a background task requests approval while the demo is open.
 
-All 27 specified screens are populated and interactive in the demo. This does
+All 31 v3 reference screens are populated and interactive in the demo. This does
 **not** implement the missing Linux, package, root, shell, APK or memory
 backends. Live routes show an explicit availability message for those features.
 Supported live workflows reuse the existing validated components; some related
@@ -57,8 +55,7 @@ routes share a live screen, as listed below.
 
 Browse and Search remain reachable through Device and All screens. No existing
 installation identifiers, databases, credential aliases or legacy import keys
-were renamed. Only the retained launcher uses archived artwork; all new UI uses
-Compose and Material vectors.
+were renamed. The approved v3 branding and 38 icon concepts are integrated through Android drawables; see the [asset audit](SYNAPSE_ASSET_INTEGRATION.md).
 
 ## Design and state implementation
 
@@ -104,8 +101,8 @@ These are native Robolectric renders of the implemented Compose UI, not concept 
 
 ## Verification
 
-Local validation: **109 core tests and 59 app tests pass**; debug APK builds;
-Android lint reports **0 errors and 5 existing warnings**. The 59 app tests include
+Local validation: **109 core tests and 76 app tests pass**; debug APK builds;
+Android lint reports **0 errors and 16 warnings**. The app tests include
 18 new reducer tests, 5 Compose screen/interaction tests and a fresh-install
 Activity integration test. CI now runs the app tests and lint and retains reports,
 rendered screenshots and debug APKs as artifacts.

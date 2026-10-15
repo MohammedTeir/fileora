@@ -1,32 +1,7 @@
 # Synapse asset usage
 
-## Launcher artwork
+The approved v3 package supplies the branding and all 38 runtime icon concepts. See the [asset integration audit](SYNAPSE_ASSET_INTEGRATION.md) for source-to-resource mappings, mask checks, and limitations.
 
-The only supplied artwork integrated into the app is
-`app/src/main/res/drawable-nodpi/synapse_launcher.png`, originally copied from
-`assets/brand/official/launcher_icon/android_sizes/ic_launcher_512.png`.
-The standard and round adaptive launcher icons use this resource for their
-foreground and monochrome layers. The app launch screen displays the same icon.
+Original SVGs and full-resolution references remain under `assets/synapse/v3/`. The reference screenshots are review inputs and are excluded from the APK. Runtime icons are real VectorDrawables used by Compose.
 
-## UI icons
-
-`SynapseIcon` and `SynapseIconName` in
-`app/src/main/kotlin/dev/deviceagent/app/ui/SynapseIcons.kt` render Compose
-Material vectors, with theme-aware tinting and an automatically mirrored Undo
-icon. The former supplied UI PNGs and their dark variants have been removed
-from Android resources. Visible labels and accessibility descriptions remain.
-
-## Policy for future changes
-
-Only launcher artwork may come from `assets/`. Do not copy, convert, trace, or
-derive other application resources from that folder. Use Compose Material icons
-or independently authored Android resources. See the root `AGENTS.md`.
-Keep the asset archive intact; none of its other artwork is packaged into the app.
-
-## Validation
-
-```bash
-gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug
-```
-
-These checks do not render the UI; visual device validation is still needed.
+Run `python scripts/import-v3-icons.py` to reproduce the vectors. Native captures use `./gradlew :app:testDebugUnitTest --tests "*SynapseVisualParityTests"`; generate comparisons with `python scripts/compare-v3-screens.py` (Pillow required).
