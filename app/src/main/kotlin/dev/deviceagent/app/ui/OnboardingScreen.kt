@@ -78,8 +78,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private val BrandBlue = Color(0xFF1558E6)
-private val BrandBlueLight = Color(0xFF2D8CFF)
+private val BrandBlue = Color(0xFF0867F9)
+private val BrandBlueLight = Color(0xFF5CB9FF)
 
 /**
  * 01. Splash: brand background, logo, name. On a first launch it also says what is happening, because
@@ -100,7 +100,7 @@ internal fun SplashScreen(firstLaunch: Boolean) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(Modifier.size(104.dp).clip(RoundedCornerShape(28.dp)).background(Color.White), contentAlignment = Alignment.Center) {
-                Image(painterResource(R.drawable.synapse_launcher), contentDescription = null, modifier = Modifier.size(80.dp))
+                Image(painterResource(R.drawable.synapse_brand_mark), contentDescription = null, modifier = Modifier.size(80.dp))
             }
             Text("Synapse", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
             Text("Your device, understood.", color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium)

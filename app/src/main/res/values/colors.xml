@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Same blue as the in-app splash, so the hand-off from Android's launch window is seamless. -->
-    <color name="synapse_splash">#FF1558E6</color>
+    <color name="synapse_splash">#FF0867F9</color>
     <color name="synapse_launcher_background">#F8FAFF</color>
 </resources>

@@ -13,8 +13,16 @@ def shape(e):
         x=float(v['cx']); y=float(v['cy']); rx=float(v.get('r',v.get('rx','0'))); ry=float(v.get('r',v.get('ry','0')))
         return f'M{x-rx},{y} a{rx},{ry} 0,1 0,{2*rx},0 a{rx},{ry} 0,1 0,{-2*rx},0 Z'
     if t=='rect':
-        x=float(v['x']);y=float(v['y']);w=float(v['width']);h=float(v['height']);r=float(v.get('rx','0'))
-        return f'M{x+r},{y} H{x+w-r} Q{x+w},{y} {x+w},{y+r} V{y+h-r} Q{x+w},{y+h} {x+w-r},{y+h} H{x+r} Q{x},{y+h} {x},{y+h-r} V{y+r} Q{x},{y} {x+r},{y} Z'
+        x=float(v.get('x',0));y=float(v.get('y',0));w=float(v['width']);h=float(v['height'])
+        rx=min(float(v.get('rx',v.get('ry',0))),w/2)
+        ry=min(float(v.get('ry',v.get('rx',0))),h/2)
+        if rx==0 or ry==0:
+            return f'M{x},{y} H{x+w} V{y+h} H{x} Z'
+        # SVG rounded rectangles use elliptical arcs, not quadratic corner approximations.
+        return (f'M{x+rx},{y} H{x+w-rx} A{rx},{ry} 0 0 1 {x+w},{y+ry} '
+                f'V{y+h-ry} A{rx},{ry} 0 0 1 {x+w-rx},{y+h} '
+                f'H{x+rx} A{rx},{ry} 0 0 1 {x},{y+h-ry} '
+                f'V{y+ry} A{rx},{ry} 0 0 1 {x+rx},{y} Z')
     raise ValueError(f'Unsupported SVG element: {t}')
 for p in sorted((ROOT/'assets/synapse/v3/icons/svg').glob('*.svg')):
     svg=E.parse(p).getroot()

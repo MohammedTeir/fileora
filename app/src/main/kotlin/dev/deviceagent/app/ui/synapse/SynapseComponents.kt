@@ -18,8 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -32,8 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.deviceagent.app.Tone
-import dev.deviceagent.app.ui.toneColors
+import dev.deviceagent.app.ui.LocalSynapseAppearance
 import dev.deviceagent.app.ui.SynapseDesignTokens
+import dev.deviceagent.app.ui.toneColors
 
 @Composable
 internal fun ScreenPage(
@@ -45,7 +46,10 @@ internal fun ScreenPage(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = SynapseDesignTokens.pageHorizontal, vertical = SynapseDesignTokens.pageVertical),
+            .padding(
+                horizontal = SynapseDesignTokens.pageHorizontal,
+                vertical = SynapseDesignTokens.pageVertical,
+            ),
         verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.sectionGap),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -89,7 +93,16 @@ internal fun Section(
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(SynapseDesignTokens.cardPadding), verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.cardContentGap)) {
+        Column(
+            Modifier.padding(
+                when (LocalSynapseAppearance.current.density) {
+                    "Compact" -> 8.dp
+                    "Standard" -> 10.dp
+                    else -> SynapseDesignTokens.cardPadding
+                }
+            ),
+            verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.cardContentGap),
+        ) {
             if (title.isNotBlank()) Text(title, style = MaterialTheme.typography.titleMedium)
             subtitle?.let { Muted(it) }
             content()
@@ -258,8 +271,8 @@ internal fun LinkRow(
 internal fun Metric(
     label: String,
     value: String,
-    detail: String? = null,
     modifier: Modifier = Modifier,
+    detail: String? = null,
 ) {
     Surface(
         modifier,
@@ -325,13 +338,14 @@ internal fun SwitchSetting(
     Row(
         Modifier.fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
-            .heightIn(min = 48.dp).padding(vertical = 4.dp),
+            .heightIn(min = 48.dp)
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            if(subtitle.isNotEmpty()) Muted(subtitle)
+            if (subtitle.isNotEmpty()) Muted(subtitle)
         }
         Switch(checked, onCheckedChange = null, enabled = enabled, modifier = Modifier.scale(.75f))
     }
@@ -341,18 +355,18 @@ internal fun SwitchSetting(
 internal fun ChoiceChips(options: List<String>, selected: String, onSelect: (String) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option ->
-            FilterChip(selected == option, { onSelect(option) }, label = { Text(option, style = MaterialTheme.typography.labelSmall) })
+            FilterChip(
+                selected == option,
+                { onSelect(option) },
+                label = { Text(option, style = MaterialTheme.typography.labelSmall) },
+            )
         }
     }
 }
 
 @Composable
 internal fun CodeBlock(text: String) {
-    Surface(
-        Modifier.fillMaxWidth(),
-        color = Color(0xFF111318),
-        shape = RoundedCornerShape(12.dp),
-    ) {
+    Surface(Modifier.fillMaxWidth(), color = Color(0xFF111318), shape = RoundedCornerShape(12.dp)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             SelectionContainer {
                 Text(
@@ -437,7 +451,7 @@ internal fun ConfirmAction(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    AlertDialog(
+    DesignDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },

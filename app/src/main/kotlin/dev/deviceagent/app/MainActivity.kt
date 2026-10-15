@@ -59,7 +59,13 @@ private fun AppRoot(vm: AgentViewModel) {
         delay(if (reducedMotion) 0L else 500L)
         splashDone = true
     }
-    AgentTheme(appearance) { if (!splashDone) SplashScreen(firstLaunch) else MainApp(vm) }
+    val display by workspace.display.collectAsState()
+    CompositionLocalProvider(
+        LocalSynapseAppearance provides display,
+        LocalUpdateSynapseAppearance provides workspace::display,
+    ) {
+        AgentTheme(appearance) { if (!splashDone) SplashScreen(firstLaunch) else MainApp(vm) }
+    }
 }
 
 @Composable

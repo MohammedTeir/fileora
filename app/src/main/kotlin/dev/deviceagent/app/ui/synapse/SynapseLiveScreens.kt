@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.pm.PackageInfoCompat
 import dev.deviceagent.app.*
 import dev.deviceagent.app.ui.*
 import java.util.Locale
@@ -35,34 +34,38 @@ internal fun LiveRouteContent(
 ) {
     when (route) {
         SynapseRoute.PERMISSIONS ->
-            ScreenPage("LIVE SETTINGS", "Permissions", "Review actual folder access and notification settings.") {
+            ScreenPage(
+                "LIVE SETTINGS",
+                "Permissions",
+                "Review actual folder access and notification settings.",
+            ) {
                 FoldersCard(s, vm)
                 Section("Notifications") {
-                    Text(if (s.notificationsEnabled) "Task notifications enabled" else "Task notifications not enabled")
+                    Text(
+                        if (s.notificationsEnabled) "Task notifications enabled"
+                        else "Task notifications not enabled"
+                    )
                     Secondary("Notification settings", onClick = notifications)
                 }
-                Notice("Special access", "Synapse does not request Accessibility, camera, microphone, contacts or location permissions.")
+                Notice(
+                    "Special access",
+                    "Synapse does not request Accessibility, camera, microphone, contacts or location permissions.",
+                )
             }
         SynapseRoute.APPEARANCE ->
-            AppearanceDesign(appearance, onAppearance, reducedMotion, onReducedMotion)
-        SynapseRoute.ABOUT ->
-            ScreenPage("LIVE SETTINGS", "About Synapse", "Installed application information.") {
-                Section("Application") {
-                    val context = LocalContext.current
-                    val packageInfo = remember(context) {
-                        context.packageManager.getPackageInfo(context.packageName, 0)
-                    }
-                    LabeledValue("Application ID", context.packageName)
-                    LabeledValue("Version", packageInfo.versionName ?: "Unknown")
-                    LabeledValue("Build", PackageInfoCompat.getLongVersionCode(packageInfo).toString())
-                }
-                AboutCard()
-                LinkRow("Permissions", "Review Android access", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
-            }
+            AppearanceDesign(appearance, onAppearance, reducedMotion, onReducedMotion, nav)
+        SynapseRoute.ABOUT -> AboutDesign(nav)
         SynapseRoute.TASK_RESULT ->
-            ScreenPage("LIVE TASK", "Task results", "View recorded task outcomes and audit evidence.") {
+            ScreenPage(
+                "LIVE TASK",
+                "Task results",
+                "View recorded task outcomes and audit evidence.",
+            ) {
                 Secondary("Open activity") { nav(SynapseRoute.ACTIVITY) }
-                Notice("Verification", "Only recorded live task evidence can establish a completed outcome.")
+                Notice(
+                    "Verification",
+                    "Only recorded live task evidence can establish a completed outcome.",
+                )
             }
         SynapseRoute.WELCOME ->
             OnboardingFlow(s, vm) { openAi ->
@@ -203,9 +206,15 @@ internal fun LiveRouteContent(
                 LinkRow("Usage", "Current session accounting", Icons.Default.DataUsage) {
                     nav(SynapseRoute.USAGE)
                 }
-                LinkRow("Permissions", "Android access and grants", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
-                LinkRow("Appearance", "Theme and accessibility", Icons.Default.Palette) { nav(SynapseRoute.APPEARANCE) }
-                LinkRow("About", "Version, help and legal information", Icons.Default.Info) { nav(SynapseRoute.ABOUT) }
+                LinkRow("Permissions", "Android access and grants", Icons.Default.Shield) {
+                    nav(SynapseRoute.PERMISSIONS)
+                }
+                LinkRow("Appearance", "Theme and accessibility", Icons.Default.Palette) {
+                    nav(SynapseRoute.APPEARANCE)
+                }
+                LinkRow("About", "Version, help and legal information", Icons.Default.Info) {
+                    nav(SynapseRoute.ABOUT)
+                }
                 Section("Appearance & accessibility") {
                     ChoiceChips(listOf("System", "Light", "Dark"), appearance, onAppearance)
                     SwitchSetting(

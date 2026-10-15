@@ -1,46 +1,123 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.ui.LocalSynapseAppearance
 import dev.deviceagent.app.ui.SynapseDesignTokens
 
 @Composable
-internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, nav: (SynapseRoute) -> Unit, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (route.destination == Destination.AGENT && route !in listOf(SynapseRoute.AGENT, SynapseRoute.WELCOME)) {
+internal fun DesignPage(
+    route: SynapseRoute,
+    title: String,
+    subtitle: String,
+    nav: (SynapseRoute) -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (
+            route.destination == Destination.AGENT &&
+                route !in listOf(SynapseRoute.AGENT, SynapseRoute.WELCOME)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("‹  Agent", Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }.padding(vertical = 5.dp), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "‹  Agent",
+                    Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }
+                        .padding(vertical = 5.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 Spacer(Modifier.weight(1f))
-                val step = when(route) { SynapseRoute.ATTACHMENTS -> 2; SynapseRoute.PLAN -> 3; SynapseRoute.APPROVAL -> 4; SynapseRoute.TASK_RESULT -> 6; else -> 5 }
-                val steps = if(route in listOf(SynapseRoute.ATTACHMENTS,SynapseRoute.PLAN,SynapseRoute.APPROVAL)) 4 else 6
-                Text("Step $step of $steps", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val step =
+                    when (route) {
+                        SynapseRoute.ATTACHMENTS -> 2
+                        SynapseRoute.PLAN -> 3
+                        SynapseRoute.APPROVAL -> 4
+                        SynapseRoute.TASK_RESULT -> 6
+                        else -> 5
+                    }
+                val steps =
+                    if (
+                        route in
+                            listOf(
+                                SynapseRoute.ATTACHMENTS,
+                                SynapseRoute.PLAN,
+                                SynapseRoute.APPROVAL,
+                            )
+                    )
+                        4
+                    else 6
+                Text(
+                    "Step $step of $steps",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.width(8.dp))
-                repeat(steps) { index -> Box(Modifier.padding(2.dp).size(5.dp).background(if (index < step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) }
+                repeat(steps) { index ->
+                    Box(
+                        Modifier.padding(2.dp)
+                            .size(5.dp)
+                            .background(
+                                if (index < step) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(50),
+                            )
+                    )
+                }
             }
         }
-        if(route in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) Text("‹  History",Modifier.clickable(role=Role.Button){nav(SynapseRoute.ACTIVITY)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
-        if(route in listOf(SynapseRoute.PROVIDERS,SynapseRoute.CREDENTIALS,SynapseRoute.MODELS,SynapseRoute.PRIVACY,SynapseRoute.USAGE,SynapseRoute.SECURITY,SynapseRoute.MEMORY)) Text("‹  Settings",Modifier.clickable(role=Role.Button){nav(SynapseRoute.SETTINGS)}.padding(vertical=0.dp),style=MaterialTheme.typography.bodySmall)
+        if (route in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO))
+            Text(
+                "‹  History",
+                Modifier.clickable(role = Role.Button) { nav(SynapseRoute.ACTIVITY) }
+                    .padding(vertical = 5.dp),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        if (
+            route in
+                listOf(
+                    SynapseRoute.PROVIDERS,
+                    SynapseRoute.CREDENTIALS,
+                    SynapseRoute.MODELS,
+                    SynapseRoute.PRIVACY,
+                    SynapseRoute.USAGE,
+                    SynapseRoute.SECURITY,
+                    SynapseRoute.MEMORY,
+                )
+        )
+            Text(
+                "‹  Settings",
+                Modifier.clickable(role = Role.Button) { nav(SynapseRoute.SETTINGS) }
+                    .padding(vertical = 0.dp),
+                style = MaterialTheme.typography.bodySmall,
+            )
         Column {
             Text(title, style = MaterialTheme.typography.headlineMedium)
             if (subtitle.isNotEmpty()) Muted(subtitle)
         }
-        if (route.destination != Destination.AGENT && route !in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) DesignTabs(route, nav)
+        if (
+            route.destination != Destination.AGENT &&
+                route !in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO)
+        )
+            DesignTabs(route, nav)
         content()
         Spacer(Modifier.height(6.dp))
     }
@@ -48,22 +125,87 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
 
 @Composable
 internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
-    val tabs = when(route.destination) {
-        Destination.ACTIVITY -> listOf(Triple("Tasks", SynapseRoute.MONITOR, SynapseIcon.ACTIVITY), Triple("History", SynapseRoute.ACTIVITY, SynapseIcon.HISTORY), Triple("Checkpoints", SynapseRoute.CHECKPOINT, SynapseIcon.CHECKPOINTS), Triple("Schedules", SynapseRoute.SCHEDULE, SynapseIcon.SCHEDULES))
-        Destination.DEVICE -> listOf(Triple("Overview", SynapseRoute.DEVICE, SynapseIcon.DEVICE), Triple("Files", SynapseRoute.SANDBOX, SynapseIcon.FOLDER), Triple("Apps", SynapseRoute.APPS, SynapseIcon.APPS), Triple("Terminal", SynapseRoute.TERMINAL, SynapseIcon.TERMINAL), Triple("Tools", SynapseRoute.TOOLS, SynapseIcon.TOOLS), Triple("Packages", SynapseRoute.PACKAGES, SynapseIcon.PACKAGES))
-        else -> if(route in listOf(SynapseRoute.SETTINGS, SynapseRoute.PERMISSIONS, SynapseRoute.APPEARANCE, SynapseRoute.ABOUT))
-            listOf(Triple("AI Providers",SynapseRoute.PROVIDERS,SynapseIcon.PROVIDERS), Triple("Permissions",SynapseRoute.PERMISSIONS,SynapseIcon.PERMISSIONS), Triple("Security",SynapseRoute.SECURITY,SynapseIcon.SECURITY), Triple("Appearance",SynapseRoute.APPEARANCE,SynapseIcon.APPEARANCE), Triple("About",SynapseRoute.ABOUT,SynapseIcon.ABOUT))
-        else listOf(Triple("AI Providers",SynapseRoute.PROVIDERS,SynapseIcon.PROVIDERS), Triple("Credentials",SynapseRoute.CREDENTIALS,SynapseIcon.CREDENTIALS), Triple("Models",SynapseRoute.MODELS,SynapseIcon.MODELS), Triple("Privacy",SynapseRoute.PRIVACY,SynapseIcon.PRIVACY), Triple("Usage",SynapseRoute.USAGE,SynapseIcon.USAGE), Triple("Security",SynapseRoute.SECURITY,SynapseIcon.SECURITY), Triple("Memory",SynapseRoute.MEMORY,SynapseIcon.MEMORY))
-    }
+    val tabs =
+        when (route.destination) {
+            Destination.ACTIVITY ->
+                listOf(
+                    Triple("Tasks", SynapseRoute.MONITOR, SynapseIcon.ACTIVITY),
+                    Triple("History", SynapseRoute.ACTIVITY, SynapseIcon.HISTORY),
+                    Triple("Checkpoints", SynapseRoute.CHECKPOINT, SynapseIcon.CHECKPOINTS),
+                    Triple("Schedules", SynapseRoute.SCHEDULE, SynapseIcon.SCHEDULES),
+                )
+            Destination.DEVICE ->
+                listOf(
+                    Triple("Overview", SynapseRoute.DEVICE, SynapseIcon.DEVICE),
+                    Triple("Files", SynapseRoute.SANDBOX, SynapseIcon.FOLDER),
+                    Triple("Apps", SynapseRoute.APPS, SynapseIcon.APPS),
+                    Triple("Terminal", SynapseRoute.TERMINAL, SynapseIcon.TERMINAL),
+                    Triple("Tools", SynapseRoute.TOOLS, SynapseIcon.TOOLS),
+                    Triple("Packages", SynapseRoute.PACKAGES, SynapseIcon.PACKAGES),
+                )
+            else ->
+                if (
+                    route in
+                        listOf(
+                            SynapseRoute.SETTINGS,
+                            SynapseRoute.PERMISSIONS,
+                            SynapseRoute.APPEARANCE,
+                            SynapseRoute.ABOUT,
+                        )
+                )
+                    listOf(
+                        Triple("AI Providers", SynapseRoute.PROVIDERS, SynapseIcon.PROVIDERS),
+                        Triple("Permissions", SynapseRoute.PERMISSIONS, SynapseIcon.PERMISSIONS),
+                        Triple("Security", SynapseRoute.SECURITY, SynapseIcon.SECURITY),
+                        Triple("Appearance", SynapseRoute.APPEARANCE, SynapseIcon.APPEARANCE),
+                        Triple("About", SynapseRoute.ABOUT, SynapseIcon.ABOUT),
+                    )
+                else
+                    listOf(
+                        Triple("AI Providers", SynapseRoute.PROVIDERS, SynapseIcon.PROVIDERS),
+                        Triple("Credentials", SynapseRoute.CREDENTIALS, SynapseIcon.CREDENTIALS),
+                        Triple("Models", SynapseRoute.MODELS, SynapseIcon.MODELS),
+                        Triple("Privacy", SynapseRoute.PRIVACY, SynapseIcon.PRIVACY),
+                        Triple("Usage", SynapseRoute.USAGE, SynapseIcon.USAGE),
+                        Triple("Security", SynapseRoute.SECURITY, SynapseIcon.SECURITY),
+                        Triple("Memory", SynapseRoute.MEMORY, SynapseIcon.MEMORY),
+                    )
+        }
     val scroll = rememberScrollState()
-    val selectedIndex = tabs.indexOfFirst { it.second == route || route == SynapseRoute.PACKAGE_DETAIL && it.second == SynapseRoute.PACKAGES }
-    LaunchedEffect(route, scroll.maxValue) { if(selectedIndex >= 4) scroll.scrollTo(scroll.maxValue) }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(8.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(scroll), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            tabs.forEach { (label,target,icon) ->
-                val selected = route == target || route == SynapseRoute.SETTINGS && target == SynapseRoute.PROVIDERS || route == SynapseRoute.PACKAGE_DETAIL && target == SynapseRoute.PACKAGES
-                Surface(onClick = { nav(target) }, shape = RoundedCornerShape(7.dp), color = if(selected) MaterialTheme.colorScheme.primary else Color.Transparent, contentColor = if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface) {
-                    Row(Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    val selectedIndex =
+        tabs.indexOfFirst {
+            it.second == route ||
+                route == SynapseRoute.PACKAGE_DETAIL && it.second == SynapseRoute.PACKAGES
+        }
+    LaunchedEffect(route, scroll.maxValue) {
+        if (selectedIndex >= 4) scroll.scrollTo(scroll.maxValue)
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(scroll),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            tabs.forEach { (label, target, icon) ->
+                val selected =
+                    route == target ||
+                        route == SynapseRoute.SETTINGS && target == SynapseRoute.PROVIDERS ||
+                        route == SynapseRoute.PACKAGE_DETAIL && target == SynapseRoute.PACKAGES
+                Surface(
+                    onClick = { nav(target) },
+                    shape = RoundedCornerShape(7.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    contentColor =
+                        if (selected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
+                ) {
+                    Row(
+                        Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
                         AssetIcon(icon, tint = LocalContentColor.current, size = 14.dp)
                         Text(label, fontSize = 10.sp)
                     }
@@ -74,40 +216,108 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
 }
 
 @Composable
-internal fun DesignRow(icon: SynapseIcon, title: String, detail: String = "", value: String = "", tint: Color = MaterialTheme.colorScheme.primary, onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().then(if(onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier).heightIn(min = if(onClick == null && trailing == null) 38.dp else 48.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) { AssetIcon(icon, modifier = Modifier.padding(5.dp), tint = tint, size = 18.dp) }
+internal fun DesignRow(
+    icon: SynapseIcon,
+    title: String,
+    detail: String = "",
+    value: String = "",
+    tint: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        Modifier.fillMaxWidth()
+            .then(
+                if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
+                else Modifier
+            )
+            .heightIn(min = if (onClick == null && trailing == null) 38.dp else 48.dp)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) {
+            AssetIcon(icon, modifier = Modifier.padding(5.dp), tint = tint, size = 18.dp)
+        }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            if(detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (detail.isNotEmpty() && LocalSynapseAppearance.current.details)
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
         }
-        if(value.isNotEmpty()) Text(value, style = MaterialTheme.typography.labelSmall, color = tint)
+        if (value.isNotEmpty()) DesignValue(value, tint)
         trailing?.invoke()
-        if(onClick != null && trailing == null) Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (onClick != null && trailing == null)
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            AssetIcon(SynapseIcon.SEARCH, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 16.dp)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AssetIcon(
+                SynapseIcon.SEARCH,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = 16.dp,
+            )
             Spacer(Modifier.width(8.dp))
-            BasicTextField(value, onValue, Modifier.weight(1f).semantics { contentDescription = hint }, singleLine = true, textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface), decorationBox = { field ->
-                if(value.isEmpty()) Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                field()
-            })
+            BasicTextField(
+                value,
+                onValue,
+                Modifier.weight(1f).semantics { contentDescription = hint },
+                singleLine = true,
+                textStyle =
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                decorationBox = { field ->
+                    if (value.isEmpty())
+                        Text(
+                            hint,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    field()
+                },
+            )
         }
     }
 }
 
 @Composable
-internal fun DesignSection(title: String, icon: SynapseIcon? = null, action: String? = null, onAction: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+internal fun DesignSection(
+    title: String,
+    icon: SynapseIcon? = null,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Section("") {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             icon?.let { AssetIcon(it, size = 18.dp) }
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            if(action != null) Text(action, Modifier.then(if(onAction != null) Modifier.clickable(role = Role.Button, onClick = onAction) else Modifier).padding(vertical = 5.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+            if (action != null)
+                Text(
+                    action,
+                    Modifier.then(
+                            if (onAction != null)
+                                Modifier.clickable(role = Role.Button, onClick = onAction)
+                            else Modifier
+                        )
+                        .padding(vertical = 5.dp),
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
         }
         Column(content = content)
     }
@@ -116,50 +326,193 @@ internal fun DesignSection(title: String, icon: SynapseIcon? = null, action: Str
 @Composable
 internal fun InlineStats(vararg stats: Pair<String, String>) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        stats.forEach { (label,value) -> Column(Modifier.weight(1f)) {
-            Text(value, style = MaterialTheme.typography.titleSmall)
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } }
+        stats.forEach { (label, value) ->
+            Column(Modifier.weight(1f)) {
+                Text(value, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
 @Composable
 internal fun FullButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = enabled, shape = RoundedCornerShape(SynapseDesignTokens.buttonRadius)) { Text(text) }
+    Button(
+        onClick,
+        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(SynapseDesignTokens.buttonRadius),
+    ) {
+        Text(text)
+    }
 }
 
 @Composable
-internal fun DemoDetailDialog(title: String?, onDismiss: () -> Unit, text: String = "This is a demo preview. No device operation is performed.") {
-    if(title != null) AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Text(text) }, confirmButton = { TextButton(onDismiss) { Text("Done") } })
+internal fun DemoDetailDialog(
+    title: String?,
+    onDismiss: () -> Unit,
+    text: String = "This is a demo preview. No device operation is performed.",
+) {
+    if (title != null)
+        DesignDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(title) },
+            text = { Text(text) },
+            confirmButton = { TextButton(onDismiss) { Text("Done") } },
+        )
 }
 
 @Composable
-internal fun DesignChoice(label: String, options: List<String>, value: String, onChange: (String) -> Unit) {
+internal fun DesignChoice(
+    label: String,
+    options: List<String>,
+    value: String,
+    onChange: (String) -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically) {
-        Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodyMedium)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         Box {
-            Surface(onClick={open=true},color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(6.dp)) {
-                Text("$value  ⌄",Modifier.padding(8.dp),style=MaterialTheme.typography.bodySmall)
+            Surface(
+                onClick = { open = true },
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(6.dp),
+            ) {
+                Text(
+                    "$value  ⌄",
+                    Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-            DropdownMenu(open,{open=false}) { options.forEach { option -> DropdownMenuItem({Text(option)},{onChange(option);open=false}) } }
+            DropdownMenu(open, { open = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        { Text(option) },
+                        {
+                            onChange(option)
+                            open = false
+                        },
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 internal fun SmallValue(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical=3.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-        Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            label,
+            Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(value, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
     }
 }
 
 /** Reference's thin track with a full 48dp interactive target. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun DesignSlider(value: Float, onValue: (Float) -> Unit, valueRange: ClosedFloatingPointRange<Float>, label: String) {
-    Slider(value, onValue, modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).semantics { contentDescription=label }, valueRange=valueRange,
-        thumb={ Box(Modifier.size(16.dp).background(MaterialTheme.colorScheme.primary, CircleShape).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)) },
-        track={ SliderDefaults.Track(it,Modifier.height(4.dp),thumbTrackGapSize=0.dp,drawStopIndicator=null) })
+internal fun DesignSlider(
+    value: Float,
+    onValue: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    label: String,
+) {
+    Slider(
+        value,
+        onValue,
+        modifier =
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { contentDescription = label },
+        valueRange = valueRange,
+        thumb = {
+            Box(
+                Modifier.size(16.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+            )
+        },
+        track = {
+            SliderDefaults.Track(
+                it,
+                Modifier.height(4.dp),
+                thumbTrackGapSize = 0.dp,
+                drawStopIndicator = null,
+            )
+        },
+    )
+}
+
+/** Explicit width keeps forms stable across platform dialog minimum-width rules. */
+@Composable
+internal fun DesignDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    dismissButton: (@Composable () -> Unit)? = null,
+    title: (@Composable () -> Unit)? = null,
+    text: (@Composable () -> Unit)? = null,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = confirmButton,
+        dismissButton = dismissButton,
+        title = title,
+        text = text,
+        modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(.92f),
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    )
+}
+
+@Composable
+private fun DesignValue(value: String, fallback: Color) {
+    val tone =
+        when (value.lowercase()) {
+            "granted",
+            "active",
+            "enabled",
+            "configured",
+            "verified",
+            "allowed",
+            "ready",
+            "connected",
+            "completed",
+            "installed",
+            "success" -> dev.deviceagent.app.Tone.SUCCESS
+            "blocked",
+            "denied",
+            "not granted",
+            "failed" -> dev.deviceagent.app.Tone.ERROR
+            "ask",
+            "restricted",
+            "pending",
+            "paused",
+            "needs review" -> dev.deviceagent.app.Tone.WARNING
+            else -> null
+        }
+    if (tone == null) Text(value, style = MaterialTheme.typography.labelSmall, color = fallback)
+    else {
+        val (container, foreground) = dev.deviceagent.app.ui.toneColors(tone)
+        Surface(color = container, contentColor = foreground, shape = RoundedCornerShape(5.dp)) {
+            Row(
+                Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Box(Modifier.size(4.dp).background(foreground, CircleShape))
+                Text(value, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
 }

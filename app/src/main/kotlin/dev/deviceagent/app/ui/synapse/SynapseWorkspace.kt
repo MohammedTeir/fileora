@@ -1,12 +1,8 @@
 package dev.deviceagent.app.ui.synapse
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.sp
-import dev.deviceagent.app.R
-import dev.deviceagent.app.ui.SynapseDesignTokens
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,7 +15,13 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.R
+import dev.deviceagent.app.ui.SynapseDesignTokens
 
 private fun Destination.icon(): ImageVector =
     when (this) {
@@ -76,23 +78,63 @@ internal fun SynapseWorkspace(
         Scaffold(
             topBar = {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Row(Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = SynapseDesignTokens.topBarHeight).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (stack.contains('|')) IconButton(back, Modifier.size(40.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                        Image(painterResource(R.drawable.synapse_brand_mark), "Synapse", Modifier.size(30.dp))
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .statusBarsPadding()
+                            .heightIn(min = SynapseDesignTokens.topBarHeight)
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (stack.contains('|'))
+                            IconButton(back, Modifier.size(40.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                            }
+                        Image(
+                            painterResource(R.drawable.synapse_brand_mark),
+                            "Synapse",
+                            Modifier.size(30.dp),
+                        )
                         Column(Modifier.weight(1f).padding(start = 7.dp)) {
-                            Text("Synapse", style = MaterialTheme.typography.titleMedium)
-                            Text(if (demo) "Demo data · simulated actions" else "Your AI-powered device operator", fontSize = 8.sp, lineHeight = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Synapse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                if (demo) "Demo data · simulated actions"
+                                else "Your AI-powered device operator",
+                                fontSize = 8.sp,
+                                lineHeight = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        TextButton({ demo = !demo; preview = PreviewState.READY.name }, contentPadding = PaddingValues(6.dp)) {
+                        TextButton(
+                            {
+                                demo = !demo
+                                preview = PreviewState.READY.name
+                            },
+                            contentPadding = PaddingValues(6.dp),
+                        ) {
                             Text(if (demo) "Go live" else "Try demo", fontSize = 10.sp)
                         }
                         Box {
-                            IconButton({ states = true }, Modifier.size(40.dp)) { AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp) }
+                            IconButton({ states = true }, Modifier.size(40.dp)) {
+                                AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp)
+                            }
                             DropdownMenu(states, { states = false }) {
-                                DropdownMenuItem({ Text("All screens") }, { directory = !directory; states = false })
-                                if (demo) PreviewState.entries.forEach { state ->
-                                    DropdownMenuItem({ Text("${state.name.lowercase()} preview") }, { preview = state.name; states = false })
-                                }
+                                DropdownMenuItem(
+                                    { Text("All screens") },
+                                    {
+                                        directory = !directory
+                                        states = false
+                                    },
+                                )
+                                if (demo)
+                                    PreviewState.entries.forEach { state ->
+                                        DropdownMenuItem(
+                                            { Text("${state.name.lowercase()} preview") },
+                                            {
+                                                preview = state.name
+                                                states = false
+                                            },
+                                        )
+                                    }
                             }
                         }
                     }
@@ -101,7 +143,10 @@ internal fun SynapseWorkspace(
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
                 if (!rail && route != SynapseRoute.WELCOME)
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.heightIn(min = SynapseDesignTokens.navigationHeight)) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.heightIn(min = SynapseDesignTokens.navigationHeight),
+                    ) {
                         Destination.entries.forEach { destination ->
                             NavigationBarItem(
                                 route.destination == destination,
@@ -110,7 +155,15 @@ internal fun SynapseWorkspace(
                                     directory = false
                                     preview = PreviewState.READY.name
                                 },
-                                icon = { AssetIcon(destination.assetIcon(), tint = if (route.destination == destination) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                                icon = {
+                                    AssetIcon(
+                                        destination.assetIcon(),
+                                        tint =
+                                            if (route.destination == destination)
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
                                 label = { Text(destination.label, fontSize = 10.sp) },
                             )
                         }
@@ -128,7 +181,15 @@ internal fun SynapseWorkspace(
                                     directory = false
                                     preview = PreviewState.READY.name
                                 },
-                                icon = { AssetIcon(destination.assetIcon(), tint = if (route.destination == destination) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                                icon = {
+                                    AssetIcon(
+                                        destination.assetIcon(),
+                                        tint =
+                                            if (route.destination == destination)
+                                                MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
                                 label = { Text(destination.label, fontSize = 10.sp) },
                             )
                         }
@@ -137,7 +198,12 @@ internal fun SynapseWorkspace(
                     Modifier.weight(1f).fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Box(Modifier.weight(1f).widthIn(max = 840.dp).fillMaxWidth()) {
+                    Box(
+                        Modifier.weight(1f)
+                            .widthIn(max = 840.dp)
+                            .fillMaxWidth()
+                            .testTag("route-${route.name}")
+                    ) {
                         if (directory) ScreenDirectory(route, navigate)
                         else
                             holder.SaveableStateProvider(
@@ -247,12 +313,12 @@ private fun ScreenDirectory(current: SynapseRoute, nav: (SynapseRoute) -> Unit) 
     ) {
         Destination.entries.forEach { destination ->
             Section(destination.label) {
-                SynapseRoute.entries
+                (referenceRoutes + SynapseRoute.entries.filter { it !in referenceRoutes })
                     .filter { it.destination == destination }
                     .forEach { route ->
                         LinkRow(
-                            if (route.number > 0)
-                                "${route.number.toString().padStart(2, '0')} · ${route.title}"
+                            if (route in referenceRoutes)
+                                "${(referenceRoutes.indexOf(route) + 1).toString().padStart(2, '0')} · ${route.title}"
                             else route.title,
                             if (route == current) "Current screen" else destination.label,
                             destination.icon(),
@@ -265,20 +331,46 @@ private fun ScreenDirectory(current: SynapseRoute, nav: (SynapseRoute) -> Unit) 
     }
 }
 
-internal fun Destination.assetIcon(): SynapseIcon = when (this) {
-    Destination.AGENT -> SynapseIcon.AGENT
-    Destination.ACTIVITY -> SynapseIcon.ACTIVITY
-    Destination.DEVICE -> SynapseIcon.DEVICE
-    Destination.SETTINGS -> SynapseIcon.SETTINGS
-}
+internal fun Destination.assetIcon(): SynapseIcon =
+    when (this) {
+        Destination.AGENT -> SynapseIcon.AGENT
+        Destination.ACTIVITY -> SynapseIcon.ACTIVITY
+        Destination.DEVICE -> SynapseIcon.DEVICE
+        Destination.SETTINGS -> SynapseIcon.SETTINGS
+    }
 
 /** PDF page order is independent of the stable legacy route number. */
-internal val referenceRoutes = listOf(
-    SynapseRoute.WELCOME, SynapseRoute.AGENT, SynapseRoute.ATTACHMENTS, SynapseRoute.PLAN,
-    SynapseRoute.APPROVAL, SynapseRoute.MONITOR, SynapseRoute.RECOVERY, SynapseRoute.TASK_RESULT,
-    SynapseRoute.CHECKPOINT, SynapseRoute.ACTIVITY, SynapseRoute.SCHEDULE, SynapseRoute.AUDIT, SynapseRoute.UNDO,
-    SynapseRoute.DEVICE, SynapseRoute.SANDBOX, SynapseRoute.APPS, SynapseRoute.TERMINAL, SynapseRoute.TOOLS,
-    SynapseRoute.PACKAGES, SynapseRoute.PACKAGE_DETAIL, SynapseRoute.SETTINGS, SynapseRoute.PROVIDERS,
-    SynapseRoute.CREDENTIALS, SynapseRoute.MODELS, SynapseRoute.PRIVACY, SynapseRoute.USAGE,
-    SynapseRoute.SECURITY, SynapseRoute.MEMORY, SynapseRoute.PERMISSIONS, SynapseRoute.APPEARANCE, SynapseRoute.ABOUT,
-)
+internal val referenceRoutes =
+    listOf(
+        SynapseRoute.WELCOME,
+        SynapseRoute.AGENT,
+        SynapseRoute.ATTACHMENTS,
+        SynapseRoute.PLAN,
+        SynapseRoute.APPROVAL,
+        SynapseRoute.MONITOR,
+        SynapseRoute.RECOVERY,
+        SynapseRoute.TASK_RESULT,
+        SynapseRoute.CHECKPOINT,
+        SynapseRoute.ACTIVITY,
+        SynapseRoute.SCHEDULE,
+        SynapseRoute.AUDIT,
+        SynapseRoute.UNDO,
+        SynapseRoute.DEVICE,
+        SynapseRoute.SANDBOX,
+        SynapseRoute.APPS,
+        SynapseRoute.TERMINAL,
+        SynapseRoute.TOOLS,
+        SynapseRoute.PACKAGES,
+        SynapseRoute.PACKAGE_DETAIL,
+        SynapseRoute.SETTINGS,
+        SynapseRoute.PROVIDERS,
+        SynapseRoute.CREDENTIALS,
+        SynapseRoute.MODELS,
+        SynapseRoute.PRIVACY,
+        SynapseRoute.USAGE,
+        SynapseRoute.SECURITY,
+        SynapseRoute.MEMORY,
+        SynapseRoute.PERMISSIONS,
+        SynapseRoute.APPEARANCE,
+        SynapseRoute.ABOUT,
+    )

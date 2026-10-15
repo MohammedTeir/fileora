@@ -189,11 +189,11 @@ class SynapseScreenTests {
         screenshot("workspace-agent")
         compose.onNodeWithText("Device").performClick()
         compose.onNodeWithText("Demo data · simulated actions").assertExists()
-        compose.onNodeWithText("Know your environment").assertExists()
+        compose.onNodeWithText("Device information").assertExists()
         screenshot("workspace-device")
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithText("Demo data · simulated actions").assertExists()
-        compose.onNodeWithText("Know your environment").assertExists()
+        compose.onNodeWithText("Device information").assertExists()
         compose.onNodeWithText("Go live").performClick()
         compose.onNodeWithText("Live Your device").assertExists()
         compose.onNodeWithText("Demo data · simulated actions").assertDoesNotExist()
@@ -229,7 +229,7 @@ class SynapseScreenTests {
         compose.onNodeWithText("Try demo").performClick()
         compose.onNodeWithText("Workspace context").assertExists()
         compose.onNodeWithText("Device").performClick()
-        compose.onNodeWithText("Know your environment").assertExists()
+        compose.onNodeWithText("Device information").assertExists()
         screenshot("device-expanded-dark-rtl-large-text")
     }
 

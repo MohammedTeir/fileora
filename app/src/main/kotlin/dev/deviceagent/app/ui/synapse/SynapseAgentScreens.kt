@@ -1,28 +1,28 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(
+    androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+)
 
 package dev.deviceagent.app.ui.synapse
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.sp
-import dev.deviceagent.app.R
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FactCheck
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.R
 import dev.deviceagent.app.Tone
 
 @Composable
@@ -50,79 +50,206 @@ internal fun DemoAgentRoute(
 
 @Composable
 private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Welcome to", style = MaterialTheme.typography.headlineMedium)
-                Text("Synapse", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-                Muted("Turn your ideas into real actions on your Android device using AI. Synapse can inspect, plan, ask for your approval, and handle the rest.")
+                Text(
+                    "Synapse",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Muted(
+                    "Turn your ideas into real actions on your Android device using AI. Synapse can inspect, plan, ask for your approval, and handle the rest."
+                )
             }
-            Image(painterResource(R.drawable.synapse_brand_mark), "Synapse brand mark", Modifier.weight(1f).padding(16.dp).aspectRatio(1f))
+            Image(
+                painterResource(R.drawable.synapse_brand_mark),
+                "Synapse brand mark",
+                Modifier.weight(1f).padding(16.dp).aspectRatio(1f),
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(Triple(SynapseIcon.AGENT,"Powerful AI","Plan and execute tasks for you"), Triple(SynapseIcon.SECURITY,"Safe and controlled","You approve sensitive actions"), Triple(SynapseIcon.DEVICE,"Built for Android","Works with your device and apps")).forEach { (icon,title,detail) ->
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssetIcon(icon)
-                    Text(title, style = MaterialTheme.typography.titleSmall)
-                    Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            listOf(
+                    Triple(SynapseIcon.AGENT, "Powerful AI", "Plan and execute tasks for you"),
+                    Triple(
+                        SynapseIcon.SECURITY,
+                        "Safe and controlled",
+                        "You approve sensitive actions",
+                    ),
+                    Triple(
+                        SynapseIcon.DEVICE,
+                        "Built for Android",
+                        "Works with your device and apps",
+                    ),
+                )
+                .forEach { (icon, title, detail) ->
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        AssetIcon(icon)
+                        Text(title, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-            }
         }
         Section("Get started") {
             Muted("Complete these steps to set up Synapse on your device.")
             listOf(
-                Triple(SynapseIcon.PROVIDERS,"Connect an AI provider",SynapseRoute.PROVIDERS),
-                Triple(SynapseIcon.FOLDER,"Grant folder access",SynapseRoute.SANDBOX),
-                Triple(SynapseIcon.SECURITY,"Set up safety preferences",SynapseRoute.SECURITY),
-                Triple(SynapseIcon.SETTINGS,"Configure basic settings",SynapseRoute.SETTINGS),
-            ).forEachIndexed { index,(icon,title,route) ->
-                DesignRow(icon,title,listOf("Use Gemini, OpenAI, Claude, or a custom provider.","Allow Synapse to access files using Android SAF.","Choose what actions require your approval.","Appearance, language, and other preferences.")[index],onClick = { nav(route) })
-            }
+                    Triple(SynapseIcon.PROVIDERS, "Connect an AI provider", SynapseRoute.PROVIDERS),
+                    Triple(SynapseIcon.FOLDER, "Grant folder access", SynapseRoute.SANDBOX),
+                    Triple(
+                        SynapseIcon.SECURITY,
+                        "Set up safety preferences",
+                        SynapseRoute.SECURITY,
+                    ),
+                    Triple(SynapseIcon.SETTINGS, "Configure basic settings", SynapseRoute.SETTINGS),
+                )
+                .forEachIndexed { index, (icon, title, route) ->
+                    DesignRow(
+                        icon,
+                        title,
+                        listOf(
+                            "Use Gemini, OpenAI, Claude, or a custom provider.",
+                            "Allow Synapse to access files using Android SAF.",
+                            "Choose what actions require your approval.",
+                            "Appearance, language, and other preferences.",
+                        )[index],
+                        onClick = { nav(route) },
+                    )
+                }
         }
         FullButton("Continue Setup  →") { nav(SynapseRoute.PROVIDERS) }
-        TextButton({ nav(SynapseRoute.AGENT) }, Modifier.align(Alignment.CenterHorizontally)) { Text("Skip for now") }
+        TextButton({ nav(SynapseRoute.AGENT) }, Modifier.align(Alignment.CenterHorizontally)) {
+            Text("Skip for now")
+        }
     }
 }
 
 @Composable
 private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    DesignPage(SynapseRoute.AGENT,"Hello, Mohammed","Describe what you want to do with your device.\nI’ll plan, ask for approval, and handle the rest.",nav) {
+    DesignPage(
+        SynapseRoute.AGENT,
+        "Hello, Mohammed",
+        "Describe what you want to do with your device.\nI’ll plan, ask for approval, and handle the rest.",
+        nav,
+    ) {
         Section("") {
-            BasicTextField(s.draft,{ send(DemoAction.Draft(it)) },Modifier.fillMaxWidth().heightIn(min = 42.dp),textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),decorationBox = { field ->
-                if(s.draft.isBlank()) Muted("What would you like to do?")
-                field()
-            })
+            BasicTextField(
+                s.draft,
+                { send(DemoAction.Draft(it)) },
+                Modifier.fillMaxWidth().heightIn(min = 42.dp),
+                textStyle =
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                decorationBox = { field ->
+                    if (s.draft.isBlank()) Muted("What would you like to do?")
+                    field()
+                },
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                listOf("Add files","Add images","Add folder").forEach { label -> TextButton({ nav(SynapseRoute.ATTACHMENTS) },contentPadding = PaddingValues(5.dp)) { Text(label, fontSize = 10.sp) } }
-                Spacer(Modifier.weight(1f))
-                IconButton({ if(s.draft.isNotBlank()) { send(DemoAction.Submit); nav(SynapseRoute.PLAN) } },enabled = s.draft.isNotBlank()) { AssetIcon(SynapseIcon.PLAY,"Preview demo plan") }
-            }
-        }
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("Organize Downloads","Convert media files","Run Python project","Clean storage").forEach { goal -> AssistChip({ send(DemoAction.Draft(goal)) },{ Text(goal, fontSize = 10.sp) }) }
-        }
-        Text("Quick actions", style = MaterialTheme.typography.titleMedium)
-        listOf(
-            Triple(SynapseIcon.FOLDER,"Manage files",SynapseRoute.SANDBOX),
-            Triple(SynapseIcon.TERMINAL,"Run a command",SynapseRoute.TERMINAL),
-            Triple(SynapseIcon.APPS,"Manage apps",SynapseRoute.APPS),
-            Triple(SynapseIcon.PLAY,"Convert media",SynapseRoute.ATTACHMENTS),
-            Triple(SynapseIcon.TOOLS,"Run project",SynapseRoute.TOOLS),
-            Triple(SynapseIcon.SCHEDULES,"Schedule task",SynapseRoute.SCHEDULE),
-        ).chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (icon,label,route) ->
-                    Surface(onClick = { nav(route) },modifier = Modifier.weight(1f),shape = RoundedCornerShape(10.dp),color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                        Row(Modifier.padding(8.dp).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { AssetIcon(icon,size = 18.dp);Text(label,style = MaterialTheme.typography.labelSmall) }
+                listOf("Add files", "Add images", "Add folder").forEach { label ->
+                    TextButton(
+                        { nav(SynapseRoute.ATTACHMENTS) },
+                        contentPadding = PaddingValues(5.dp),
+                    ) {
+                        Text(label, fontSize = 10.sp)
                     }
+                }
+                Spacer(Modifier.weight(1f))
+                IconButton(
+                    {
+                        if (s.draft.isNotBlank()) {
+                            send(DemoAction.Submit)
+                            nav(SynapseRoute.PLAN)
+                        }
+                    },
+                    enabled = s.draft.isNotBlank(),
+                ) {
+                    AssetIcon(SynapseIcon.PLAY, "Preview demo plan")
                 }
             }
         }
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf(
+                    "Organize Downloads",
+                    "Convert media files",
+                    "Run Python project",
+                    "Clean storage",
+                )
+                .forEach { goal ->
+                    AssistChip({ send(DemoAction.Draft(goal)) }, { Text(goal, fontSize = 10.sp) })
+                }
+        }
+        Text("Quick actions", style = MaterialTheme.typography.titleMedium)
+        listOf(
+                Triple(SynapseIcon.FOLDER, "Manage files", SynapseRoute.SANDBOX),
+                Triple(SynapseIcon.TERMINAL, "Run a command", SynapseRoute.TERMINAL),
+                Triple(SynapseIcon.APPS, "Manage apps", SynapseRoute.APPS),
+                Triple(SynapseIcon.PLAY, "Convert media", SynapseRoute.ATTACHMENTS),
+                Triple(SynapseIcon.TOOLS, "Run project", SynapseRoute.TOOLS),
+                Triple(SynapseIcon.SCHEDULES, "Schedule task", SynapseRoute.SCHEDULE),
+            )
+            .chunked(3)
+            .forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { (icon, label, route) ->
+                        Surface(
+                            onClick = { nav(route) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ) {
+                            Row(
+                                Modifier.padding(8.dp).heightIn(min = 40.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                AssetIcon(icon, size = 18.dp)
+                                Text(label, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
         Text("Recent tasks", style = MaterialTheme.typography.titleMedium)
         Section("") {
-            DesignRow(SynapseIcon.APPROVAL,"Organize Downloads folder","Completed · 12 files moved","2 hours ago",onClick = { send(DemoAction.SelectTask("SYN-2044"));nav(SynapseRoute.TASK_RESULT) })
-            DesignRow(SynapseIcon.ACTIVITY,"Convert videos to MP4","Processing · 3 of 5 files","32 minutes ago",onClick = { send(DemoAction.SelectTask("SYN-2048"));nav(SynapseRoute.MONITOR) })
-            DesignRow(SynapseIcon.TERMINAL,"Run Python project","Pending approval","1 hour ago",onClick = { nav(SynapseRoute.PLAN) })
+            DesignRow(
+                SynapseIcon.APPROVAL,
+                "Organize Downloads folder",
+                "Completed · 12 files moved",
+                "2 hours ago",
+                onClick = {
+                    send(DemoAction.SelectTask("SYN-2044"))
+                    nav(SynapseRoute.TASK_RESULT)
+                },
+            )
+            DesignRow(
+                SynapseIcon.ACTIVITY,
+                "Convert videos to MP4",
+                "Processing · 3 of 5 files",
+                "32 minutes ago",
+                onClick = {
+                    send(DemoAction.SelectTask("SYN-2048"))
+                    nav(SynapseRoute.MONITOR)
+                },
+            )
+            DesignRow(
+                SynapseIcon.TERMINAL,
+                "Run Python project",
+                "Pending approval",
+                "1 hour ago",
+                onClick = { nav(SynapseRoute.PLAN) },
+            )
         }
     }
 }
@@ -131,108 +258,259 @@ private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRou
 private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var preview by rememberSaveable { mutableStateOf<String?>(null) }
     var picker by rememberSaveable { mutableStateOf(false) }
-    val choices = listOf("screenshot_error.png","error_log.txt","PythonProject","Movies/Trips")
-    DesignPage(SynapseRoute.ATTACHMENTS,"Add attachments","Add files, images, folders, or other context to help Synapse understand your task better.",nav) {
+    val choices = listOf("screenshot_error.png", "error_log.txt", "PythonProject", "Movies/Trips")
+    DesignPage(
+        SynapseRoute.ATTACHMENTS,
+        "Add attachments",
+        "Add files, images, folders, or other context to help Synapse understand your task better.",
+        nav,
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf(SynapseIcon.FILE to "Add files",SynapseIcon.IMAGE to "Add images",SynapseIcon.FOLDER to "Add folder",SynapseIcon.APPS to "Add app").forEach { (icon,label) ->
-                Surface(onClick = { picker = true },modifier = Modifier.weight(1f),shape = RoundedCornerShape(10.dp),color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                    Column(Modifier.padding(8.dp).heightIn(min = 70.dp),horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(8.dp)) { AssetIcon(icon);Text(label,style = MaterialTheme.typography.labelSmall) }
+            listOf(
+                    SynapseIcon.FILE to "Add files",
+                    SynapseIcon.IMAGE to "Add images",
+                    SynapseIcon.FOLDER to "Add folder",
+                    SynapseIcon.APPS to "Add app",
+                )
+                .forEach { (icon, label) ->
+                    Surface(
+                        onClick = { picker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Column(
+                            Modifier.padding(8.dp).heightIn(min = 70.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            AssetIcon(icon)
+                            Text(label, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
-            }
         }
-        OutlinedButton({ picker = true },Modifier.fillMaxWidth().heightIn(min = 68.dp),shape = RoundedCornerShape(12.dp)) { AssetIcon(SynapseIcon.UPLOAD);Spacer(Modifier.width(8.dp));Text("Tap to browse sample files") }
-        DesignSection("Attached items (${s.attachments.size})", action = "Clear all",onAction = { s.attachments.forEach { send(DemoAction.Attachment(it,false)) } }) {
-            if(s.attachments.isEmpty()) Muted("No attachments yet. Choose a sample above.")
+        OutlinedButton(
+            { picker = true },
+            Modifier.fillMaxWidth().heightIn(min = 68.dp),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            AssetIcon(SynapseIcon.UPLOAD)
+            Spacer(Modifier.width(8.dp))
+            Text("Tap to browse sample files")
+        }
+        DesignSection(
+            "Attached items (${s.attachments.size})",
+            action = "Clear all",
+            onAction = { s.attachments.forEach { send(DemoAction.Attachment(it, false)) } },
+        ) {
+            if (s.attachments.isEmpty()) Muted("No attachments yet. Choose a sample above.")
             s.attachments.forEach { name ->
-                DesignRow(if(name.endsWith("png")) SynapseIcon.IMAGE else if(name.endsWith("txt")) SynapseIcon.FILE else SynapseIcon.FOLDER,name,"Local sample · not uploaded",onClick = { preview = name },trailing = {
-                    IconButton({ preview = name }) { AssetIcon(SynapseIcon.SEARCH,"Preview $name",size = 16.dp) }
-                    IconButton({ send(DemoAction.Attachment(name,false)) }) { AssetIcon(SynapseIcon.DELETE,"Remove $name",size = 16.dp) }
-                })
+                DesignRow(
+                    if (name.endsWith("png")) SynapseIcon.IMAGE
+                    else if (name.endsWith("txt")) SynapseIcon.FILE else SynapseIcon.FOLDER,
+                    name,
+                    "Local sample · not uploaded",
+                    onClick = { preview = name },
+                    trailing = {
+                        IconButton({ preview = name }) {
+                            AssetIcon(SynapseIcon.SEARCH, "Preview $name", size = 16.dp)
+                        }
+                        IconButton({ send(DemoAction.Attachment(name, false)) }) {
+                            AssetIcon(SynapseIcon.DELETE, "Remove $name", size = 16.dp)
+                        }
+                    },
+                )
             }
         }
         DesignSection("Suggestions") {
-            DesignRow(SynapseIcon.IMAGE,"Take screenshot","Attach an example capture",onClick = { send(DemoAction.Attachment("screenshot_error.png",true)) })
-            DesignRow(SynapseIcon.FILE,"Add logs","Include error logs",onClick = { send(DemoAction.Attachment("error_log.txt",true)) })
+            DesignRow(
+                SynapseIcon.IMAGE,
+                "Take screenshot",
+                "Attach an example capture",
+                onClick = { send(DemoAction.Attachment("screenshot_error.png", true)) },
+            )
+            DesignRow(
+                SynapseIcon.FILE,
+                "Add logs",
+                "Include error logs",
+                onClick = { send(DemoAction.Attachment("error_log.txt", true)) },
+            )
         }
-        Notice("Why add attachments?","Attachments help Synapse understand your task and diagnose issues. Sharing remains subject to your privacy settings.")
+        Notice(
+            "Why add attachments?",
+            "Attachments help Synapse understand your task and diagnose issues. Sharing remains subject to your privacy settings.",
+        )
         FullButton("Continue  →") { nav(SynapseRoute.PLAN) }
         Secondary("Privacy settings") { nav(SynapseRoute.PRIVACY) }
     }
-    if(picker) ModalBottomSheet(onDismissRequest = { picker = false }) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Choose demo context",style = MaterialTheme.typography.titleLarge)
-            choices.forEach { name -> SwitchSetting(name,"Sample only",name in s.attachments) { send(DemoAction.Attachment(name,it)) } }
-            FullButton("Use selected context") { picker = false }
+    if (picker)
+        ModalBottomSheet(onDismissRequest = { picker = false }) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Choose demo context", style = MaterialTheme.typography.titleLarge)
+                choices.forEach { name ->
+                    SwitchSetting(name, "Sample only", name in s.attachments) {
+                        send(DemoAction.Attachment(name, it))
+                    }
+                }
+                FullButton("Use selected context") { picker = false }
+            }
         }
-    }
-    DemoDetailDialog(preview,{ preview = null },"Local attachment preview. File content and media are not uploaded by this demo.")
+    DemoDetailDialog(
+        preview,
+        { preview = null },
+        "Local attachment preview. File content and media are not uploaded by this demo.",
+    )
 }
 
 @Composable
 private fun PlanSummary(s: DemoState, nav: (SynapseRoute) -> Unit) {
-    DesignSection("Task summary",SynapseIcon.FILE,"Edit request",{ nav(SynapseRoute.AGENT) }) {
-        Text("Organize Downloads into folders, create archives, and verify the results.",style = MaterialTheme.typography.bodySmall)
-        InlineStats("Input files" to "618", "Destination" to "1 folder", "Estimated time" to "5–10 min", "Planned actions" to "6 steps")
+    DesignSection("Task summary", SynapseIcon.FILE, "Edit request", { nav(SynapseRoute.AGENT) }) {
+        Text(
+            "Organize Downloads into folders, create archives, and verify the results.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        InlineStats(
+            "Input files" to "618",
+            "Destination" to "1 folder",
+            "Estimated time" to "5–10 min",
+            "Planned actions" to "6 steps",
+        )
     }
 }
 
-private val planSteps = listOf(
-    Triple(SynapseIcon.FOLDER,"Check and create output folder","Verify the selected destination and create missing folders."),
-    Triple(SynapseIcon.FILE,"Analyze input files","Check formats, sizes, and hashes before changes."),
-    Triple(SynapseIcon.PLAY,"Create archives","Compress 14 source archives; retain originals."),
-    Triple(SynapseIcon.FOLDER,"Organize files","Move 604 files into the selected category folders."),
-    Triple(SynapseIcon.SECURITY,"Verify results","Check every output and record its evidence."),
-    Triple(SynapseIcon.AUDIT,"Generate summary","Show results, skipped items, and issues."),
-)
+private val planSteps =
+    listOf(
+        Triple(
+            SynapseIcon.FOLDER,
+            "Check and create output folder",
+            "Verify the selected destination and create missing folders.",
+        ),
+        Triple(
+            SynapseIcon.FILE,
+            "Analyze input files",
+            "Check formats, sizes, and hashes before changes.",
+        ),
+        Triple(
+            SynapseIcon.PLAY,
+            "Create archives",
+            "Compress 14 source archives; retain originals.",
+        ),
+        Triple(
+            SynapseIcon.FOLDER,
+            "Organize files",
+            "Move 604 files into the selected category folders.",
+        ),
+        Triple(
+            SynapseIcon.SECURITY,
+            "Verify results",
+            "Check every output and record its evidence.",
+        ),
+        Triple(SynapseIcon.AUDIT, "Generate summary", "Show results, skipped items, and issues."),
+    )
 
 @Composable
 private fun PlannedSteps() {
-    DesignSection("Planned steps (6)",SynapseIcon.AUDIT) {
-        planSteps.forEachIndexed { i,(icon,title,detail) ->
-            DesignRow(icon,"${i+1}  $title",detail)
+    DesignSection("Planned steps (6)", SynapseIcon.AUDIT) {
+        planSteps.forEachIndexed { i, (icon, title, detail) ->
+            DesignRow(icon, "${i+1}  $title", detail)
         }
     }
 }
 
 @Composable
 private fun PlanPermissions(nav: (SynapseRoute) -> Unit) {
-    DesignSection("Permissions required (3)",SynapseIcon.PERMISSIONS,"Review all",{ nav(SynapseRoute.PERMISSIONS) }) {
-        DesignRow(SynapseIcon.FOLDER,"File system access","Read input files", "Required")
-        DesignRow(SynapseIcon.FILE,"Create and modify files","Write only inside the selected folder", "Required")
-        DesignRow(SynapseIcon.SECURITY,"Scoped approval","Review moves before execution", "Required")
+    DesignSection(
+        "Permissions required (3)",
+        SynapseIcon.PERMISSIONS,
+        "Review all",
+        { nav(SynapseRoute.PERMISSIONS) },
+    ) {
+        DesignRow(SynapseIcon.FOLDER, "File system access", "Read input files", "Required")
+        DesignRow(
+            SynapseIcon.FILE,
+            "Create and modify files",
+            "Write only inside the selected folder",
+            "Required",
+        )
+        DesignRow(
+            SynapseIcon.SECURITY,
+            "Scoped approval",
+            "Review moves before execution",
+            "Required",
+        )
     }
 }
 
 @Composable
 private fun PlanDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    DesignPage(SynapseRoute.PLAN,"Plan preview","Review the generated plan. Check the steps, permissions, and estimated time before approving.",nav) {
-        PlanSummary(s,nav)
+    DesignPage(
+        SynapseRoute.PLAN,
+        "Plan preview",
+        "Review the generated plan. Check the steps, permissions, and estimated time before approving.",
+        nav,
+    ) {
+        PlanSummary(s, nav)
         PlannedSteps()
         PlanPermissions(nav)
-        Disclosure("Edit destination & exclusions",s.destination) {
-            OutlinedTextField(s.destination,{ send(DemoAction.DestinationChanged(it)) },Modifier.fillMaxWidth(),label = { Text("Destination folder") },isError = s.destination.isBlank(),singleLine = true)
-            SwitchSetting("Review duplicate trash operations","Each destructive scope requires consent.",s.includeTrash) { send(DemoAction.IncludeTrash(it)) }
+        Disclosure("Edit destination & exclusions", s.destination) {
+            OutlinedTextField(
+                s.destination,
+                { send(DemoAction.DestinationChanged(it)) },
+                Modifier.fillMaxWidth(),
+                label = { Text("Destination folder") },
+                isError = s.destination.isBlank(),
+                singleLine = true,
+            )
+            SwitchSetting(
+                "Review duplicate trash operations",
+                "Each destructive scope requires consent.",
+                s.includeTrash,
+            ) {
+                send(DemoAction.IncludeTrash(it))
+            }
         }
-        FullButton("Approve & Run",s.destination.isNotBlank()) { nav(SynapseRoute.APPROVAL) }
+        FullButton("Approve & Run", s.destination.isNotBlank()) { nav(SynapseRoute.APPROVAL) }
         Secondary("Edit request") { nav(SynapseRoute.AGENT) }
     }
 }
 
 @Composable
 private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    if(s.includeTrash) { ScopedApprovalDemo(s,send,nav);return }
-    DesignPage(SynapseRoute.APPROVAL,"Approve actions","Review the planned actions, permissions, and potential changes before starting the task.",nav) {
-        PlanSummary(s,nav)
+    if (s.includeTrash) {
+        ScopedApprovalDemo(s, send, nav)
+        return
+    }
+    DesignPage(
+        SynapseRoute.APPROVAL,
+        "Approve actions",
+        "Review the planned actions, permissions, and potential changes before starting the task.",
+        nav,
+    ) {
+        PlanSummary(s, nav)
         PlannedSteps()
         PlanPermissions(nav)
-        Notice("You remain in control","Approval applies to revision ${s.planRevision}, destination ${s.destination}, and the listed actions only. Changes invalidate approval.")
-        FullButton("Approve scoped plan",s.destination.isNotBlank()) { send(DemoAction.Approve(s.planRevision));nav(SynapseRoute.MONITOR) }
-        Actions { Secondary("Edit plan") { nav(SynapseRoute.PLAN) };Secondary("Cancel") { nav(SynapseRoute.AGENT) } }
+        Notice(
+            "You remain in control",
+            "Approval applies to revision ${s.planRevision}, destination ${s.destination}, and the listed actions only. Changes invalidate approval.",
+        )
+        FullButton("Approve scoped plan", s.destination.isNotBlank()) {
+            send(DemoAction.Approve(s.planRevision))
+            nav(SynapseRoute.MONITOR)
+        }
+        Actions {
+            Secondary("Edit plan") { nav(SynapseRoute.PLAN) }
+            Secondary("Cancel") { nav(SynapseRoute.AGENT) }
+        }
     }
 }
 
 @Composable
-private fun ScopedApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+private fun ScopedApprovalDemo(
+    s: DemoState,
+    send: (DemoAction) -> Unit,
+    nav: (SynapseRoute) -> Unit,
+) {
     val destructive = s.includeTrash && s.selectedDuplicates.isNotEmpty()
     ScreenPage(
         "EXACT SCOPE · REVISION ${s.planRevision}",
@@ -290,38 +568,103 @@ private fun ScopedApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (S
 @Composable
 private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var cancel by rememberSaveable { mutableStateOf(false) }
-    DesignPage(SynapseRoute.MONITOR,"Monitor progress","Synapse is executing the approved plan. Monitor progress and stop if needed.",nav) {
-        DesignSection("Task in progress",SynapseIcon.PLAY, s.task.status.name.lowercase()) {
-            Text(s.task.title,style = MaterialTheme.typography.bodySmall)
+    DesignPage(
+        SynapseRoute.MONITOR,
+        "Monitor progress",
+        "Synapse is executing the approved plan. Monitor progress and stop if needed.",
+        nav,
+    ) {
+        DesignSection("Task in progress", SynapseIcon.PLAY, s.task.status.name.lowercase()) {
+            Text(s.task.title, style = MaterialTheme.typography.bodySmall)
             TaskProgress(s.task)
         }
-        Section("") { InlineStats("Input files" to "${s.task.total}","Verified" to "${s.task.verified}","Blocked" to "${s.task.blocked}","Elapsed" to "03:24") }
-        DesignSection("Current step",SynapseIcon.PLAY) {
-            Text(if(s.task.status == DemoTaskStatus.VERIFIED) "Verification complete" else "Verify output ${s.task.settled+1}",style = MaterialTheme.typography.titleSmall)
+        Section("") {
+            InlineStats(
+                "Input files" to "${s.task.total}",
+                "Verified" to "${s.task.verified}",
+                "Blocked" to "${s.task.blocked}",
+                "Elapsed" to "03:24",
+            )
+        }
+        DesignSection("Current step", SynapseIcon.PLAY) {
+            Text(
+                if (s.task.status == DemoTaskStatus.VERIFIED) "Verification complete"
+                else "Verify output ${s.task.settled+1}",
+                style = MaterialTheme.typography.titleSmall,
+            )
             Muted("Source retained · scoped output · verification required")
-            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                listOf("Inspect","Plan","Execute","Verify").forEach { stage -> Column(horizontalAlignment = Alignment.CenterHorizontally) { AssetIcon(if(stage=="Verify") SynapseIcon.ACTIVITY else SynapseIcon.APPROVAL,size = 16.dp);Text(stage,style = MaterialTheme.typography.labelSmall) } }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf("Inspect", "Plan", "Execute", "Verify").forEach { stage ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        AssetIcon(
+                            if (stage == "Verify") SynapseIcon.ACTIVITY else SynapseIcon.APPROVAL,
+                            size = 16.dp,
+                        )
+                        Text(stage, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1.2f)) {
-                DesignSection("Live log",SynapseIcon.AUDIT) {
-                    demoEvents.forEach { (time,event) -> Text("$time  ✓  $event",Modifier.padding(vertical = 5.dp),style = MaterialTheme.typography.bodySmall) }
+                DesignSection("Live log", SynapseIcon.AUDIT) {
+                    demoEvents.forEach { (time, event) ->
+                        Text(
+                            "$time  ✓  $event",
+                            Modifier.padding(vertical = 5.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
             }
-            Column(Modifier.weight(1f),verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DesignSection("Current output",SynapseIcon.FOLDER) { AssetIcon(SynapseIcon.FILE,size = 40.dp);Muted("Local output preview");LinearProgressIndicator(progress = { s.task.verified.toFloat()/s.task.total.coerceAtLeast(1) },modifier = Modifier.fillMaxWidth()) }
-                DesignSection("Evidence",SynapseIcon.SECURITY) { Muted("File exists\nDuration checked\nSource preserved");TextButton({ nav(SynapseRoute.AUDIT) }) { Text("View all") } }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DesignSection("Current output", SynapseIcon.FOLDER) {
+                    AssetIcon(SynapseIcon.FILE, size = 40.dp)
+                    Muted("Local output preview")
+                    LinearProgressIndicator(
+                        progress = { s.task.verified.toFloat() / s.task.total.coerceAtLeast(1) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                DesignSection("Evidence", SynapseIcon.SECURITY) {
+                    Muted("File exists\nDuration checked\nSource preserved")
+                    TextButton({ nav(SynapseRoute.AUDIT) }) { Text("View all") }
+                }
             }
         }
         Actions {
-            Secondary("Stop execution",s.task.status in listOf(DemoTaskStatus.RUNNING,DemoTaskStatus.PAUSED)) { cancel = true }
-            Primary(if(s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",s.task.status in listOf(DemoTaskStatus.RUNNING,DemoTaskStatus.PAUSED)) { send(DemoAction.PauseResume) }
+            Secondary(
+                "Stop execution",
+                s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
+            ) {
+                cancel = true
+            }
+            Primary(
+                if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",
+                s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
+            ) {
+                send(DemoAction.PauseResume)
+            }
         }
-        Secondary("Simulate next verified item",s.task.status == DemoTaskStatus.RUNNING) { send(DemoAction.Advance) }
-        Actions { Secondary("Checkpoint") { nav(SynapseRoute.CHECKPOINT) };Secondary("Review recovery") { nav(SynapseRoute.RECOVERY) };Secondary("View result") { nav(SynapseRoute.TASK_RESULT) } }
+        Secondary("Simulate next verified item", s.task.status == DemoTaskStatus.RUNNING) {
+            send(DemoAction.Advance)
+        }
+        Actions {
+            Secondary("Checkpoint") { nav(SynapseRoute.CHECKPOINT) }
+            Secondary("Review recovery") { nav(SynapseRoute.RECOVERY) }
+            Secondary("View result") { nav(SynapseRoute.TASK_RESULT) }
+        }
     }
-    if(cancel) ConfirmAction("Cancel this demo task?","Completed changes remain in the audit. Review rollback separately.","Cancel task",{ cancel=false }) { send(DemoAction.Cancel);cancel=false }
+    if (cancel)
+        ConfirmAction(
+            "Cancel this demo task?",
+            "Completed changes remain in the audit. Review rollback separately.",
+            "Cancel task",
+            { cancel = false },
+        ) {
+            send(DemoAction.Cancel)
+            cancel = false
+        }
 }
 
 @Composable
@@ -330,34 +673,133 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
     var alternative by rememberSaveable { mutableStateOf(false) }
     var ask by rememberSaveable { mutableStateOf(false) }
     var input by rememberSaveable { mutableStateOf("") }
-    DesignPage(SynapseRoute.RECOVERY,if(s.recoveryVerified) "Recovery verified" else if(s.recoveryAborted) "Recovery stopped" else "Task needs recovery","Synapse encountered an issue. Review the error and choose how to proceed.",nav) {
-        DesignSection("Task summary",SynapseIcon.FILE) { Text("Extract lesson audio",style = MaterialTheme.typography.titleSmall);InlineStats("Input files" to "156","Failed step" to "Audio encode","Elapsed" to "02:14") }
-        Notice("Error occurred","The installed FFmpeg profile does not provide the MP3 encoder.",Tone.ERROR) {
+    DesignPage(
+        SynapseRoute.RECOVERY,
+        if (s.recoveryVerified) "Recovery verified"
+        else if (s.recoveryAborted) "Recovery stopped" else "Task needs recovery",
+        "Synapse encountered an issue. Review the error and choose how to proceed.",
+        nav,
+    ) {
+        DesignSection("Task summary", SynapseIcon.FILE) {
+            Text("Extract lesson audio", style = MaterialTheme.typography.titleSmall)
+            InlineStats(
+                "Input files" to "156",
+                "Failed step" to "Audio encode",
+                "Elapsed" to "02:14",
+            )
+        }
+        Notice(
+            "Error occurred",
+            "The installed FFmpeg profile does not provide the MP3 encoder.",
+            Tone.ERROR,
+        ) {
             CodeBlock("Unknown encoder 'libmp3lame'\nexit code: 1\ncomplete outputs: 0")
         }
-        DesignSection("Recovery options",SynapseIcon.RECOVERY,"${s.attempts} / 3 attempts") {
-            listOf("Retry with different settings","Try alternative tool","Provide a different file").forEach { option ->
-                Row(Modifier.fillMaxWidth().clickable { selected=option }.heightIn(min=48.dp),verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected==option,{ selected=option });Column { Text(option,style = MaterialTheme.typography.titleSmall);Muted(if(option.startsWith("Retry")) "Review a verified FFmpeg package profile" else if(option.startsWith("Try")) "Use AAC instead; explicit consent required" else "Add clarification before proceeding") }
+        DesignSection("Recovery options", SynapseIcon.RECOVERY, "${s.attempts} / 3 attempts") {
+            listOf(
+                    "Retry with different settings",
+                    "Try alternative tool",
+                    "Provide a different file",
+                )
+                .forEach { option ->
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .clickable { selected = option }
+                            .heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected == option, { selected = option })
+                        Column {
+                            Text(option, style = MaterialTheme.typography.titleSmall)
+                            Muted(
+                                if (option.startsWith("Retry"))
+                                    "Review a verified FFmpeg package profile"
+                                else if (option.startsWith("Try"))
+                                    "Use AAC instead; explicit consent required"
+                                else "Add clarification before proceeding"
+                            )
+                        }
+                    }
                 }
+        }
+        Disclosure(
+            "Preview of recovery plan",
+            "Source and destination are rechecked.",
+            initiallyOpen = true,
+        ) {
+            listOf(
+                    "Inspect encoder availability",
+                    "Verify package source and checksum",
+                    "Retry only after the prerequisite changes",
+                    "Validate output and preserve the source",
+                )
+                .forEachIndexed { i, t ->
+                    Text("${i+1}. $t", style = MaterialTheme.typography.bodySmall)
+                }
+        }
+        FullButton(
+            "Approve recovery",
+            !s.recoveryAborted && !s.recoveryVerified && s.attempts < 3,
+        ) {
+            when (selected) {
+                "Try alternative tool" -> alternative = true
+                "Provide a different file" -> ask = true
+                else ->
+                    if (s.packageName == "FFmpeg" && s.packageStep == 4)
+                        send(DemoAction.RetryRecovery)
+                    else {
+                        send(DemoAction.PackageSelected("FFmpeg"))
+                        nav(SynapseRoute.PACKAGE_DETAIL)
+                    }
             }
         }
-        Disclosure("Preview of recovery plan","Source and destination are rechecked.",initiallyOpen=true) {
-            listOf("Inspect encoder availability","Verify package source and checksum","Retry only after the prerequisite changes","Validate output and preserve the source").forEachIndexed { i,t -> Text("${i+1}. $t",style=MaterialTheme.typography.bodySmall) }
-        }
-        FullButton("Approve recovery",!s.recoveryAborted && !s.recoveryVerified && s.attempts<3) {
-            when(selected) {
-                "Try alternative tool" -> alternative=true
-                "Provide a different file" -> ask=true
-                else -> if(s.packageName=="FFmpeg" && s.packageStep==4) send(DemoAction.RetryRecovery) else { send(DemoAction.PackageSelected("FFmpeg"));nav(SynapseRoute.PACKAGE_DETAIL) }
+        Actions {
+            Secondary("Abort task", !s.recoveryVerified && !s.recoveryAborted) {
+                send(DemoAction.AbortRecovery)
             }
+            Secondary("Ask for help") { ask = true }
         }
-        Actions { Secondary("Abort task",!s.recoveryVerified && !s.recoveryAborted) { send(DemoAction.AbortRecovery) };Secondary("Ask for help") { ask=true } }
-        if(s.recoveryNote.isNotBlank()) Notice("Your clarification",s.recoveryNote)
-        if(s.recoveryVerified) Primary("Return to task") { send(DemoAction.SelectTask("SYN-2049"));nav(SynapseRoute.MONITOR) }
+        if (s.recoveryNote.isNotBlank()) Notice("Your clarification", s.recoveryNote)
+        if (s.recoveryVerified)
+            Primary("Return to task") {
+                send(DemoAction.SelectTask("SYN-2049"))
+                nav(SynapseRoute.MONITOR)
+            }
     }
-    if(alternative) ConfirmAction("Use AAC instead of MP3?","This changes the output format. Existing sources remain unchanged.","Approve AAC output",{alternative=false}) { send(DemoAction.Alternative);alternative=false }
-    if(ask) AlertDialog(onDismissRequest={ask=false},title={Text("What should the agent know?")},text={OutlinedTextField(input,{input=it},label={Text("Preferred format or destination")})},confirmButton={TextButton({send(DemoAction.RecoveryInput(input));ask=false},enabled=input.isNotBlank()){Text("Add clarification")}},dismissButton={TextButton({ask=false}){Text("Cancel")}})
+    if (alternative)
+        ConfirmAction(
+            "Use AAC instead of MP3?",
+            "This changes the output format. Existing sources remain unchanged.",
+            "Approve AAC output",
+            { alternative = false },
+        ) {
+            send(DemoAction.Alternative)
+            alternative = false
+        }
+    if (ask)
+        DesignDialog(
+            onDismissRequest = { ask = false },
+            title = { Text("What should the agent know?") },
+            text = {
+                OutlinedTextField(
+                    input,
+                    { input = it },
+                    label = { Text("Preferred format or destination") },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    {
+                        send(DemoAction.RecoveryInput(input))
+                        ask = false
+                    },
+                    enabled = input.isNotBlank(),
+                ) {
+                    Text("Add clarification")
+                }
+            },
+            dismissButton = { TextButton({ ask = false }) { Text("Cancel") } },
+        )
 }
 
 @Composable
@@ -366,45 +808,153 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
     var keep by rememberSaveable { mutableStateOf("10 checkpoints") }
     var created by rememberSaveable { mutableIntStateOf(0) }
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
-    DesignPage(SynapseRoute.CHECKPOINT,"Checkpoints","Manage restore points for your tasks and recorded changes. Task checkpoints do not restore your entire device.",nav) {
-        DesignSection("Automatic checkpoints",SynapseIcon.SETTINGS) {
-            SwitchSetting("Automatic checkpoints","Before important changes in this demo",automatic){automatic=it}
-            DesignChoice("Keep last",listOf("5 checkpoints","10 checkpoints","20 checkpoints"),keep){keep=it}
-            InlineStats("Storage usage" to "1.2 GB / 10 GB","Retained" to "${8+created}")
-        }
-        DesignRow(SynapseIcon.PLUS,"Create a checkpoint now","Create a sample restore point",onClick={created++;send(DemoAction.Notice("Demo task checkpoint created. No device snapshot was taken."))})
-        DesignSection("Checkpoints (${8+created})",SynapseIcon.CHECKPOINTS) {
-            repeat(created) { i -> DesignRow(SynapseIcon.CHECKPOINTS,"Manual checkpoint ${i+1}","Created in this demo","Just now",onClick={detail="Manual checkpoint ${i+1}"}) }
-            listOf("Before converting videos to MP4","Before organizing Downloads folder","Before running Python project","Before installing Termux","Manual checkpoint","System checkpoint","Before device configuration","Before cleaning storage").forEachIndexed { i,t ->
-                DesignRow(if(i%2==0) SynapseIcon.PLAY else SynapseIcon.CHECKPOINTS,t,"Task snapshot · ${320-i*20} MB",if(i<2) "Today" else "Yesterday",onClick={detail=t})
+    DesignPage(
+        SynapseRoute.CHECKPOINT,
+        "Checkpoints",
+        "Manage restore points for your tasks and recorded changes. Task checkpoints do not restore your entire device.",
+        nav,
+    ) {
+        DesignSection("Automatic checkpoints", SynapseIcon.SETTINGS) {
+            SwitchSetting(
+                "Automatic checkpoints",
+                "Before important changes in this demo",
+                automatic,
+            ) {
+                automatic = it
             }
+            DesignChoice(
+                "Keep last",
+                listOf("5 checkpoints", "10 checkpoints", "20 checkpoints"),
+                keep,
+            ) {
+                keep = it
+            }
+            InlineStats("Storage usage" to "1.2 GB / 10 GB", "Retained" to "${8+created}")
+        }
+        DesignRow(
+            SynapseIcon.PLUS,
+            "Create a checkpoint now",
+            "Create a sample restore point",
+            onClick = {
+                created++
+                send(
+                    DemoAction.Notice("Demo task checkpoint created. No device snapshot was taken.")
+                )
+            },
+        )
+        DesignSection("Checkpoints (${8+created})", SynapseIcon.CHECKPOINTS) {
+            repeat(created) { i ->
+                DesignRow(
+                    SynapseIcon.CHECKPOINTS,
+                    "Manual checkpoint ${i+1}",
+                    "Created in this demo",
+                    "Just now",
+                    onClick = { detail = "Manual checkpoint ${i+1}" },
+                )
+            }
+            listOf(
+                    "Before converting videos to MP4",
+                    "Before organizing Downloads folder",
+                    "Before running Python project",
+                    "Before installing Termux",
+                    "Manual checkpoint",
+                    "System checkpoint",
+                    "Before device configuration",
+                    "Before cleaning storage",
+                )
+                .forEachIndexed { i, t ->
+                    DesignRow(
+                        if (i % 2 == 0) SynapseIcon.PLAY else SynapseIcon.CHECKPOINTS,
+                        t,
+                        "Task snapshot · ${320-i*20} MB",
+                        if (i < 2) "Today" else "Yesterday",
+                        onClick = { detail = t },
+                    )
+                }
         }
     }
-    if(detail!=null) AlertDialog(onDismissRequest={detail=null},title={Text(detail!!)},text={Text("Review recorded outputs and conflicts before restoring. This sample checkpoint contains task state only.")},confirmButton={TextButton({detail=null;nav(SynapseRoute.UNDO)}){Text("Review restore")}},dismissButton={TextButton({detail=null;nav(SynapseRoute.MONITOR)}){Text("Open task")}})
+    if (detail != null)
+        DesignDialog(
+            onDismissRequest = { detail = null },
+            title = { Text(detail!!) },
+            text = {
+                Text(
+                    "Review recorded outputs and conflicts before restoring. This sample checkpoint contains task state only."
+                )
+            },
+            confirmButton = {
+                TextButton({
+                    detail = null
+                    nav(SynapseRoute.UNDO)
+                }) {
+                    Text("Review restore")
+                }
+            },
+            dismissButton = {
+                TextButton({
+                    detail = null
+                    nav(SynapseRoute.MONITOR)
+                }) {
+                    Text("Open task")
+                }
+            },
+        )
 }
 
 @Composable
 private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("All") }
-    DesignPage(SynapseRoute.ACTIVITY,"History","View and search completed, failed, and cancelled tasks. See details, results, and restore from checkpoints.",nav) {
-        DesignSearch(query,{query=it},"Search tasks, actions, or results…")
-        ChoiceChips(listOf("All","Completed","Failed","Cancelled"),filter){filter=it}
-        val filtered=s.tasks.filter { it.title.contains(query,true) && when(filter){"Completed"->it.status==DemoTaskStatus.VERIFIED;"Failed"->it.status==DemoTaskStatus.FAILED;"Cancelled"->it.status==DemoTaskStatus.CANCELLED;else->true} }
-        if(filtered.isEmpty()) Notice("No matching tasks","Try another name or status filter.")
-        listOf("Today","Yesterday").forEachIndexed { index,label ->
-            val group=if(index==0) filtered.take(4) else filtered.drop(4)
-            if(group.isNotEmpty()) DesignSection(label) {
-                group.forEach { task ->
-                    DesignRow(if(task.status==DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL else if(task.status==DemoTaskStatus.FAILED) SynapseIcon.WARNING else SynapseIcon.PLAY,task.title,"${task.verified} of ${task.total} verified · ${task.id}",task.status.name.lowercase(),onClick={send(DemoAction.SelectTask(task.id));nav(SynapseRoute.AUDIT)})
-                    HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
-                }
+    DesignPage(
+        SynapseRoute.ACTIVITY,
+        "History",
+        "View and search completed, failed, and cancelled tasks. See details, results, and restore from checkpoints.",
+        nav,
+    ) {
+        DesignSearch(query, { query = it }, "Search tasks, actions, or results…")
+        ChoiceChips(listOf("All", "Completed", "Failed", "Cancelled"), filter) { filter = it }
+        val filtered =
+            s.tasks.filter {
+                it.title.contains(query, true) &&
+                    when (filter) {
+                        "Completed" -> it.status == DemoTaskStatus.VERIFIED
+                        "Failed" -> it.status == DemoTaskStatus.FAILED
+                        "Cancelled" -> it.status == DemoTaskStatus.CANCELLED
+                        else -> true
+                    }
             }
+        if (filtered.isEmpty()) Notice("No matching tasks", "Try another name or status filter.")
+        listOf("Today", "Yesterday").forEachIndexed { index, label ->
+            val group = if (index == 0) filtered.take(4) else filtered.drop(4)
+            if (group.isNotEmpty())
+                DesignSection(label) {
+                    group.forEach { task ->
+                        DesignRow(
+                            if (task.status == DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL
+                            else if (task.status == DemoTaskStatus.FAILED) SynapseIcon.WARNING
+                            else SynapseIcon.PLAY,
+                            task.title,
+                            "${task.verified} of ${task.total} verified · ${task.id}",
+                            task.status.name.lowercase(),
+                            onClick = {
+                                send(DemoAction.SelectTask(task.id))
+                                nav(SynapseRoute.AUDIT)
+                            },
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
         }
     }
 }
 
-private data class AuditExample(val tool: String, val source: String, val output: String, val check: String, val recovery: String)
+private data class AuditExample(
+    val tool: String,
+    val source: String,
+    val output: String,
+    val check: String,
+    val recovery: String,
+)
 
 @Composable
 private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
@@ -471,54 +1021,182 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
         }
     val hasEvidence = s.task.verified > 0
     val final = s.task.status == DemoTaskStatus.VERIFIED
-    DesignPage(SynapseRoute.AUDIT,s.task.title,"${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",nav) {
-        ChoiceChips(listOf("Summary","Changes","Timeline","Tools & Logs"),tab){tab=it}
-        when(tab) {
+    DesignPage(
+        SynapseRoute.AUDIT,
+        s.task.title,
+        "${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",
+        nav,
+    ) {
+        ChoiceChips(listOf("Summary", "Changes", "Timeline", "Tools & Logs"), tab) { tab = it }
+        when (tab) {
             "Summary" -> {
-                DesignSection("Task summary",SynapseIcon.FILE) { Text(s.task.title,style=MaterialTheme.typography.bodySmall);InlineStats("Processed" to "${s.task.verified}","Skipped" to "${s.task.skipped}","Blocked" to "${s.task.blocked}","Task" to s.task.id) }
-                DesignSection("Output location",SynapseIcon.FOLDER){Text(evidence.output,style=MaterialTheme.typography.bodySmall)}
-                DesignSection("Verified outputs",SynapseIcon.FILE,"Open folder",{nav(SynapseRoute.SANDBOX)}) {
-                    if(hasEvidence) repeat(s.task.verified.coerceAtMost(3)) { i -> DesignRow(SynapseIcon.FILE,"Output ${i+1}",evidence.check,"Verified") } else Muted("No verified outputs yet.")
+                DesignSection("Task summary", SynapseIcon.FILE) {
+                    Text(s.task.title, style = MaterialTheme.typography.bodySmall)
+                    InlineStats(
+                        "Processed" to "${s.task.verified}",
+                        "Skipped" to "${s.task.skipped}",
+                        "Blocked" to "${s.task.blocked}",
+                        "Task" to s.task.id,
+                    )
                 }
-                DesignSection("Verification result",SynapseIcon.SECURITY) {
-                    VerifiedRow("Completed item checks",if(hasEvidence) evidence.check else "No completed output has been verified yet",hasEvidence)
-                    VerifiedRow("Whole task complete",if(final) "All required outcomes accounted for" else "Remaining, failed or blocked items need review",final)
+                DesignSection("Output location", SynapseIcon.FOLDER) {
+                    Text(evidence.output, style = MaterialTheme.typography.bodySmall)
+                }
+                DesignSection(
+                    "Verified outputs",
+                    SynapseIcon.FILE,
+                    "Open folder",
+                    { nav(SynapseRoute.SANDBOX) },
+                ) {
+                    if (hasEvidence)
+                        repeat(s.task.verified.coerceAtMost(3)) { i ->
+                            DesignRow(SynapseIcon.FILE, "Output ${i+1}", evidence.check, "Verified")
+                        }
+                    else Muted("No verified outputs yet.")
+                }
+                DesignSection("Verification result", SynapseIcon.SECURITY) {
+                    VerifiedRow(
+                        "Completed item checks",
+                        if (hasEvidence) evidence.check
+                        else "No completed output has been verified yet",
+                        hasEvidence,
+                    )
+                    VerifiedRow(
+                        "Whole task complete",
+                        if (final) "All required outcomes accounted for"
+                        else "Remaining, failed or blocked items need review",
+                        final,
+                    )
                 }
             }
-            "Changes" -> DesignSection("Changes made",SynapseIcon.FILE) { DesignRow(SynapseIcon.FILE,"Source",evidence.source);DesignRow(SynapseIcon.FOLDER,"Destination",evidence.output);Muted("${s.task.verified} verified outcomes; remaining work is not reported as complete.");Secondary("Review undo"){nav(SynapseRoute.UNDO)} }
-            "Timeline" -> DesignSection("Task timeline",SynapseIcon.ACTIVITY) { demoEvents.forEach { (time,event) -> DesignRow(SynapseIcon.ACTIVITY,time,event) } }
-            else -> DesignSection("Tools & Logs",SynapseIcon.TERMINAL) { CodeBlock("tool: ${evidence.tool}\ninput: ${evidence.source}\noutput: ${evidence.output}\npolicy: approved scope only\nverified_outcomes: ${s.task.verified}\nfinal_state: ${s.task.status.name}");Muted(evidence.recovery) }
+            "Changes" ->
+                DesignSection("Changes made", SynapseIcon.FILE) {
+                    DesignRow(SynapseIcon.FILE, "Source", evidence.source)
+                    DesignRow(SynapseIcon.FOLDER, "Destination", evidence.output)
+                    Muted(
+                        "${s.task.verified} verified outcomes; remaining work is not reported as complete."
+                    )
+                    Secondary("Review undo") { nav(SynapseRoute.UNDO) }
+                }
+            "Timeline" ->
+                DesignSection("Task timeline", SynapseIcon.ACTIVITY) {
+                    demoEvents.forEach { (time, event) ->
+                        DesignRow(SynapseIcon.ACTIVITY, time, event)
+                    }
+                }
+            else ->
+                DesignSection("Tools & Logs", SynapseIcon.TERMINAL) {
+                    CodeBlock(
+                        "tool: ${evidence.tool}\ninput: ${evidence.source}\noutput: ${evidence.output}\npolicy: approved scope only\nverified_outcomes: ${s.task.verified}\nfinal_state: ${s.task.status.name}"
+                    )
+                    Muted(evidence.recovery)
+                }
         }
-        Actions { Secondary("Run again"){nav(SynapseRoute.PLAN)};Secondary("Undo changes"){nav(SynapseRoute.UNDO)};Secondary("View checkpoint"){nav(SynapseRoute.CHECKPOINT)} }
+        Actions {
+            Secondary("Run again") { nav(SynapseRoute.PLAN) }
+            Secondary("Undo changes") { nav(SynapseRoute.UNDO) }
+            Secondary("View checkpoint") { nav(SynapseRoute.CHECKPOINT) }
+        }
     }
 }
 
 @Composable
 private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var confirm by rememberSaveable { mutableStateOf(false) }
-    var selected by rememberSaveable { mutableStateOf(listOf("Moved files","Trash entries","Created archives")) }
-    var preview by rememberSaveable { mutableStateOf(false) }
-    DesignPage(SynapseRoute.UNDO,"Undo / Rollback","Revert recorded task changes. Select what to undo and review the impact before proceeding.",nav) {
-        DesignSection("Organize Downloads",SynapseIcon.PLAY) { Muted("Fixed rollback scenario · completed demo transaction") }
-        if(s.rollbackDone) Notice("Demo restore verified","Selected changes were reversed in the simulation. Your current ticket.png was preserved.",Tone.SUCCESS)
-        else Notice("This will undo changes made by the task","Only recorded changes can be restored. Newly created files are removed only if unchanged.",Tone.ERROR)
-        DesignSection("Changes to undo (${selected.size})",SynapseIcon.UNDO) {
-            listOf("Moved files" to "604 original locations recorded","Trash entries" to "27 retained copies available","Created archives" to "14 files · remove only if unchanged").forEach { (title,detail) ->
-                Row(Modifier.fillMaxWidth().clickable { selected=if(title in selected) selected-title else selected+title }.heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically) {
-                    Checkbox(title in selected,{checked->selected=if(checked) selected+title else selected-title},enabled=!s.rollbackDone)
-                    Column { Text(title,style=MaterialTheme.typography.titleSmall);Muted(detail) }
-                }
-            }
-        }
-        DesignSection("Files to be restored",SynapseIcon.RECOVERY,"Preview files",{preview=true}) {
-            DesignRow(SynapseIcon.FILE,"Original locations","Paths are recorded per operation")
-            DesignRow(SynapseIcon.SECURITY,"Conflict policy",s.restoreConflictChoice)
-        }
-        Notice("One conflict needs review","Downloads/Images/ticket.png changed after this task.",Tone.WARNING)
-        DesignChoice("Resolve conflict",listOf("Keep current","Restore under new name"),s.restoreConflictChoice){send(DemoAction.ConflictChoice(it))}
-        FullButton("Restore selected changes",!s.rollbackDone && selected.isNotEmpty()){confirm=true}
-        Secondary("Cancel"){nav(SynapseRoute.AUDIT)}
+    var selected by rememberSaveable {
+        mutableStateOf(listOf("Moved files", "Trash entries", "Created archives"))
     }
-    DemoDetailDialog(if(preview) "Restore preview" else null,{preview=false},"${selected.joinToString()} will be reviewed. Permanent deletion and unsupported system changes cannot be restored.")
-    if(confirm) ConfirmAction("Apply this demo rollback?","Selected: ${selected.joinToString()}. Conflict policy: ${s.restoreConflictChoice}. This is a simulated transaction.","Restore",{confirm=false}){send(DemoAction.Rollback);confirm=false}
+    var preview by rememberSaveable { mutableStateOf(false) }
+    DesignPage(
+        SynapseRoute.UNDO,
+        "Undo / Rollback",
+        "Revert recorded task changes. Select what to undo and review the impact before proceeding.",
+        nav,
+    ) {
+        DesignSection("Organize Downloads", SynapseIcon.PLAY) {
+            Muted("Fixed rollback scenario · completed demo transaction")
+        }
+        if (s.rollbackDone)
+            Notice(
+                "Demo restore verified",
+                "Selected changes were reversed in the simulation. Your current ticket.png was preserved.",
+                Tone.SUCCESS,
+            )
+        else
+            Notice(
+                "This will undo changes made by the task",
+                "Only recorded changes can be restored. Newly created files are removed only if unchanged.",
+                Tone.ERROR,
+            )
+        DesignSection("Changes to undo (${selected.size})", SynapseIcon.UNDO) {
+            listOf(
+                    "Moved files" to "604 original locations recorded",
+                    "Trash entries" to "27 retained copies available",
+                    "Created archives" to "14 files · remove only if unchanged",
+                )
+                .forEach { (title, detail) ->
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .clickable(enabled = !s.rollbackDone) {
+                                selected =
+                                    if (title in selected) selected - title else selected + title
+                            }
+                            .heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            title in selected,
+                            { checked ->
+                                selected = if (checked) selected + title else selected - title
+                            },
+                            enabled = !s.rollbackDone,
+                        )
+                        Column {
+                            Text(title, style = MaterialTheme.typography.titleSmall)
+                            Muted(detail)
+                        }
+                    }
+                }
+        }
+        DesignSection(
+            "Files to be restored",
+            SynapseIcon.RECOVERY,
+            "Preview files",
+            { preview = true },
+        ) {
+            DesignRow(SynapseIcon.FILE, "Original locations", "Paths are recorded per operation")
+            DesignRow(SynapseIcon.SECURITY, "Conflict policy", s.restoreConflictChoice)
+        }
+        Notice(
+            "One conflict needs review",
+            "Downloads/Images/ticket.png changed after this task.",
+            Tone.WARNING,
+        )
+        DesignChoice(
+            "Resolve conflict",
+            listOf("Keep current", "Restore under new name"),
+            s.restoreConflictChoice,
+        ) {
+            send(DemoAction.ConflictChoice(it))
+        }
+        FullButton("Restore selected changes", !s.rollbackDone && selected.isNotEmpty()) {
+            confirm = true
+        }
+        Secondary("Cancel") { nav(SynapseRoute.AUDIT) }
+    }
+    DemoDetailDialog(
+        if (preview) "Restore preview" else null,
+        { preview = false },
+        "${selected.joinToString()} will be reviewed. Permanent deletion and unsupported system changes cannot be restored.",
+    )
+    if (confirm)
+        ConfirmAction(
+            "Apply this demo rollback?",
+            "Selected: ${selected.joinToString()}. Conflict policy: ${s.restoreConflictChoice}. This is a simulated transaction.",
+            "Restore",
+            { confirm = false },
+        ) {
+            send(DemoAction.Rollback)
+            confirm = false
+        }
 }

@@ -61,10 +61,10 @@ class SynapseActivityTests {
         }
         compose.onNodeWithText("Try demo").performClick()
         compose.onNodeWithText("Demo data · simulated actions").assertExists()
-        compose.onNodeWithText("Agent").performClick()
-        compose.onNodeWithText("What can we do today?").assertExists()
+        compose.onNodeWithText("Skip for now").performScrollTo().performClick()
+        compose.onNodeWithText("Hello, Mohammed").assertExists()
         compose.onNodeWithText("Device").performClick()
-        compose.onNodeWithText("Know your environment").assertExists()
+        compose.onNodeWithText("Device information").assertExists()
         compose.onNodeWithText("Go live").performClick()
         compose.onNodeWithText("Environment overview").assertExists()
         compose.onNodeWithText("Demo data · simulated actions").assertDoesNotExist()
