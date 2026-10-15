@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.pm.PackageInfoCompat
 import dev.deviceagent.app.*
 import dev.deviceagent.app.ui.*
 import java.util.Locale
@@ -53,7 +54,7 @@ internal fun LiveRouteContent(
                     }
                     LabeledValue("Application ID", context.packageName)
                     LabeledValue("Version", packageInfo.versionName ?: "Unknown")
-                    LabeledValue("Build", packageInfo.longVersionCode.toString())
+                    LabeledValue("Build", PackageInfoCompat.getLongVersionCode(packageInfo).toString())
                 }
                 AboutCard()
                 LinkRow("Permissions", "Review Android access", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
