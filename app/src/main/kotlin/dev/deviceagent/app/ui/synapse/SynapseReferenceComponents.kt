@@ -4,6 +4,9 @@ package dev.deviceagent.app.ui.synapse
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +35,7 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
             }
         }
         if(route in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) Text("‹  History",Modifier.clickable(role=Role.Button){nav(SynapseRoute.ACTIVITY)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
+        if(route in listOf(SynapseRoute.PROVIDERS,SynapseRoute.CREDENTIALS,SynapseRoute.MODELS,SynapseRoute.PRIVACY,SynapseRoute.USAGE,SynapseRoute.SECURITY,SynapseRoute.MEMORY)) Text("‹  Settings",Modifier.clickable(role=Role.Button){nav(SynapseRoute.SETTINGS)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
         Column {
             Text(title, style = MaterialTheme.typography.headlineMedium)
             if (subtitle.isNotEmpty()) Muted(subtitle)
@@ -86,7 +90,7 @@ internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             AssetIcon(SynapseIcon.SEARCH, tint = MaterialTheme.colorScheme.onSurfaceVariant, size = 16.dp)
             Spacer(Modifier.width(8.dp))
-            BasicTextField(value, onValue, Modifier.weight(1f), singleLine = true, textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface), decorationBox = { field ->
+            BasicTextField(value, onValue, Modifier.weight(1f).semantics { contentDescription = hint }, singleLine = true, textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface), decorationBox = { field ->
                 if(value.isEmpty()) Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 field()
             })
@@ -95,12 +99,12 @@ internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String
 }
 
 @Composable
-internal fun DesignSection(title: String, icon: SynapseIcon? = null, action: String? = null, onAction: () -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
+internal fun DesignSection(title: String, icon: SynapseIcon? = null, action: String? = null, onAction: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     Section("") {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             icon?.let { AssetIcon(it, size = 18.dp) }
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            if(action != null) Text(action, Modifier.clickable(role = Role.Button, onClick = onAction).padding(vertical = 5.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+            if(action != null) Text(action, Modifier.then(if(onAction != null) Modifier.clickable(role = Role.Button, onClick = onAction) else Modifier).padding(vertical = 5.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
         }
         Column(content = content)
     }
@@ -146,4 +150,13 @@ internal fun SmallValue(label: String, value: String) {
         Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
     }
+}
+
+/** Reference's thin track with a full 48dp interactive target. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DesignSlider(value: Float, onValue: (Float) -> Unit, valueRange: ClosedFloatingPointRange<Float>, label: String) {
+    Slider(value, onValue, modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).semantics { contentDescription=label }, valueRange=valueRange,
+        thumb={ Box(Modifier.size(16.dp).background(MaterialTheme.colorScheme.primary, CircleShape).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)) },
+        track={ SliderDefaults.Track(it,Modifier.height(4.dp),thumbTrackGapSize=0.dp,drawStopIndicator=null) })
 }
