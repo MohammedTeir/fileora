@@ -53,7 +53,7 @@ internal fun LiveRouteContent(
                     }
                     LabeledValue("Application ID", context.packageName)
                     LabeledValue("Version", packageInfo.versionName ?: "Unknown")
-                    LabeledValue("Build", if (Build.VERSION.SDK_INT >= 28) packageInfo.longVersionCode.toString() else @Suppress("DEPRECATION") packageInfo.versionCode.toString())
+                    LabeledValue("Build", packageInfo.longVersionCode.toString())
                 }
                 AboutCard()
                 LinkRow("Permissions", "Review Android access", Icons.Default.Shield) { nav(SynapseRoute.PERMISSIONS) }
