@@ -37,6 +37,10 @@ enum class SynapseRoute(val title: String, val destination: Destination, val num
     APPS("Apps & APK inspector", Destination.DEVICE, 25),
     TOOLS("Tool catalog", Destination.DEVICE, 26),
     SETTINGS("Settings", Destination.SETTINGS, 27),
+    PERMISSIONS("Permissions", Destination.SETTINGS, 28),
+    APPEARANCE("Appearance", Destination.SETTINGS, 29),
+    ABOUT("About", Destination.SETTINGS, 30),
+    TASK_RESULT("Task completed", Destination.AGENT, 31),
     BROWSE("Browse files", Destination.DEVICE, 0),
     SEARCH("Search files", Destination.DEVICE, 0),
 }
