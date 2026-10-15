@@ -2,8 +2,11 @@ package dev.deviceagent.app.ui.synapse
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,9 +17,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,192 +80,223 @@ internal fun SynapseWorkspace(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val rail = maxWidth >= 600.dp
         val expanded = maxWidth >= 1000.dp
-        Scaffold(
-            topBar = {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    Row(
-                        Modifier.fillMaxWidth()
-                            .statusBarsPadding()
-                            .heightIn(min = SynapseDesignTokens.topBarHeight)
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (stack.contains('|'))
-                            IconButton(back, Modifier.size(40.dp)) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                            }
-                        Image(
-                            painterResource(R.drawable.synapse_brand_mark),
-                            "Synapse",
-                            Modifier.size(30.dp),
-                        )
-                        Column(Modifier.weight(1f).padding(start = 7.dp)) {
-                            Text("Synapse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text(
-                                if (demo) "Demo data · simulated actions"
-                                else "Your AI-powered device operator",
-                                fontSize = 8.sp,
-                                lineHeight = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(
-                            {
-                                demo = !demo
-                                preview = PreviewState.READY.name
-                            },
-                            contentPadding = PaddingValues(6.dp),
+        CompositionLocalProvider(
+            LocalMinimumInteractiveComponentSize provides if (demo) 32.dp else 48.dp
+        ) {
+            Scaffold(
+                topBar = {
+                    Surface(color = MaterialTheme.colorScheme.background) {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .statusBarsPadding()
+                                .heightIn(min = SynapseDesignTokens.topBarHeight)
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(if (demo) "Go live" else "Try demo", fontSize = 10.sp)
-                        }
-                        Box {
-                            IconButton({ states = true }, Modifier.size(40.dp)) {
-                                AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp)
-                            }
-                            DropdownMenu(states, { states = false }) {
-                                DropdownMenuItem(
-                                    { Text("All screens") },
-                                    {
-                                        directory = !directory
-                                        states = false
-                                    },
+                            if (stack.contains('|'))
+                                IconButton(back, Modifier.size(40.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                                }
+                            Image(
+                                painterResource(R.drawable.synapse_brand_mark),
+                                "Synapse",
+                                Modifier.size(30.dp),
+                            )
+                            Column(Modifier.weight(1f).padding(start = 7.dp)) {
+                                Text("Synapse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    if (demo) "Demo data · simulated actions"
+                                    else "Your AI-powered device operator",
+                                    fontSize = 8.sp,
+                                    lineHeight = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                if (demo)
-                                    PreviewState.entries.forEach { state ->
-                                        DropdownMenuItem(
-                                            { Text("${state.name.lowercase()} preview") },
-                                            {
-                                                preview = state.name
-                                                states = false
-                                            },
-                                        )
-                                    }
                             }
-                        }
-                    }
-                }
-            },
-            snackbarHost = { SnackbarHost(snackbar) },
-            bottomBar = {
-                if (!rail && route != SynapseRoute.WELCOME)
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        modifier = Modifier.heightIn(min = SynapseDesignTokens.navigationHeight),
-                    ) {
-                        Destination.entries.forEach { destination ->
-                            NavigationBarItem(
-                                route.destination == destination,
+                            TextButton(
                                 {
-                                    stack = destination.startRoute().name
-                                    directory = false
+                                    demo = !demo
                                     preview = PreviewState.READY.name
                                 },
-                                icon = {
-                                    AssetIcon(
-                                        destination.assetIcon(),
-                                        tint =
-                                            if (route.destination == destination)
-                                                MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                },
-                                label = { Text(destination.label, fontSize = 10.sp) },
-                            )
-                        }
-                    }
-            },
-        ) { padding ->
-            Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {
-                if (rail)
-                    NavigationRail {
-                        Destination.entries.forEach { destination ->
-                            NavigationRailItem(
-                                route.destination == destination,
-                                {
-                                    stack = destination.startRoute().name
-                                    directory = false
-                                    preview = PreviewState.READY.name
-                                },
-                                icon = {
-                                    AssetIcon(
-                                        destination.assetIcon(),
-                                        tint =
-                                            if (route.destination == destination)
-                                                MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                },
-                                label = { Text(destination.label, fontSize = 10.sp) },
-                            )
-                        }
-                    }
-                Column(
-                    Modifier.weight(1f).fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        Modifier.weight(1f)
-                            .widthIn(max = 840.dp)
-                            .fillMaxWidth()
-                            .testTag("route-${route.name}")
-                    ) {
-                        if (directory) ScreenDirectory(route, navigate)
-                        else
-                            holder.SaveableStateProvider(
-                                "${if (demo) "demo_$resetEpoch" else "live"}_${route.name}"
+                                contentPadding = PaddingValues(6.dp),
                             ) {
-                                if (demo)
-                                    PreviewPane(
-                                        route,
-                                        PreviewState.valueOf(preview),
-                                        { preview = PreviewState.READY.name },
+                                Text(if (demo) "Go live" else "Try demo", fontSize = 10.sp)
+                            }
+                            Box {
+                                IconButton({ states = true }, Modifier.size(40.dp)) {
+                                    AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp)
+                                }
+                                DropdownMenu(states, { states = false }) {
+                                    DropdownMenuItem(
+                                        { Text("All screens") },
+                                        {
+                                            directory = !directory
+                                            states = false
+                                        },
+                                    )
+                                    if (demo)
+                                        PreviewState.entries.forEach { state ->
+                                            DropdownMenuItem(
+                                                { Text("${state.name.lowercase()} preview") },
+                                                {
+                                                    preview = state.name
+                                                    states = false
+                                                },
+                                            )
+                                        }
+                                }
+                            }
+                        }
+                    }
+                },
+                snackbarHost = { SnackbarHost(snackbar) },
+                bottomBar = {
+                    if (!rail && route != SynapseRoute.WELCOME)
+                        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .navigationBarsPadding()
+                                    .heightIn(min = SynapseDesignTokens.navigationHeight)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Destination.entries.forEach { destination ->
+                                    val selected = route.destination == destination
+                                    Column(
+                                        Modifier.weight(1f)
+                                            .background(
+                                                if (selected)
+                                                    MaterialTheme.colorScheme.primaryContainer
+                                                else Color.Transparent,
+                                                RoundedCornerShape(12.dp),
+                                            )
+                                            .selectable(selected, role = Role.Tab) {
+                                                stack = destination.startRoute().name
+                                                directory = false
+                                                preview = PreviewState.READY.name
+                                            }
+                                            .heightIn(min = 46.dp)
+                                            .padding(vertical = 5.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(3.dp),
                                     ) {
-                                        DemoRouteContent(
-                                            route,
-                                            s,
-                                            send,
-                                            navigate,
-                                            appearance,
-                                            onAppearance,
-                                            reducedMotion,
-                                            onReducedMotion,
-                                            {
-                                                reset()
-                                                resetEpoch++
-                                            },
+                                        AssetIcon(
+                                            destination.assetIcon(),
+                                            tint =
+                                                if (selected) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            size = 20.dp,
+                                        )
+                                        Text(
+                                            destination.label,
+                                            fontSize = 9.sp,
+                                            lineHeight = 12.sp,
+                                            color =
+                                                if (selected) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
-                                else
-                                    liveContent(route, navigate) {
-                                        demo = true
-                                        preview = PreviewState.READY.name
-                                    }
+                                }
                             }
-                    }
-                }
-                if (expanded)
-                    Column(
-                        Modifier.width(260.dp)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Text("Workspace context", style = MaterialTheme.typography.titleMedium)
-                        Notice(
-                            if (demo) "Simulation active" else "Live workspace",
-                            if (demo)
-                                "Sample actions update only the demo scenario. No commands, uploads or file changes occur."
-                            else
-                                "Live actions use your selected folders, provider and existing safety checks.",
-                        )
-                        if (demo) {
-                            LabeledValue("Selected task", s.task.id)
-                            TaskProgress(s.task)
-                            Secondary("Open monitor") { navigate(SynapseRoute.MONITOR) }
                         }
-                        Secondary("Browse all screens") { directory = true }
+                },
+            ) { padding ->
+                Row(
+                    Modifier.fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding)
+                        .imePadding()
+                ) {
+                    if (rail)
+                        NavigationRail {
+                            Destination.entries.forEach { destination ->
+                                NavigationRailItem(
+                                    route.destination == destination,
+                                    {
+                                        stack = destination.startRoute().name
+                                        directory = false
+                                        preview = PreviewState.READY.name
+                                    },
+                                    icon = {
+                                        AssetIcon(
+                                            destination.assetIcon(),
+                                            tint =
+                                                if (route.destination == destination)
+                                                    MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    },
+                                    label = { Text(destination.label, fontSize = 10.sp) },
+                                )
+                            }
+                        }
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            Modifier.weight(1f)
+                                .widthIn(max = 840.dp)
+                                .fillMaxWidth()
+                                .testTag("route-${route.name}")
+                        ) {
+                            if (directory) ScreenDirectory(route, navigate)
+                            else
+                                holder.SaveableStateProvider(
+                                    "${if (demo) "demo_$resetEpoch" else "live"}_${route.name}"
+                                ) {
+                                    if (demo)
+                                        PreviewPane(
+                                            route,
+                                            PreviewState.valueOf(preview),
+                                            { preview = PreviewState.READY.name },
+                                        ) {
+                                            DemoRouteContent(
+                                                route,
+                                                s,
+                                                send,
+                                                navigate,
+                                                appearance,
+                                                onAppearance,
+                                                reducedMotion,
+                                                onReducedMotion,
+                                                {
+                                                    reset()
+                                                    resetEpoch++
+                                                },
+                                            )
+                                        }
+                                    else
+                                        liveContent(route, navigate) {
+                                            demo = true
+                                            preview = PreviewState.READY.name
+                                        }
+                                }
+                        }
                     }
+                    if (expanded)
+                        Column(
+                            Modifier.width(260.dp)
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Text("Workspace context", style = MaterialTheme.typography.titleMedium)
+                            Notice(
+                                if (demo) "Simulation active" else "Live workspace",
+                                if (demo)
+                                    "Sample actions update only the demo scenario. No commands, uploads or file changes occur."
+                                else
+                                    "Live actions use your selected folders, provider and existing safety checks.",
+                            )
+                            if (demo) {
+                                LabeledValue("Selected task", s.task.id)
+                                TaskProgress(s.task)
+                                Secondary("Open monitor") { navigate(SynapseRoute.MONITOR) }
+                            }
+                            Secondary("Browse all screens") { directory = true }
+                        }
+                }
             }
         }
     }

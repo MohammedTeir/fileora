@@ -3,6 +3,7 @@
 package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -19,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -91,7 +91,8 @@ internal fun Section(
         shape = RoundedCornerShape(SynapseDesignTokens.cardRadius),
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border =
+            BorderStroke(SynapseDesignTokens.borderWidth, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
             Modifier.padding(
@@ -338,16 +339,39 @@ internal fun SwitchSetting(
     Row(
         Modifier.fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
-            .heightIn(min = 48.dp)
-            .padding(vertical = 4.dp),
+            .heightIn(min = SynapseDesignTokens.compactRowHeight)
+            .padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            if (subtitle.isNotEmpty()) Muted(subtitle)
+            if (subtitle.isNotEmpty())
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
         }
-        Switch(checked, onCheckedChange = null, enabled = enabled, modifier = Modifier.scale(.75f))
+        CompactSwitch(checked, enabled)
+    }
+}
+
+/** Visual thumb only: the labelled parent supplies one accessible toggle target. */
+@Composable
+internal fun CompactSwitch(checked: Boolean, enabled: Boolean = true) {
+    Box(
+        Modifier.size(26.dp, 15.dp)
+            .background(
+                (if (checked) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant)
+                    .copy(alpha = if (enabled) 1f else .45f),
+                RoundedCornerShape(50),
+            )
+            .padding(2.dp),
+        contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Box(Modifier.size(11.dp).background(Color.White, RoundedCornerShape(50)))
     }
 }
 

@@ -8,9 +8,9 @@ Implementation snapshot: `ded803b`. Work began on clean, fetched `main` at `a60f
 
 ## Capture and review
 
-Native Robolectric/Android canvas captures: API 34, 412 × 746 dp, mdpi, font scale 1, Light theme, Demo state. Page 08 selects verified task SYN-2044; page 20 starts the Python transaction review. References are normalized to the rendered dimensions, retaining their mocked system bars. Real Android owns system bars; the app does not paint a mock status bar. Side-by-side and 50% overlay images were inspected for every screen; this is not a pixel-perfect claim or an automated similarity pass.
+Native Robolectric/Android canvas captures: API 34, 412 × 700 dp app window, mdpi, font scale 1, Light theme, Demo state. Page 08 selects verified task SYN-2044; page 20 starts the Python transaction review. References are normalized to a 412 × 746 dp display, excluding the 24 dp status and 22 dp gesture areas to compare app windows at the same size. Real Android owns system bars; the app does not paint a mock status bar. Side-by-side and 50% overlay images were inspected for every screen; this is not a pixel-perfect claim or an automated similarity pass.
 
-Common differences: reference typography and controls are denser; readable text and larger interactive rows require more scrolling. Android font metrics, status bars, spacing, borders and component geometry still differ. Exact illustrations, provider/app/package logos, and media thumbnails are absent as standalone assets. See the asset audit; no reference image is used as a Compose interface.
+The second refinement pass reduces shared tab, field, row, switch and navigation geometry to the reference scale. Text remains scalable and content scrolls on smaller displays. Android font metrics, status bars, spacing, borders and component geometry still differ. Exact illustrations, provider/app/package logos, and media thumbnails are absent as standalone assets. See the asset audit; no reference image is used as a Compose interface.
 
 ## Screen record
 
@@ -73,3 +73,8 @@ python scripts/compare-v3-screens.py --publish # requires Pillow
 Batch implementation and comparison proceeded through 01–02, 03–05, 06–08, 09–11, 12–13, 14–16, 17–20, 21–24, 25–28, and 29–31. Final regression work corrected dialog measurement, selected-tab visibility, disabled undo selection, slider tracks, status pills, exact vector arcs, and display persistence.
 
 Remaining acceptance work: obtain missing standalone artwork or approved substitutions; continue tightening each dense layout against the saved overlays, particularly Settings 21–31; validate status bars, launcher masks, and accessibility on a real device. Preserve the working navigation, Demo/Live isolation, safety wording and consent tests. Do not mark these screens visually accepted solely because they render or compile.
+
+## Refinement pass
+
+- 01–02: compact setup cards, numbered steps, progress, accent greeting, four suggestion tiles, six illustrated quick actions with captions, and compact recent-task rows. Compiled and compared native renders twice; the dashboard now shows all three recent tasks. Welcome still lacks the standalone phone illustration.
+- Shared: reference-sized tabs, fields, rows, switch tracks and bottom navigation; typography and card spacing tightened. Native captures now align app windows after excluding system bars. The remaining batches are being rechecked with these shared changes.

@@ -7,9 +7,9 @@ package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -19,7 +19,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.deviceagent.app.R
@@ -51,28 +53,48 @@ internal fun DemoAgentRoute(
 @Composable
 private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        Modifier.fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Welcome to", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    "Synapse",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+        Row(Modifier.heightIn(min = 158.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column {
+                    Text(
+                        "Welcome to",
+                        style =
+                            MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 28.sp,
+                                lineHeight = 32.sp,
+                            ),
+                    )
+                    Text(
+                        "Synapse",
+                        style =
+                            MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 28.sp,
+                                lineHeight = 32.sp,
+                            ),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 Muted(
                     "Turn your ideas into real actions on your Android device using AI. Synapse can inspect, plan, ask for your approval, and handle the rest."
                 )
             }
+            // The source package has no standalone phone illustration. Use the supplied mark
+            // intact.
             Image(
                 painterResource(R.drawable.synapse_brand_mark),
                 "Synapse brand mark",
-                Modifier.weight(1f).padding(16.dp).aspectRatio(1f),
+                Modifier.weight(1f).padding(14.dp).aspectRatio(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            Modifier.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             listOf(
                     Triple(SynapseIcon.AGENT, "Powerful AI", "Plan and execute tasks for you"),
                     Triple(
@@ -87,19 +109,49 @@ private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
                     ),
                 )
                 .forEach { (icon, title, detail) ->
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        AssetIcon(icon)
-                        Text(title, style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            detail,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        AssetIcon(icon, size = 20.dp)
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                title,
+                                fontSize = 9.sp,
+                                lineHeight = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                detail,
+                                fontSize = 9.sp,
+                                lineHeight = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
         }
-        Section("Get started") {
-            Muted("Complete these steps to set up Synapse on your device.")
+        Section("") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Get started",
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Column(Modifier.width(72.dp), horizontalAlignment = Alignment.End) {
+                    Text(
+                        "0 / 4",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    LinearProgressIndicator(
+                        progress = { 0f },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                    )
+                }
+            }
+            Text(
+                "Complete these steps to set up Synapse on your device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             listOf(
                     Triple(SynapseIcon.PROVIDERS, "Connect an AI provider", SynapseRoute.PROVIDERS),
                     Triple(SynapseIcon.FOLDER, "Grant folder access", SynapseRoute.SANDBOX),
@@ -111,22 +163,73 @@ private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
                     Triple(SynapseIcon.SETTINGS, "Configure basic settings", SynapseRoute.SETTINGS),
                 )
                 .forEachIndexed { index, (icon, title, route) ->
-                    DesignRow(
-                        icon,
-                        title,
-                        listOf(
-                            "Use Gemini, OpenAI, Claude, or a custom provider.",
-                            "Allow Synapse to access files using Android SAF.",
-                            "Choose what actions require your approval.",
-                            "Appearance, language, and other preferences.",
-                        )[index],
+                    Surface(
                         onClick = { nav(route) },
-                    )
+                        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .6f),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .heightIn(min = 50.dp)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(9.dp),
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape,
+                            ) {
+                                Text(
+                                    "${index + 1}",
+                                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                            IconTile(icon, entryColor(index), 30)
+                            Column(Modifier.weight(1f)) {
+                                Text(title, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    listOf(
+                                        "Use Gemini, OpenAI, Claude, or a custom provider.",
+                                        "Allow Synapse to access files using Android SAF.",
+                                        "Choose what actions require your approval.",
+                                        "Appearance, language, and other preferences.",
+                                    )[index],
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text("›", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                 }
         }
         FullButton("Continue Setup  →") { nav(SynapseRoute.PROVIDERS) }
-        TextButton({ nav(SynapseRoute.AGENT) }, Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Skip for now")
+        TextButton(
+            { nav(SynapseRoute.AGENT) },
+            Modifier.align(Alignment.CenterHorizontally),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        ) {
+            Text("Skip for now", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+private fun entryColor(index: Int): Color =
+    listOf(
+        Color(0xFF0867F9),
+        Color(0xFF00AE9F),
+        Color(0xFF00B66B),
+        Color(0xFF8645FF),
+        Color(0xFFFF8B00),
+        Color(0xFF0867F9),
+    )[index % 6]
+
+@Composable
+private fun IconTile(icon: SynapseIcon, tint: Color, size: Int = 30) {
+    Surface(color = tint.copy(alpha = .09f), shape = RoundedCornerShape(10.dp)) {
+        Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
+            AssetIcon(icon, tint = tint, size = 18.dp)
         }
     }
 }
@@ -140,57 +243,113 @@ private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRou
         nav,
     ) {
         Section("") {
-            BasicTextField(
-                s.draft,
-                { send(DemoAction.Draft(it)) },
-                Modifier.fillMaxWidth().heightIn(min = 42.dp),
-                textStyle =
-                    MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                decorationBox = { field ->
-                    if (s.draft.isBlank()) Muted("What would you like to do?")
-                    field()
-                },
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                listOf("Add files", "Add images", "Add folder").forEach { label ->
-                    TextButton(
-                        { nav(SynapseRoute.ATTACHMENTS) },
-                        contentPadding = PaddingValues(5.dp),
-                    ) {
-                        Text(label, fontSize = 10.sp)
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                IconButton(
-                    {
-                        if (s.draft.isNotBlank()) {
-                            send(DemoAction.Submit)
-                            nav(SynapseRoute.PLAN)
-                        }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssetIcon(
+                    SynapseIcon.AGENT,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = .45f),
+                    size = 18.dp,
+                )
+                BasicTextField(
+                    s.draft,
+                    { send(DemoAction.Draft(it)) },
+                    Modifier.weight(1f).heightIn(min = 32.dp),
+                    textStyle =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                    decorationBox = { field ->
+                        if (s.draft.isBlank())
+                            Text(
+                                "What would you like to do?",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        field()
                     },
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                listOf(
+                        SynapseIcon.FILE to "Add files",
+                        SynapseIcon.IMAGE to "Add images",
+                        SynapseIcon.FOLDER to "Add folder",
+                    )
+                    .forEach { (icon, label) ->
+                        Surface(
+                            onClick = { nav(SynapseRoute.ATTACHMENTS) },
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 7.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                AssetIcon(
+                                    icon,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    size = 12.dp,
+                                )
+                                Text(label, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                Spacer(Modifier.weight(1f))
+                FilledIconButton(
+                    {
+                        send(DemoAction.Submit)
+                        nav(SynapseRoute.PLAN)
+                    },
+                    Modifier.size(36.dp),
                     enabled = s.draft.isNotBlank(),
                 ) {
-                    AssetIcon(SynapseIcon.PLAY, "Preview demo plan")
+                    AssetIcon(
+                        SynapseIcon.PLAY,
+                        "Preview demo plan",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        size = 20.dp,
+                    )
                 }
             }
         }
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(
-                    "Organize Downloads",
-                    "Convert media files",
-                    "Run Python project",
-                    "Clean storage",
+                    SynapseIcon.FOLDER to "Organize Downloads",
+                    SynapseIcon.PLAY to "Convert media files",
+                    SynapseIcon.TERMINAL to "Run Python project",
+                    SynapseIcon.DELETE to "Clean storage",
                 )
-                .forEach { goal ->
-                    AssistChip({ send(DemoAction.Draft(goal)) }, { Text(goal, fontSize = 10.sp) })
+                .forEachIndexed { index, (icon, goal) ->
+                    Surface(
+                        onClick = { send(DemoAction.Draft(goal)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(9.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Row(
+                            Modifier.padding(6.dp).heightIn(min = 30.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            IconTile(
+                                icon,
+                                listOf(
+                                    entryColor(0),
+                                    entryColor(3),
+                                    entryColor(1),
+                                    Color(0xFFFF4545),
+                                )[index],
+                                24,
+                            )
+                            Text(goal, fontSize = 8.sp, lineHeight = 11.sp)
+                        }
+                    }
                 }
         }
-        Text("Quick actions", style = MaterialTheme.typography.titleMedium)
+        DashboardHeading("Quick actions") { nav(SynapseRoute.TOOLS) }
         listOf(
                 Triple(SynapseIcon.FOLDER, "Manage files", SynapseRoute.SANDBOX),
                 Triple(SynapseIcon.TERMINAL, "Run a command", SynapseRoute.TERMINAL),
@@ -200,57 +359,137 @@ private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRou
                 Triple(SynapseIcon.SCHEDULES, "Schedule task", SynapseRoute.SCHEDULE),
             )
             .chunked(3)
-            .forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { (icon, label, route) ->
+            .forEachIndexed { rowIndex, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    row.forEachIndexed { index, (icon, label, route) ->
                         Surface(
                             onClick = { nav(route) },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(11.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
                         ) {
                             Row(
-                                Modifier.padding(8.dp).heightIn(min = 40.dp),
+                                Modifier.padding(8.dp).heightIn(min = 38.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                AssetIcon(icon, size = 18.dp)
-                                Text(label, style = MaterialTheme.typography.labelSmall)
+                                IconTile(
+                                    icon,
+                                    entryColor(listOf(0, 1, 2, 4, 5, 3)[rowIndex * 3 + index]),
+                                )
+                                Column {
+                                    Text(
+                                        label,
+                                        fontSize = 9.sp,
+                                        lineHeight = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Text(
+                                        listOf(
+                                            "Organize, move, clean",
+                                            "Terminal & shell",
+                                            "Install, uninstall, update",
+                                            "Audio, video, images",
+                                            "Python, Node, etc.",
+                                            "Automate with schedules",
+                                        )[rowIndex * 3 + index],
+                                        fontSize = 7.sp,
+                                        lineHeight = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
-        Text("Recent tasks", style = MaterialTheme.typography.titleMedium)
+        DashboardHeading("Recent tasks") { nav(SynapseRoute.ACTIVITY) }
         Section("") {
-            DesignRow(
-                SynapseIcon.APPROVAL,
-                "Organize Downloads folder",
-                "Completed · 12 files moved",
-                "2 hours ago",
-                onClick = {
-                    send(DemoAction.SelectTask("SYN-2044"))
-                    nav(SynapseRoute.TASK_RESULT)
-                },
-            )
-            DesignRow(
-                SynapseIcon.ACTIVITY,
-                "Convert videos to MP4",
-                "Processing · 3 of 5 files",
-                "32 minutes ago",
-                onClick = {
-                    send(DemoAction.SelectTask("SYN-2048"))
-                    nav(SynapseRoute.MONITOR)
-                },
-            )
-            DesignRow(
-                SynapseIcon.TERMINAL,
-                "Run Python project",
-                "Pending approval",
-                "1 hour ago",
-                onClick = { nav(SynapseRoute.PLAN) },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                listOf(
+                        Triple(
+                            "Organize Downloads folder",
+                            "Completed · 12 files moved",
+                            "2 hours ago",
+                        ),
+                        Triple(
+                            "Convert videos to MP4",
+                            "Processing · 3 of 5 files",
+                            "32 minutes ago",
+                        ),
+                        Triple("Run Python project", "Pending approval", "1 hour ago"),
+                    )
+                    .forEachIndexed { index, (title, detail, time) ->
+                        if (index > 0)
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = .5.dp,
+                            )
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable {
+                                    when (index) {
+                                        0 -> {
+                                            send(DemoAction.SelectTask("SYN-2044"))
+                                            nav(SynapseRoute.TASK_RESULT)
+                                        }
+                                        1 -> {
+                                            send(DemoAction.SelectTask("SYN-2048"))
+                                            nav(SynapseRoute.MONITOR)
+                                        }
+                                        else -> nav(SynapseRoute.PLAN)
+                                    }
+                                }
+                                .heightIn(min = 38.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            IconTile(
+                                listOf(
+                                    SynapseIcon.APPROVAL,
+                                    SynapseIcon.ACTIVITY,
+                                    SynapseIcon.HISTORY,
+                                )[index],
+                                listOf(
+                                    entryColor(2),
+                                    entryColor(0),
+                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                )[index],
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(title, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    detail,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text(
+                                time,
+                                fontSize = 8.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text("⋮", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+            }
         }
+    }
+}
+
+@Composable
+private fun DashboardHeading(title: String, onMore: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+        Text(
+            "See all  ›",
+            Modifier.clickable(onClick = onMore).padding(3.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

@@ -28,7 +28,7 @@ import org.robolectric.annotation.GraphicsMode
  * Real Compose tree, native Android canvas, fixed phone viewport. No reference image is rendered.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], qualifiers = "w412dp-h746dp-mdpi")
+@Config(sdk = [34], qualifiers = "w412dp-h700dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SynapseVisualParityTests {
     @get:Rule val compose = createComposeRule()

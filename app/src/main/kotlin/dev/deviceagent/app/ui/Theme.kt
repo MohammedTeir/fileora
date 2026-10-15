@@ -111,14 +111,14 @@ private val AppTypography =
         headlineMedium = style(24, 28, FontWeight.Bold),
         headlineSmall = style(22, 28, FontWeight.Medium),
         titleLarge = style(20, 26, FontWeight.Bold),
-        titleMedium = style(14, 20, FontWeight.SemiBold),
-        titleSmall = style(12, 17, FontWeight.SemiBold),
+        titleMedium = style(13, 18, FontWeight.SemiBold),
+        titleSmall = style(11, 15, FontWeight.SemiBold),
         bodyLarge = style(14, 20),
-        bodyMedium = style(12, 17),
-        bodySmall = style(11, 15),
-        labelLarge = style(14, 20, FontWeight.Medium),
-        labelMedium = style(12, 16, FontWeight.Medium),
-        labelSmall = style(11, 16, FontWeight.Medium),
+        bodyMedium = style(11, 15),
+        bodySmall = style(10, 13),
+        labelLarge = style(12, 17, FontWeight.Medium),
+        labelMedium = style(11, 15, FontWeight.Medium),
+        labelSmall = style(10, 14, FontWeight.Medium),
     )
 
 @Composable

@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.deviceagent.app.ui.LocalSynapseAppearance
@@ -31,8 +34,11 @@ internal fun DesignPage(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(
+                horizontal = if (route.destination == Destination.AGENT) 20.dp else 16.dp,
+                vertical = 8.dp,
+            ),
+        verticalArrangement = Arrangement.spacedBy(if (route == SynapseRoute.AGENT) 12.dp else 8.dp),
     ) {
         if (
             route.destination == Destination.AGENT &&
@@ -101,6 +107,9 @@ internal fun DesignPage(
                     SynapseRoute.USAGE,
                     SynapseRoute.SECURITY,
                     SynapseRoute.MEMORY,
+                    SynapseRoute.PERMISSIONS,
+                    SynapseRoute.APPEARANCE,
+                    SynapseRoute.ABOUT,
                 )
         )
             Text(
@@ -110,8 +119,35 @@ internal fun DesignPage(
                 style = MaterialTheme.typography.bodySmall,
             )
         Column {
-            Text(title, style = MaterialTheme.typography.headlineMedium)
-            if (subtitle.isNotEmpty()) Muted(subtitle)
+            Text(
+                buildAnnotatedString {
+                    if (route == SynapseRoute.AGENT && title.contains(", ")) {
+                        append(title.substringBefore(", ") + ", ")
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                            append(title.substringAfter(", "))
+                        }
+                    } else append(title)
+                },
+                style =
+                    if (route == SynapseRoute.AGENT)
+                        MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 26.sp,
+                            lineHeight = 30.sp,
+                        )
+                    else MaterialTheme.typography.titleLarge,
+            )
+            if (subtitle.isNotEmpty())
+                Text(
+                    subtitle,
+                    style =
+                        if (route == SynapseRoute.AGENT)
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
+                            )
+                        else MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
         }
         if (
             route.destination != Destination.AGENT &&
@@ -202,12 +238,13 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                         else MaterialTheme.colorScheme.onSurface,
                 ) {
                     Row(
-                        Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp),
+                        Modifier.heightIn(min = SynapseDesignTokens.tabHeight)
+                            .padding(horizontal = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        AssetIcon(icon, tint = LocalContentColor.current, size = 14.dp)
-                        Text(label, fontSize = 10.sp)
+                        AssetIcon(icon, tint = LocalContentColor.current, size = 12.dp)
+                        Text(label, fontSize = 9.sp)
                     }
                 }
             }
@@ -231,7 +268,7 @@ internal fun DesignRow(
                 if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
                 else Modifier
             )
-            .heightIn(min = if (onClick == null && trailing == null) 38.dp else 48.dp)
+            .heightIn(min = SynapseDesignTokens.compactRowHeight)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp),
@@ -259,7 +296,9 @@ internal fun DesignRow(
 internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 10.dp),
+            Modifier.fillMaxWidth()
+                .heightIn(min = SynapseDesignTokens.fieldHeight)
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AssetIcon(
@@ -297,6 +336,7 @@ internal fun DesignSection(
     icon: SynapseIcon? = null,
     action: String? = null,
     onAction: (() -> Unit)? = null,
+    subtitle: String = "",
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Section("") {
@@ -305,7 +345,15 @@ internal fun DesignSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             icon?.let { AssetIcon(it, size = 18.dp) }
-            Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                if (subtitle.isNotEmpty())
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+            }
             if (action != null)
                 Text(
                     action,
@@ -343,7 +391,7 @@ internal fun InlineStats(vararg stats: Pair<String, String>) {
 internal fun FullButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Button(
         onClick,
-        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        Modifier.fillMaxWidth().heightIn(min = SynapseDesignTokens.compactRowHeight),
         enabled = enabled,
         shape = RoundedCornerShape(SynapseDesignTokens.buttonRadius),
     ) {
@@ -375,7 +423,7 @@ internal fun DesignChoice(
 ) {
     var open by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        Modifier.fillMaxWidth().heightIn(min = SynapseDesignTokens.compactRowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -387,7 +435,7 @@ internal fun DesignChoice(
             ) {
                 Text(
                     "$value  ⌄",
-                    Modifier.padding(8.dp),
+                    Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -435,7 +483,7 @@ internal fun DesignSlider(
         value,
         onValue,
         modifier =
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { contentDescription = label },
+            Modifier.fillMaxWidth().heightIn(min = 32.dp).semantics { contentDescription = label },
         valueRange = valueRange,
         thumb = {
             Box(
