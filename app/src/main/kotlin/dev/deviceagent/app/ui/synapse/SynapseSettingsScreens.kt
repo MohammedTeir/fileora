@@ -644,16 +644,32 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
 
 @Composable
 internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
-    ScreenPage("AGENT / RESULT", "Task result", "Review recorded outcomes before considering a task complete.") {
-        Section(s.task.title) {
-            LabeledValue("Task", s.task.id)
-            LabeledValue("Status", s.task.status.name.lowercase().replaceFirstChar(Char::uppercase))
-            LabeledValue("Verified", "${s.task.verified} / ${s.task.total}")
-            LabeledValue("Skipped", s.task.skipped.toString())
-            LabeledValue("Blocked", s.task.blocked.toString())
+    var selected by rememberSaveable { mutableStateOf("Results") }
+    val complete = s.task.status == DemoTaskStatus.VERIFIED
+    DesignPage(SynapseRoute.TASK_RESULT,if(complete) "Task completed" else "Task result","Review verified outcomes and recorded evidence.",nav) {
+        DesignSection("Task summary",SynapseIcon.FILE,"View plan",{nav(SynapseRoute.PLAN)}) {
+            Text(s.task.title,style=MaterialTheme.typography.titleSmall)
+            InlineStats("Processed" to "${s.task.verified}","Skipped" to "${s.task.skipped}","Blocked" to "${s.task.blocked}","Status" to s.task.status.name.lowercase())
         }
-        Notice("Demo outcome", "Counts reflect simulated task state. A result is verified only when the underlying task records evidence.")
-        Secondary("View audit") { nav(SynapseRoute.AUDIT) }
-        Secondary("Back to agent") { nav(SynapseRoute.AGENT) }
+        if(!complete) Notice("Work remains","Only ${s.task.verified} of ${s.task.total} items are verified. This task is not complete.",Tone.WARNING)
+        DesignSection("Results",SynapseIcon.FOLDER) {
+            ChoiceChips(listOf("Results","Created folders","Logs"),selected){selected=it}
+            when(selected) {
+                "Results" -> {
+                    if(s.task.verified==0) Muted("No verified outputs yet.")
+                    repeat(s.task.verified.coerceAtMost(3)) { i -> DesignRow(SynapseIcon.FILE,"Verified output ${i+1}","Demo evidence · original preserved","Verified",onClick={nav(SynapseRoute.AUDIT)}) }
+                    if(s.task.verified>3) Muted("${s.task.verified-3} additional verified outputs in the audit.")
+                }
+                "Created folders" -> DesignRow(SynapseIcon.FOLDER,s.destination,"Scoped output destination",onClick={nav(SynapseRoute.SANDBOX)})
+                else -> CodeBlock("task: ${s.task.id}\nverified: ${s.task.verified}\nstatus: ${s.task.status}\nsource: demo fixture")
+            }
+        }
+        DesignSection("Output location",SynapseIcon.FOLDER) { Text(s.destination,style=MaterialTheme.typography.bodySmall);Secondary("Open in file manager"){nav(SynapseRoute.SANDBOX)} }
+        DesignSection("What’s next?",SynapseIcon.TOOLS) {
+            DesignRow(SynapseIcon.AGENT,"Create a new task",onClick={nav(SynapseRoute.AGENT)})
+            DesignRow(SynapseIcon.AUDIT,"View full activity log",onClick={nav(SynapseRoute.AUDIT)})
+            DesignRow(SynapseIcon.UNDO,"Review undo",onClick={nav(SynapseRoute.UNDO)})
+        }
+        FullButton("Back to Agent"){nav(SynapseRoute.AGENT)}
     }
 }

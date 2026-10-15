@@ -123,7 +123,7 @@ internal fun toneColors(tone: Tone): Pair<Color, Color> {
     return when (tone) {
         Tone.SUCCESS -> if (dark) Color(0xFF1C2E21) to Color(0xFFB7E4C2) else Color(0xFFEAF6EC) to Color(0xFF14532D)
         Tone.WARNING -> if (dark) Color(0xFF35290E) to Color(0xFFF3D898) else Color(0xFFFDF3DC) to Color(0xFF6B4A00)
-        Tone.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        Tone.ERROR -> if (dark) Color(0xFF3C1720) to Color(0xFFFFB5C2) else Color(0xFFFFEFF2) to Color(0xFFC71938)
         Tone.INFO -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
     }
 }

@@ -4,6 +4,7 @@ package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
@@ -119,7 +120,7 @@ private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRou
         }
         Text("Recent tasks", style = MaterialTheme.typography.titleMedium)
         Section("") {
-            DesignRow(SynapseIcon.APPROVAL,"Organize Downloads folder","Completed · 12 files moved","2 hours ago",onClick = { nav(SynapseRoute.TASK_RESULT) })
+            DesignRow(SynapseIcon.APPROVAL,"Organize Downloads folder","Completed · 12 files moved","2 hours ago",onClick = { send(DemoAction.SelectTask("SYN-2044"));nav(SynapseRoute.TASK_RESULT) })
             DesignRow(SynapseIcon.ACTIVITY,"Convert videos to MP4","Processing · 3 of 5 files","32 minutes ago",onClick = { send(DemoAction.SelectTask("SYN-2048"));nav(SynapseRoute.MONITOR) })
             DesignRow(SynapseIcon.TERMINAL,"Run Python project","Pending approval","1 hour ago",onClick = { nav(SynapseRoute.PLAN) })
         }
@@ -288,200 +289,75 @@ private fun ScopedApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (S
 
 @Composable
 private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    var cancel by remember { mutableStateOf(false) }
-    ScreenPage(
-        s.task.id,
-        s.task.title,
-        "Observed results become completed work only after verification.",
-    ) {
-        Actions {
-            Badge(s.task.status.name.lowercase())
-            RiskBadge(if (s.task.id == "SYN-2050" && s.includeTrash) 3 else 1)
-        }
-        Section("Verified progress") {
+    var cancel by rememberSaveable { mutableStateOf(false) }
+    DesignPage(SynapseRoute.MONITOR,"Monitor progress","Synapse is executing the approved plan. Monitor progress and stop if needed.",nav) {
+        DesignSection("Task in progress",SynapseIcon.PLAY, s.task.status.name.lowercase()) {
+            Text(s.task.title,style = MaterialTheme.typography.bodySmall)
             TaskProgress(s.task)
-            Muted("Checkpoint ${s.task.settled} · completed outcomes saved")
         }
-        Section("Agent loop") {
-            ChoiceChips(
-                listOf("Inspect", "Plan", "Policy", "Execute", "Observe", "Verify"),
-                if (s.task.status == DemoTaskStatus.VERIFIED) "Verify" else "Execute",
-            ) { stage ->
-                send(DemoAction.Notice("$stage evidence is included in the task audit."))
-            }
-            LinkRow(
-                "Inspect the audit",
-                "Policy decisions, tool results, verification",
-                Icons.AutoMirrored.Filled.FactCheck,
-            ) {
-                nav(SynapseRoute.AUDIT)
+        Section("") { InlineStats("Input files" to "${s.task.total}","Verified" to "${s.task.verified}","Blocked" to "${s.task.blocked}","Elapsed" to "03:24") }
+        DesignSection("Current step",SynapseIcon.PLAY) {
+            Text(if(s.task.status == DemoTaskStatus.VERIFIED) "Verification complete" else "Verify output ${s.task.settled+1}",style = MaterialTheme.typography.titleSmall)
+            Muted("Source retained · scoped output · verification required")
+            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf("Inspect","Plan","Execute","Verify").forEach { stage -> Column(horizontalAlignment = Alignment.CenterHorizontally) { AssetIcon(if(stage=="Verify") SynapseIcon.ACTIVITY else SynapseIcon.APPROVAL,size = 16.dp);Text(stage,style = MaterialTheme.typography.labelSmall) } }
             }
         }
-        Section("Current item") {
-            Text(
-                if (s.task.id == "SYN-2048")
-                    "Lisbon_${(s.task.settled+1).coerceAtMost(s.task.total).toString().padStart(4,'0')}.mp4"
-                else "Item ${(s.task.settled+1).coerceAtMost(s.task.total)} of ${s.task.total}",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Muted("Local output · source retained · waiting for verification")
-            Metrics("Elapsed" to "42m 18s", "Remaining estimate" to "24–31m")
-            Secondary(
-                "Simulate next verified item",
-                enabled = s.task.status == DemoTaskStatus.RUNNING,
-            ) {
-                send(DemoAction.Advance)
-            }
-        }
-        Section("Execution stream") {
-            demoEvents.forEach { (time, event) ->
-                Disclosure(event, time) {
-                    CodeBlock(
-                        "task_id: ${s.task.id}\nobserved: $event\nsource: demo fixture\nsecrets: redacted"
-                    )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1.2f)) {
+                DesignSection("Live log",SynapseIcon.AUDIT) {
+                    demoEvents.forEach { (time,event) -> Text("$time  ✓  $event",Modifier.padding(vertical = 5.dp),style = MaterialTheme.typography.bodySmall) }
                 }
             }
+            Column(Modifier.weight(1f),verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DesignSection("Current output",SynapseIcon.FOLDER) { AssetIcon(SynapseIcon.FILE,size = 40.dp);Muted("Local output preview");LinearProgressIndicator(progress = { s.task.verified.toFloat()/s.task.total.coerceAtLeast(1) },modifier = Modifier.fillMaxWidth()) }
+                DesignSection("Evidence",SynapseIcon.SECURITY) { Muted("File exists\nDuration checked\nSource preserved");TextButton({ nav(SynapseRoute.AUDIT) }) { Text("View all") } }
+            }
         }
         Actions {
-            Primary(
-                if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",
-                enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-            ) {
-                send(DemoAction.PauseResume)
-            }
-            Secondary("Checkpoint") { nav(SynapseRoute.CHECKPOINT) }
-            Secondary(
-                "Cancel task",
-                enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-            ) {
-                cancel = true
-            }
+            Secondary("Stop execution",s.task.status in listOf(DemoTaskStatus.RUNNING,DemoTaskStatus.PAUSED)) { cancel = true }
+            Primary(if(s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",s.task.status in listOf(DemoTaskStatus.RUNNING,DemoTaskStatus.PAUSED)) { send(DemoAction.PauseResume) }
         }
-        if (s.task.blocked > 0)
-            LinkRow(
-                "Review blocked items",
-                "Investigate evidence and recovery attempts",
-                Icons.Default.Warning,
-            ) {
-                nav(SynapseRoute.RECOVERY)
-            }
+        Secondary("Simulate next verified item",s.task.status == DemoTaskStatus.RUNNING) { send(DemoAction.Advance) }
+        Actions { Secondary("Checkpoint") { nav(SynapseRoute.CHECKPOINT) };Secondary("Review recovery") { nav(SynapseRoute.RECOVERY) };Secondary("View result") { nav(SynapseRoute.TASK_RESULT) } }
     }
-    if (cancel)
-        ConfirmAction(
-            "Cancel this demo task?",
-            "Completed changes remain in the audit. Review rollback separately.",
-            "Cancel task",
-            { cancel = false },
-        ) {
-            send(DemoAction.Cancel)
-            cancel = false
-        }
+    if(cancel) ConfirmAction("Cancel this demo task?","Completed changes remain in the audit. Review rollback separately.","Cancel task",{ cancel=false }) { send(DemoAction.Cancel);cancel=false }
 }
 
 @Composable
 private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    var alternative by remember { mutableStateOf(false) }
-    var input by rememberSaveable { mutableStateOf("") }
+    var selected by rememberSaveable { mutableStateOf("Retry with different settings") }
+    var alternative by rememberSaveable { mutableStateOf(false) }
     var ask by rememberSaveable { mutableStateOf(false) }
-    ScreenPage(
-        "SYN-2049 · ATTEMPT ${s.attempts.coerceAtLeast(1)} OF 3",
-        "A clear path through failure",
-        "Lesson_01_Speaking.mp4 · MP3 extraction",
-    ) {
-        if (s.recoveryVerified)
-            Notice(
-                "Retry verified",
-                "The sample output exists, decodes, and matches the source duration.",
-                Tone.SUCCESS,
-            )
-        if (s.recoveryAborted)
-            Notice(
-                "Recovery aborted",
-                "Completed work is preserved. Reset the demo to explore another recovery.",
-                Tone.WARNING,
-            )
-        Section("1 · Observed error") {
-            CodeBlock("exit code: 1\nstderr: Unknown encoder 'libmp3lame'\ncomplete outputs: 0")
-            RiskBadge(1)
+    var input by rememberSaveable { mutableStateOf("") }
+    DesignPage(SynapseRoute.RECOVERY,if(s.recoveryVerified) "Recovery verified" else if(s.recoveryAborted) "Recovery stopped" else "Task needs recovery","Synapse encountered an issue. Review the error and choose how to proceed.",nav) {
+        DesignSection("Task summary",SynapseIcon.FILE) { Text("Extract lesson audio",style = MaterialTheme.typography.titleSmall);InlineStats("Input files" to "156","Failed step" to "Audio encode","Elapsed" to "02:14") }
+        Notice("Error occurred","The installed FFmpeg profile does not provide the MP3 encoder.",Tone.ERROR) {
+            CodeBlock("Unknown encoder 'libmp3lame'\nexit code: 1\ncomplete outputs: 0")
         }
-        Section("2 · Diagnosis") {
-            VerifiedRow("Source readable", "Container and audio stream detected")
-            VerifiedRow("Destination writable", "Selected folder grant is valid")
-            VerifiedRow(
-                "MP3 encoder missing",
-                "Encoder enumeration does not include libmp3lame",
-                false,
-            )
-            Muted("The evidence points to the package profile, not a corrupt source.")
-        }
-        Section("3 · Proposed fix") {
-            Text("Install a verified MP3-enabled FFmpeg profile in the isolated Linux userspace.")
-            Metrics("Download" to "38.4 MiB", "Added storage" to "112 MiB")
-            Secondary("Review package & dependencies") {
-                send(DemoAction.PackageSelected("FFmpeg"))
-                nav(SynapseRoute.PACKAGE_DETAIL)
-            }
-        }
-        Section("4 · Safety check") {
-            VerifiedRow("No root required", "Restricted to the selected userspace")
-            VerifiedRow("Source verification required", "A failed checksum blocks installation")
-            VerifiedRow("Bounded retry", "Maximum 3 attempts; no unchanged retry loop")
-        }
-        Actions {
-            Primary(
-                "Approve fix & retry",
-                enabled = !s.recoveryAborted && !s.recoveryVerified && s.attempts < 3,
-            ) {
-                if (s.packageName == "FFmpeg" && s.packageStep == 4) send(DemoAction.RetryRecovery)
-                else {
-                    send(DemoAction.PackageSelected("FFmpeg"))
-                    nav(SynapseRoute.PACKAGE_DETAIL)
+        DesignSection("Recovery options",SynapseIcon.RECOVERY,"${s.attempts} / 3 attempts") {
+            listOf("Retry with different settings","Try alternative tool","Provide a different file").forEach { option ->
+                Row(Modifier.fillMaxWidth().clickable { selected=option }.heightIn(min=48.dp),verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected==option,{ selected=option });Column { Text(option,style = MaterialTheme.typography.titleSmall);Muted(if(option.startsWith("Retry")) "Review a verified FFmpeg package profile" else if(option.startsWith("Try")) "Use AAC instead; explicit consent required" else "Add clarification before proceeding") }
                 }
             }
-            Secondary(
-                "Use alternative tool",
-                enabled = !s.recoveryAborted && !s.recoveryVerified && s.attempts < 3,
-            ) {
-                alternative = true
-            }
-            Secondary("Ask user input") { ask = !ask }
-            TextButton(
-                { send(DemoAction.AbortRecovery) },
-                enabled = !s.recoveryVerified && !s.recoveryAborted,
-            ) {
-                Text("Abort")
+        }
+        Disclosure("Preview of recovery plan","Source and destination are rechecked.",initiallyOpen=true) {
+            listOf("Inspect encoder availability","Verify package source and checksum","Retry only after the prerequisite changes","Validate output and preserve the source").forEachIndexed { i,t -> Text("${i+1}. $t",style=MaterialTheme.typography.bodySmall) }
+        }
+        FullButton("Approve recovery",!s.recoveryAborted && !s.recoveryVerified && s.attempts<3) {
+            when(selected) {
+                "Try alternative tool" -> alternative=true
+                "Provide a different file" -> ask=true
+                else -> if(s.packageName=="FFmpeg" && s.packageStep==4) send(DemoAction.RetryRecovery) else { send(DemoAction.PackageSelected("FFmpeg"));nav(SynapseRoute.PACKAGE_DETAIL) }
             }
         }
-        if (ask)
-            Section("What should the agent know?") {
-                OutlinedTextField(
-                    input,
-                    { input = it },
-                    label = { Text("Preferred format or destination") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Primary("Add clarification", enabled = input.isNotBlank()) {
-                    send(DemoAction.RecoveryInput(input))
-                    ask = false
-                }
-            }
-        if (s.recoveryNote.isNotBlank()) Notice("Your clarification", s.recoveryNote)
-        if (s.recoveryVerified)
-            Primary("Return to task") {
-                send(DemoAction.SelectTask("SYN-2049"))
-                nav(SynapseRoute.MONITOR)
-            }
+        Actions { Secondary("Abort task",!s.recoveryVerified && !s.recoveryAborted) { send(DemoAction.AbortRecovery) };Secondary("Ask for help") { ask=true } }
+        if(s.recoveryNote.isNotBlank()) Notice("Your clarification",s.recoveryNote)
+        if(s.recoveryVerified) Primary("Return to task") { send(DemoAction.SelectTask("SYN-2049"));nav(SynapseRoute.MONITOR) }
     }
-    if (alternative)
-        ConfirmAction(
-            "Use AAC instead of MP3?",
-            "This changes the output format. Existing sources remain unchanged.",
-            "Approve AAC output",
-            { alternative = false },
-        ) {
-            send(DemoAction.Alternative)
-            alternative = false
-        }
+    if(alternative) ConfirmAction("Use AAC instead of MP3?","This changes the output format. Existing sources remain unchanged.","Approve AAC output",{alternative=false}) { send(DemoAction.Alternative);alternative=false }
+    if(ask) AlertDialog(onDismissRequest={ask=false},title={Text("What should the agent know?")},text={OutlinedTextField(input,{input=it},label={Text("Preferred format or destination")})},confirmButton={TextButton({send(DemoAction.RecoveryInput(input));ask=false},enabled=input.isNotBlank()){Text("Add clarification")}},dismissButton={TextButton({ask=false}){Text("Cancel")}})
 }
 
 @Composable

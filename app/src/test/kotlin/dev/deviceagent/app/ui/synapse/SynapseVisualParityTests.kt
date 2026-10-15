@@ -30,7 +30,7 @@ class SynapseVisualParityTests {
             val view = LocalView.current
             SideEffect { root = view.rootView }
             key(page) {
-                var state by remember { mutableStateOf(DemoState()) }
+                var state by remember { mutableStateOf(if(page == 8) DemoState().copy(activeTaskId = "SYN-2044") else DemoState()) }
                 AgentTheme("Light") {
                     SynapseWorkspace(state,{ state = reduceDemo(state,it) },referenceRoutes[page-1],"",remember { SnackbarHostState() },"Light",{},false,{}, {}, initialDemo = true) { _,_,_ -> error("Visual fixtures must stay in Demo") }
                 }

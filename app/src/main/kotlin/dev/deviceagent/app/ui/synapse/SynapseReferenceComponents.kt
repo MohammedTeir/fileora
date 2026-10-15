@@ -24,9 +24,11 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("‹  Agent", Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }.padding(vertical = 5.dp), style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.weight(1f))
-                Text("Step ${(referenceRoutes.indexOf(route)-1).coerceIn(1,6)} of 6", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val step = when(route) { SynapseRoute.ATTACHMENTS -> 2; SynapseRoute.PLAN -> 3; SynapseRoute.APPROVAL -> 4; SynapseRoute.TASK_RESULT -> 6; else -> 5 }
+                val steps = if(route in listOf(SynapseRoute.ATTACHMENTS,SynapseRoute.PLAN,SynapseRoute.APPROVAL)) 4 else 6
+                Text("Step $step of $steps", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(8.dp))
-                repeat(6) { index -> Box(Modifier.padding(2.dp).size(5.dp).background(if (index < referenceRoutes.indexOf(route)-1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) }
+                repeat(steps) { index -> Box(Modifier.padding(2.dp).size(5.dp).background(if (index < step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) }
             }
         }
         Column {

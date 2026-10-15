@@ -349,7 +349,7 @@ internal fun ChoiceChips(options: List<String>, selected: String, onSelect: (Str
 internal fun CodeBlock(text: String) {
     Surface(
         Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color(0xFF111318),
         shape = RoundedCornerShape(12.dp),
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -357,6 +357,7 @@ internal fun CodeBlock(text: String) {
                 Text(
                     text,
                     Modifier.horizontalScroll(rememberScrollState()).padding(14.dp),
+                    color = Color(0xFFD7E8D3),
                     fontFamily = FontFamily.Monospace,
                     style = MaterialTheme.typography.bodySmall,
                 )
