@@ -19,5 +19,5 @@ object SynapseDesignTokens {
     val navigationHeight = 58.dp
     val navigationRailWidth = 80.dp
     val borderWidth = 0.5.dp
-    val topBarHeight = 58.dp
+    val topBarHeight = 48.dp
 }

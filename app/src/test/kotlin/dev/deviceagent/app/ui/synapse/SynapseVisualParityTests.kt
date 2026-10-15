@@ -43,6 +43,16 @@ class SynapseVisualParityTests {
                 var state by remember {
                     mutableStateOf(
                         when (page) {
+                            3 ->
+                                DemoState()
+                                    .copy(
+                                        attachments =
+                                            setOf(
+                                                "screenshot_error.png",
+                                                "error_log.txt",
+                                                "PythonProject",
+                                            )
+                                    )
                             8 -> DemoState().copy(activeTaskId = "SYN-2044")
                             20 -> DemoState().copy(packageName = "Python", packageStep = 1)
                             else -> DemoState()

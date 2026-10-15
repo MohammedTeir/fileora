@@ -55,7 +55,7 @@ private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 22.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.heightIn(min = 158.dp), verticalAlignment = Alignment.Top) {
@@ -503,6 +503,21 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
         "Add attachments",
         "Add files, images, folders, or other context to help Synapse understand your task better.",
         nav,
+        footer = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(Modifier.weight(1f)) {
+                    DesignSearch(
+                        s.draft,
+                        { send(DemoAction.Draft(it)) },
+                        "You can also describe your task here…",
+                    )
+                }
+                Primary("Continue  →") { nav(SynapseRoute.PLAN) }
+            }
+        },
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(
@@ -521,10 +536,30 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
                         Column(
                             Modifier.padding(8.dp).heightIn(min = 70.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            AssetIcon(icon)
+                            IconTile(
+                                icon,
+                                when (icon) {
+                                    SynapseIcon.IMAGE -> entryColor(3)
+                                    SynapseIcon.APPS -> entryColor(2)
+                                    else -> entryColor(0)
+                                },
+                                28,
+                            )
                             Text(label, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                when (icon) {
+                                    SynapseIcon.FILE -> "Documents, code, logs, etc."
+                                    SynapseIcon.IMAGE -> "Photos, screenshots, designs, etc."
+                                    SynapseIcon.FOLDER -> "Select a folder using Android SAF"
+                                    else -> "From installed apps (APK or info)"
+                                },
+                                fontSize = 8.sp,
+                                lineHeight = 10.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -534,9 +569,17 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
             Modifier.fillMaxWidth().heightIn(min = 68.dp),
             shape = RoundedCornerShape(12.dp),
         ) {
-            AssetIcon(SynapseIcon.UPLOAD)
-            Spacer(Modifier.width(8.dp))
-            Text("Tap to browse sample files")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                AssetIcon(SynapseIcon.UPLOAD)
+                Text("Tap to browse sample files", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Choose files from the demo picker",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
         DesignSection(
             "Attached items (${s.attachments.size})",
@@ -549,39 +592,60 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
                     if (name.endsWith("png")) SynapseIcon.IMAGE
                     else if (name.endsWith("txt")) SynapseIcon.FILE else SynapseIcon.FOLDER,
                     name,
-                    "Local sample · not uploaded",
+                    when {
+                        name.endsWith("png") -> "PNG · 1.2 MB · Image"
+                        name.endsWith("txt") -> "TXT · 24 KB · Document"
+                        name == "PythonProject" -> "Folder · 18 files · 12 MB"
+                        else -> "Local sample · not uploaded"
+                    },
                     onClick = { preview = name },
                     trailing = {
-                        IconButton({ preview = name }) {
+                        IconButton({ preview = name }, Modifier.size(28.dp)) {
                             AssetIcon(SynapseIcon.SEARCH, "Preview $name", size = 16.dp)
                         }
-                        IconButton({ send(DemoAction.Attachment(name, false)) }) {
+                        IconButton(
+                            { send(DemoAction.Attachment(name, false)) },
+                            Modifier.size(28.dp),
+                        ) {
                             AssetIcon(SynapseIcon.DELETE, "Remove $name", size = 16.dp)
                         }
                     },
                 )
             }
         }
-        DesignSection("Suggestions") {
-            DesignRow(
-                SynapseIcon.IMAGE,
-                "Take screenshot",
-                "Attach an example capture",
-                onClick = { send(DemoAction.Attachment("screenshot_error.png", true)) },
-            )
-            DesignRow(
-                SynapseIcon.FILE,
-                "Add logs",
-                "Include error logs",
-                onClick = { send(DemoAction.Attachment("error_log.txt", true)) },
-            )
+        DashboardHeading("Suggestions") { picker = true }
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf(
+                    Triple(SynapseIcon.IMAGE, "Take screenshot", "screenshot_error.png"),
+                    Triple(SynapseIcon.FILE, "Add logs", "error_log.txt"),
+                    Triple(SynapseIcon.FOLDER, "Select Downloads", "Downloads"),
+                    Triple(SynapseIcon.APPS, "Add app info", "App info"),
+                )
+                .forEach { (icon, title, name) ->
+                    Surface(
+                        onClick = { send(DemoAction.Attachment(name, true)) },
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = RoundedCornerShape(6.dp),
+                    ) {
+                        Row(
+                            Modifier.padding(4.dp).heightIn(min = 28.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            AssetIcon(icon, size = 14.dp)
+                            Text(title, fontSize = 8.sp, lineHeight = 10.sp)
+                        }
+                    }
+                }
         }
-        Notice(
+        DesignNotice(
             "Why add attachments?",
-            "Attachments help Synapse understand your task and diagnose issues. Sharing remains subject to your privacy settings.",
+            "Attachments help Synapse understand your task. Sharing follows your privacy settings.",
         )
-        FullButton("Continue  →") { nav(SynapseRoute.PLAN) }
-        Secondary("Privacy settings") { nav(SynapseRoute.PRIVACY) }
+        TextButton({ nav(SynapseRoute.PRIVACY) }) {
+            Text("Privacy settings", style = MaterialTheme.typography.bodySmall)
+        }
     }
     if (picker)
         ModalBottomSheet(onDismissRequest = { picker = false }) {
@@ -604,17 +668,44 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
 
 @Composable
 private fun PlanSummary(s: DemoState, nav: (SynapseRoute) -> Unit) {
-    DesignSection("Task summary", SynapseIcon.FILE, "Edit request", { nav(SynapseRoute.AGENT) }) {
-        Text(
-            "Organize Downloads into folders, create archives, and verify the results.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        InlineStats(
-            "Input files" to "618",
-            "Destination" to "1 folder",
-            "Estimated time" to "5–10 min",
-            "Planned actions" to "6 steps",
-        )
+    DesignSection(
+        "Task summary",
+        SynapseIcon.FILE,
+        "Edit request",
+        { nav(SynapseRoute.AGENT) },
+        subtitle = "Organize Downloads, create archives, and verify outputs.",
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf(
+                    Triple(SynapseIcon.FILE, "618 files", "Input items"),
+                    Triple(SynapseIcon.FOLDER, "1 folder", "Destination"),
+                    Triple(SynapseIcon.HISTORY, "5–10 min", "Estimated time"),
+                    Triple(SynapseIcon.SETTINGS, "6 steps", "Planned actions"),
+                )
+                .forEach { (icon, value, label) ->
+                    Row(
+                        Modifier.weight(1f).padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        AssetIcon(icon, size = 16.dp)
+                        Column {
+                            Text(
+                                value,
+                                fontSize = 9.sp,
+                                lineHeight = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                label,
+                                fontSize = 8.sp,
+                                lineHeight = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+        }
     }
 }
 
@@ -649,69 +740,176 @@ private val planSteps =
     )
 
 @Composable
-private fun PlannedSteps() {
-    DesignSection("Planned steps (6)", SynapseIcon.AUDIT) {
-        planSteps.forEachIndexed { i, (icon, title, detail) ->
-            DesignRow(icon, "${i+1}  $title", detail)
+private fun PlannedSteps(approval: Boolean = false) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var detail by rememberSaveable { mutableStateOf<Int?>(null) }
+    DesignSection(
+        if (approval) "Planned actions (6)" else "Planned steps (6)",
+        SynapseIcon.AUDIT,
+        if (expanded) "Collapse all" else if (approval) "Expand all" else "View as flow",
+        { expanded = !expanded },
+    ) {
+        planSteps.forEachIndexed { i, (icon, title, description) ->
+            Row(
+                Modifier.fillMaxWidth()
+                    .clickable { detail = if (detail == i) null else i }
+                    .heightIn(min = if (approval) 28.dp else 34.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape) {
+                    Text(
+                        "${i+1}",
+                        Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                AssetIcon(
+                    icon,
+                    size = 18.dp,
+                    tint =
+                        if (i == 2) entryColor(3)
+                        else if (i == 4) entryColor(2) else MaterialTheme.colorScheme.primary,
+                )
+                Column(Modifier.weight(1f).padding(vertical = 1.dp)) {
+                    Text(
+                        title,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        description,
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (expanded || detail == i)
+                        Text(
+                            "Scope: selected input and approved destination only. Results require verification.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                }
+                Text(if (approval) "⌄" else "⋮", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
 
 @Composable
-private fun PlanPermissions(nav: (SynapseRoute) -> Unit) {
+private fun PlanPermissions(nav: (SynapseRoute) -> Unit, compact: Boolean = false) {
     DesignSection(
         "Permissions required (3)",
         SynapseIcon.PERMISSIONS,
         "Review all",
         { nav(SynapseRoute.PERMISSIONS) },
+        subtitle = "Approval is scoped to these actions.",
     ) {
-        DesignRow(SynapseIcon.FOLDER, "File system access", "Read input files", "Required")
-        DesignRow(
-            SynapseIcon.FILE,
-            "Create and modify files",
-            "Write only inside the selected folder",
-            "Required",
-        )
-        DesignRow(
-            SynapseIcon.SECURITY,
-            "Scoped approval",
-            "Review moves before execution",
-            "Required",
-        )
+        val rows =
+            listOf(
+                Triple(SynapseIcon.FOLDER, "File system access", "Read input files"),
+                Triple(
+                    SynapseIcon.FILE,
+                    "Create and modify files",
+                    "Write inside the selected folder",
+                ),
+                Triple(SynapseIcon.SECURITY, "Scoped approval", "Review moves before execution"),
+            )
+        if (compact)
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                rows.forEach { (icon, title, description) ->
+                    Row(
+                        Modifier.weight(1f).padding(vertical = 1.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        AssetIcon(icon, size = 16.dp)
+                        Column {
+                            Text(
+                                title,
+                                fontSize = 8.sp,
+                                lineHeight = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                description,
+                                fontSize = 7.sp,
+                                lineHeight = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "Required",
+                                fontSize = 7.sp,
+                                lineHeight = 9.sp,
+                                color = entryColor(2),
+                            )
+                        }
+                    }
+                }
+            }
+        else
+            rows.forEach { (icon, title, description) ->
+                DesignRow(icon, title, description, "Required")
+            }
     }
 }
 
 @Composable
 private fun PlanDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    var edit by rememberSaveable { mutableStateOf(false) }
     DesignPage(
         SynapseRoute.PLAN,
         "Plan preview",
         "Review the generated plan. Check the steps, permissions, and estimated time before approving.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton({ edit = true }, Modifier.weight(1f).heightIn(min = 32.dp)) {
+                    Text(
+                        "Edit destination & exclusions",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Button(
+                    { nav(SynapseRoute.APPROVAL) },
+                    Modifier.weight(1f).heightIn(min = 32.dp),
+                    enabled = s.destination.isNotBlank(),
+                ) {
+                    Text("Approve & Run")
+                }
+            }
+        },
     ) {
         PlanSummary(s, nav)
         PlannedSteps()
-        PlanPermissions(nav)
-        Disclosure("Edit destination & exclusions", s.destination) {
-            OutlinedTextField(
-                s.destination,
-                { send(DemoAction.DestinationChanged(it)) },
-                Modifier.fillMaxWidth(),
-                label = { Text("Destination folder") },
-                isError = s.destination.isBlank(),
-                singleLine = true,
-            )
-            SwitchSetting(
-                "Review duplicate trash operations",
-                "Each destructive scope requires consent.",
-                s.includeTrash,
-            ) {
-                send(DemoAction.IncludeTrash(it))
-            }
-        }
-        FullButton("Approve & Run", s.destination.isNotBlank()) { nav(SynapseRoute.APPROVAL) }
-        Secondary("Edit request") { nav(SynapseRoute.AGENT) }
+        PlanPermissions(nav, compact = true)
     }
+    if (edit)
+        DesignDialog(
+            onDismissRequest = { edit = false },
+            title = { Text("Edit destination & exclusions") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        s.destination,
+                        { send(DemoAction.DestinationChanged(it)) },
+                        Modifier.fillMaxWidth(),
+                        label = { Text("Destination folder") },
+                        isError = s.destination.isBlank(),
+                        singleLine = true,
+                    )
+                    SwitchSetting(
+                        "Review duplicate trash operations",
+                        "Each destructive scope requires consent.",
+                        s.includeTrash,
+                    ) {
+                        send(DemoAction.IncludeTrash(it))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton({ edit = false }, enabled = s.destination.isNotBlank()) { Text("Done") }
+            },
+        )
 }
 
 @Composable
@@ -725,22 +923,34 @@ private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         "Approve actions",
         "Review the planned actions, permissions, and potential changes before starting the task.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    { nav(SynapseRoute.PLAN) },
+                    Modifier.weight(1f).heightIn(min = 32.dp),
+                ) {
+                    Text("Edit plan")
+                }
+                Button(
+                    {
+                        send(DemoAction.Approve(s.planRevision))
+                        nav(SynapseRoute.MONITOR)
+                    },
+                    Modifier.weight(1.4f).heightIn(min = 32.dp),
+                    enabled = s.destination.isNotBlank(),
+                ) {
+                    Text("Approve scoped plan")
+                }
+            }
+        },
     ) {
         PlanSummary(s, nav)
-        PlannedSteps()
+        PlannedSteps(approval = true)
         PlanPermissions(nav)
-        Notice(
-            "You remain in control",
-            "Approval applies to revision ${s.planRevision}, destination ${s.destination}, and the listed actions only. Changes invalidate approval.",
+        DesignNotice(
+            "Revision ${s.planRevision} · ${s.destination}",
+            "Only listed actions. Plan changes require approval again.",
         )
-        FullButton("Approve scoped plan", s.destination.isNotBlank()) {
-            send(DemoAction.Approve(s.planRevision))
-            nav(SynapseRoute.MONITOR)
-        }
-        Actions {
-            Secondary("Edit plan") { nav(SynapseRoute.PLAN) }
-            Secondary("Cancel") { nav(SynapseRoute.AGENT) }
-        }
     }
 }
 

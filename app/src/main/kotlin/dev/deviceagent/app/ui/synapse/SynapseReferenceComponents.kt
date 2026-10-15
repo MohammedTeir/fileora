@@ -29,133 +29,154 @@ internal fun DesignPage(
     title: String,
     subtitle: String,
     nav: (SynapseRoute) -> Unit,
+    footer: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        Modifier.fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(
-                horizontal = if (route.destination == Destination.AGENT) 20.dp else 16.dp,
-                vertical = 8.dp,
-            ),
-        verticalArrangement = Arrangement.spacedBy(if (route == SynapseRoute.AGENT) 12.dp else 8.dp),
-    ) {
-        if (
-            route.destination == Destination.AGENT &&
-                route !in listOf(SynapseRoute.AGENT, SynapseRoute.WELCOME)
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    horizontal = if (route.destination == Destination.AGENT) 20.dp else 16.dp,
+                    vertical = if (route == SynapseRoute.AGENT) 18.dp else 8.dp,
+                ),
+            verticalArrangement =
+                Arrangement.spacedBy(if (route == SynapseRoute.AGENT) 12.dp else 8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            if (
+                route.destination == Destination.AGENT &&
+                    route !in listOf(SynapseRoute.AGENT, SynapseRoute.WELCOME)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "‹  Agent",
+                        Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }
+                            .padding(vertical = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    val step =
+                        when (route) {
+                            SynapseRoute.ATTACHMENTS -> 2
+                            SynapseRoute.PLAN -> 3
+                            SynapseRoute.APPROVAL -> 4
+                            SynapseRoute.TASK_RESULT -> 6
+                            else -> 5
+                        }
+                    val steps =
+                        if (
+                            route in
+                                listOf(
+                                    SynapseRoute.ATTACHMENTS,
+                                    SynapseRoute.PLAN,
+                                    SynapseRoute.APPROVAL,
+                                )
+                        )
+                            4
+                        else 6
+                    Text(
+                        "Step $step of $steps",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    repeat(steps) { index ->
+                        if (index > 0)
+                            Box(
+                                Modifier.width(14.dp)
+                                    .height(2.dp)
+                                    .background(
+                                        if (index < step) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant
+                                    )
+                            )
+                        Box(
+                            Modifier.size(7.dp)
+                                .background(
+                                    if (index < step) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                    RoundedCornerShape(50),
+                                )
+                        )
+                    }
+                }
+            }
+            if (route in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO))
                 Text(
-                    "‹  Agent",
-                    Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }
+                    "‹  History",
+                    Modifier.clickable(role = Role.Button) { nav(SynapseRoute.ACTIVITY) }
                         .padding(vertical = 5.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Spacer(Modifier.weight(1f))
-                val step =
-                    when (route) {
-                        SynapseRoute.ATTACHMENTS -> 2
-                        SynapseRoute.PLAN -> 3
-                        SynapseRoute.APPROVAL -> 4
-                        SynapseRoute.TASK_RESULT -> 6
-                        else -> 5
-                    }
-                val steps =
-                    if (
-                        route in
-                            listOf(
-                                SynapseRoute.ATTACHMENTS,
-                                SynapseRoute.PLAN,
-                                SynapseRoute.APPROVAL,
-                            )
+            if (
+                route in
+                    listOf(
+                        SynapseRoute.PROVIDERS,
+                        SynapseRoute.CREDENTIALS,
+                        SynapseRoute.MODELS,
+                        SynapseRoute.PRIVACY,
+                        SynapseRoute.USAGE,
+                        SynapseRoute.SECURITY,
+                        SynapseRoute.MEMORY,
+                        SynapseRoute.PERMISSIONS,
+                        SynapseRoute.APPEARANCE,
+                        SynapseRoute.ABOUT,
                     )
-                        4
-                    else 6
+            )
                 Text(
-                    "Step $step of $steps",
+                    "‹  Settings",
+                    Modifier.clickable(role = Role.Button) { nav(SynapseRoute.SETTINGS) }
+                        .padding(vertical = 0.dp),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.width(8.dp))
-                repeat(steps) { index ->
-                    Box(
-                        Modifier.padding(2.dp)
-                            .size(5.dp)
-                            .background(
-                                if (index < step) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outlineVariant,
-                                RoundedCornerShape(50),
-                            )
-                    )
-                }
-            }
-        }
-        if (route in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO))
-            Text(
-                "‹  History",
-                Modifier.clickable(role = Role.Button) { nav(SynapseRoute.ACTIVITY) }
-                    .padding(vertical = 5.dp),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        if (
-            route in
-                listOf(
-                    SynapseRoute.PROVIDERS,
-                    SynapseRoute.CREDENTIALS,
-                    SynapseRoute.MODELS,
-                    SynapseRoute.PRIVACY,
-                    SynapseRoute.USAGE,
-                    SynapseRoute.SECURITY,
-                    SynapseRoute.MEMORY,
-                    SynapseRoute.PERMISSIONS,
-                    SynapseRoute.APPEARANCE,
-                    SynapseRoute.ABOUT,
-                )
-        )
-            Text(
-                "‹  Settings",
-                Modifier.clickable(role = Role.Button) { nav(SynapseRoute.SETTINGS) }
-                    .padding(vertical = 0.dp),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        Column {
-            Text(
-                buildAnnotatedString {
-                    if (route == SynapseRoute.AGENT && title.contains(", ")) {
-                        append(title.substringBefore(", ") + ", ")
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                            append(title.substringAfter(", "))
-                        }
-                    } else append(title)
-                },
-                style =
-                    if (route == SynapseRoute.AGENT)
-                        MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 26.sp,
-                            lineHeight = 30.sp,
-                        )
-                    else MaterialTheme.typography.titleLarge,
-            )
-            if (subtitle.isNotEmpty())
+            Column {
                 Text(
-                    subtitle,
+                    buildAnnotatedString {
+                        if (route == SynapseRoute.AGENT && title.contains(", ")) {
+                            append(title.substringBefore(", ") + ", ")
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                append(title.substringAfter(", "))
+                            }
+                        } else append(title)
+                    },
                     style =
                         if (route == SynapseRoute.AGENT)
-                            MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp,
+                            MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 26.sp,
+                                lineHeight = 30.sp,
                             )
-                        else MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        else if (route.destination == Destination.SETTINGS)
+                            MaterialTheme.typography.titleLarge
+                        else MaterialTheme.typography.headlineMedium,
                 )
+                if (subtitle.isNotEmpty())
+                    Text(
+                        subtitle,
+                        style =
+                            if (route == SynapseRoute.AGENT)
+                                MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                )
+                            else MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+            }
+            if (
+                route.destination != Destination.AGENT &&
+                    route !in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO)
+            )
+                DesignTabs(route, nav)
+            content()
+            Spacer(Modifier.height(6.dp))
         }
-        if (
-            route.destination != Destination.AGENT &&
-                route !in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO)
-        )
-            DesignTabs(route, nav)
-        content()
-        Spacer(Modifier.height(6.dp))
+        if (footer != null)
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = .96f)) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    footer()
+                }
+            }
     }
 }
 
@@ -269,12 +290,12 @@ internal fun DesignRow(
                 else Modifier
             )
             .heightIn(min = SynapseDesignTokens.compactRowHeight)
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp),
     ) {
         Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) {
-            AssetIcon(icon, modifier = Modifier.padding(5.dp), tint = tint, size = 18.dp)
+            AssetIcon(icon, modifier = Modifier.padding(4.dp), tint = tint, size = 16.dp)
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
@@ -350,7 +371,11 @@ internal fun DesignSection(
                 if (subtitle.isNotEmpty())
                     Text(
                         subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 9.sp,
+                                lineHeight = 11.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
             }
@@ -362,8 +387,9 @@ internal fun DesignSection(
                                 Modifier.clickable(role = Role.Button, onClick = onAction)
                             else Modifier
                         )
-                        .padding(vertical = 5.dp),
-                    fontSize = 10.sp,
+                        .padding(vertical = 2.dp),
+                    fontSize = 9.sp,
+                    lineHeight = 12.sp,
                     color = MaterialTheme.colorScheme.primary,
                 )
         }
@@ -561,6 +587,46 @@ private fun DesignValue(value: String, fallback: Color) {
                 Box(Modifier.size(4.dp).background(foreground, CircleShape))
                 Text(value, style = MaterialTheme.typography.labelSmall)
             }
+        }
+    }
+}
+
+/** Compact reference notice. Safety text is always visible and is never truncated. */
+@Composable
+internal fun DesignNotice(
+    title: String,
+    body: String,
+    tone: dev.deviceagent.app.Tone = dev.deviceagent.app.Tone.INFO,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    val (bg, fg) = dev.deviceagent.app.ui.toneColors(tone)
+    Surface(
+        Modifier.fillMaxWidth(),
+        color = bg.copy(alpha = .65f),
+        contentColor = fg,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AssetIcon(
+                    if (
+                        tone == dev.deviceagent.app.Tone.ERROR ||
+                            tone == dev.deviceagent.app.Tone.WARNING
+                    )
+                        SynapseIcon.WARNING
+                    else SynapseIcon.ABOUT,
+                    tint = fg,
+                    size = 20.dp,
+                )
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Text(body, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            content()
         }
     }
 }
