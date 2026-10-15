@@ -2,6 +2,11 @@ package dev.deviceagent.app.ui.synapse
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.R
+import dev.deviceagent.app.ui.SynapseDesignTokens
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,10 +43,11 @@ internal fun SynapseWorkspace(
     reducedMotion: Boolean,
     onReducedMotion: (Boolean) -> Unit,
     reset: () -> Unit,
+    initialDemo: Boolean = false,
     liveContent: @Composable (SynapseRoute, (SynapseRoute) -> Unit, () -> Unit) -> Unit,
 ) {
     var resetEpoch by rememberSaveable { mutableIntStateOf(0) }
-    var demo by rememberSaveable { mutableStateOf(false) }
+    var demo by rememberSaveable { mutableStateOf(initialDemo) }
     var stack by rememberSaveable { mutableStateOf(initialRoute.name) }
     var preview by rememberSaveable { mutableStateOf(PreviewState.READY.name) }
     var directory by rememberSaveable { mutableStateOf(false) }
@@ -69,38 +75,33 @@ internal fun SynapseWorkspace(
         val expanded = maxWidth >= 1000.dp
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text("Synapse", style = MaterialTheme.typography.titleLarge)
-                            Text(
-                                if (demo) "Demo · ${s.provider} / ${s.model}" else modelLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                            )
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Row(Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = SynapseDesignTokens.topBarHeight).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (stack.contains('|')) IconButton(back, Modifier.size(40.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                        Image(painterResource(R.drawable.synapse_brand_mark), "Synapse", Modifier.size(30.dp))
+                        Column(Modifier.weight(1f).padding(start = 7.dp)) {
+                            Text("Synapse", style = MaterialTheme.typography.titleMedium)
+                            Text(if (demo) "Demo data · simulated actions" else "Your AI-powered device operator", fontSize = 8.sp, lineHeight = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    },
-                    navigationIcon = {
-                        if (stack.contains('|'))
-                            IconButton(back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-                    },
-                    actions = {
-                        TextButton({
-                            demo = !demo
-                            preview = PreviewState.READY.name
-                        }) {
-                            Text(if (demo) "Go live" else "Try demo")
+                        TextButton({ demo = !demo; preview = PreviewState.READY.name }, contentPadding = PaddingValues(6.dp)) {
+                            Text(if (demo) "Go live" else "Try demo", fontSize = 10.sp)
                         }
-                        IconButton({ directory = !directory }) {
-                            Icon(Icons.Default.GridView, "All screens")
+                        Box {
+                            IconButton({ states = true }, Modifier.size(40.dp)) { AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp) }
+                            DropdownMenu(states, { states = false }) {
+                                DropdownMenuItem({ Text("All screens") }, { directory = !directory; states = false })
+                                if (demo) PreviewState.entries.forEach { state ->
+                                    DropdownMenuItem({ Text("${state.name.lowercase()} preview") }, { preview = state.name; states = false })
+                                }
+                            }
                         }
-                    },
-                )
+                    }
+                }
             },
             snackbarHost = { SnackbarHost(snackbar) },
             bottomBar = {
-                if (!rail)
-                    NavigationBar {
+                if (!rail && route != SynapseRoute.WELCOME)
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.heightIn(min = SynapseDesignTokens.navigationHeight)) {
                         Destination.entries.forEach { destination ->
                             NavigationBarItem(
                                 route.destination == destination,
@@ -109,8 +110,8 @@ internal fun SynapseWorkspace(
                                     directory = false
                                     preview = PreviewState.READY.name
                                 },
-                                icon = { Icon(destination.icon(), null) },
-                                label = { Text(destination.label) },
+                                icon = { AssetIcon(destination.assetIcon(), tint = if (route.destination == destination) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                                label = { Text(destination.label, fontSize = 10.sp) },
                             )
                         }
                     }
@@ -127,8 +128,8 @@ internal fun SynapseWorkspace(
                                     directory = false
                                     preview = PreviewState.READY.name
                                 },
-                                icon = { Icon(destination.icon(), null) },
-                                label = { Text(destination.label) },
+                                icon = { AssetIcon(destination.assetIcon(), tint = if (route.destination == destination) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                                label = { Text(destination.label, fontSize = 10.sp) },
                             )
                         }
                     }
@@ -136,42 +137,6 @@ internal fun SynapseWorkspace(
                     Modifier.weight(1f).fillMaxHeight(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    if (demo)
-                        Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    "Demo data · simulated actions",
-                                    Modifier.weight(1f),
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
-                                Box {
-                                    TextButton({ states = true }) { Text("States") }
-                                    DropdownMenu(states, { states = false }) {
-                                        PreviewState.entries.forEach { state ->
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(
-                                                        state.name
-                                                            .lowercase()
-                                                            .replaceFirstChar(Char::uppercase)
-                                                    )
-                                                },
-                                                onClick = {
-                                                    preview = state.name
-                                                    states = false
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     Box(Modifier.weight(1f).widthIn(max = 840.dp).fillMaxWidth()) {
                         if (directory) ScreenDirectory(route, navigate)
                         else
@@ -299,3 +264,21 @@ private fun ScreenDirectory(current: SynapseRoute, nav: (SynapseRoute) -> Unit) 
         }
     }
 }
+
+internal fun Destination.assetIcon(): SynapseIcon = when (this) {
+    Destination.AGENT -> SynapseIcon.AGENT
+    Destination.ACTIVITY -> SynapseIcon.ACTIVITY
+    Destination.DEVICE -> SynapseIcon.DEVICE
+    Destination.SETTINGS -> SynapseIcon.SETTINGS
+}
+
+/** PDF page order is independent of the stable legacy route number. */
+internal val referenceRoutes = listOf(
+    SynapseRoute.WELCOME, SynapseRoute.AGENT, SynapseRoute.ATTACHMENTS, SynapseRoute.PLAN,
+    SynapseRoute.APPROVAL, SynapseRoute.MONITOR, SynapseRoute.RECOVERY, SynapseRoute.TASK_RESULT,
+    SynapseRoute.CHECKPOINT, SynapseRoute.ACTIVITY, SynapseRoute.SCHEDULE, SynapseRoute.AUDIT, SynapseRoute.UNDO,
+    SynapseRoute.DEVICE, SynapseRoute.SANDBOX, SynapseRoute.APPS, SynapseRoute.TERMINAL, SynapseRoute.TOOLS,
+    SynapseRoute.PACKAGES, SynapseRoute.PACKAGE_DETAIL, SynapseRoute.SETTINGS, SynapseRoute.PROVIDERS,
+    SynapseRoute.CREDENTIALS, SynapseRoute.MODELS, SynapseRoute.PRIVACY, SynapseRoute.USAGE,
+    SynapseRoute.SECURITY, SynapseRoute.MEMORY, SynapseRoute.PERMISSIONS, SynapseRoute.APPEARANCE, SynapseRoute.ABOUT,
+)

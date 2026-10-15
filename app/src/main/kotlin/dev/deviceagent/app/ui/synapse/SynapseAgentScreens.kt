@@ -3,6 +3,16 @@
 package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -39,164 +49,79 @@ internal fun DemoAgentRoute(
 
 @Composable
 private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
-    ScreenPage(
-        "YOUR DEVICE, UNDERSTOOD",
-        "Ask. Act. Verify.",
-        "Meet Synapse, your cloud-AI device operator. You choose the scope. Every result is checked.",
-    ) {
-        Icon(
-            Icons.Default.Hub,
-            null,
-            Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Section("A thoughtful first step") {
-            VerifiedRow("Connect your AI", "Gemini first. Your own key, your choice of model.")
-            VerifiedRow("Choose allowed folders", "Grant access to exactly where you want to work.")
-            VerifiedRow("Keep control", "Normal mode. Ask before destructive changes.")
-            VerifiedRow("Keep contents private", "File contents and media sharing start off.")
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Welcome to", style = MaterialTheme.typography.headlineMedium)
+                Text("Synapse", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                Muted("Turn your ideas into real actions on your Android device using AI. Synapse can inspect, plan, ask for your approval, and handle the rest.")
+            }
+            Image(painterResource(R.drawable.synapse_brand_mark), "Synapse brand mark", Modifier.weight(1f).padding(16.dp).aspectRatio(1f))
         }
-        Primary("Explore the agent") { nav(SynapseRoute.AGENT) }
-        LinkRow("Provider setup", "Inspect the sample credential flow", Icons.Default.Key) {
-            nav(SynapseRoute.PROVIDERS)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(Triple(SynapseIcon.AGENT,"Powerful AI","Plan and execute tasks for you"), Triple(SynapseIcon.SECURITY,"Safe and controlled","You approve sensitive actions"), Triple(SynapseIcon.DEVICE,"Built for Android","Works with your device and apps")).forEach { (icon,title,detail) ->
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AssetIcon(icon)
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
-        LinkRow("Folder access", "Understand scoped Android access", Icons.Default.Folder) {
-            nav(SynapseRoute.SANDBOX)
+        Section("Get started") {
+            Muted("Complete these steps to set up Synapse on your device.")
+            listOf(
+                Triple(SynapseIcon.PROVIDERS,"Connect an AI provider",SynapseRoute.PROVIDERS),
+                Triple(SynapseIcon.FOLDER,"Grant folder access",SynapseRoute.SANDBOX),
+                Triple(SynapseIcon.SECURITY,"Set up safety preferences",SynapseRoute.SECURITY),
+                Triple(SynapseIcon.SETTINGS,"Configure basic settings",SynapseRoute.SETTINGS),
+            ).forEachIndexed { index,(icon,title,route) ->
+                DesignRow(icon,title,listOf("Use Gemini, OpenAI, Claude, or a custom provider.","Allow Synapse to access files using Android SAF.","Choose what actions require your approval.","Appearance, language, and other preferences.")[index],onClick = { nav(route) })
+            }
         }
-        LinkRow(
-            "Safety preferences",
-            "Review risk levels and approval rules",
-            Icons.Default.Shield,
-        ) {
-            nav(SynapseRoute.SECURITY)
-        }
+        FullButton("Continue Setup  →") { nav(SynapseRoute.PROVIDERS) }
+        TextButton({ nav(SynapseRoute.AGENT) }, Modifier.align(Alignment.CenterHorizontally)) { Text("Skip for now") }
     }
 }
 
 @Composable
 private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) {
-            ScreenPage(
-                "A LITTLE CLARITY. A LOT DONE.",
-                "What can we do today?",
-                "Ask in your own words. Synapse turns a goal into a reviewed, verified workflow.",
-            ) {
-                Actions {
-                    Badge("${s.provider} · ${s.model}", icon = Icons.Default.AutoAwesome)
-                    Badge(s.mode)
-                }
-                Notice(
-                    when {
-                        s.recoveryVerified -> "Audio recovery verified"
-                        s.recoveryAborted -> "Audio recovery stopped"
-                        else -> "An audio task needs your decision"
-                    },
-                    when {
-                        s.recoveryVerified ->
-                            "The approved sample output passed its checks. Inspect the recovery evidence."
-                        s.recoveryAborted ->
-                            "Completed work is preserved. Review the diagnosis or reset the demo."
-                        else ->
-                            "A missing MP3 encoder was found. Review the evidence and proposed fix."
-                    },
-                    if (s.recoveryVerified) Tone.SUCCESS else Tone.WARNING,
-                ) {
-                    TextButton({
-                        send(DemoAction.SelectTask("SYN-2049"))
-                        nav(SynapseRoute.RECOVERY)
-                    }) {
-                        Text("Review recovery")
+    DesignPage(SynapseRoute.AGENT,"Hello, Mohammed","Describe what you want to do with your device.\nI’ll plan, ask for approval, and handle the rest.",nav) {
+        Section("") {
+            BasicTextField(s.draft,{ send(DemoAction.Draft(it)) },Modifier.fillMaxWidth().heightIn(min = 42.dp),textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),decorationBox = { field ->
+                if(s.draft.isBlank()) Muted("What would you like to do?")
+                field()
+            })
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                listOf("Add files","Add images","Add folder").forEach { label -> TextButton({ nav(SynapseRoute.ATTACHMENTS) },contentPadding = PaddingValues(5.dp)) { Text(label, fontSize = 10.sp) } }
+                Spacer(Modifier.weight(1f))
+                IconButton({ if(s.draft.isNotBlank()) { send(DemoAction.Submit); nav(SynapseRoute.PLAN) } },enabled = s.draft.isNotBlank()) { AssetIcon(SynapseIcon.PLAY,"Preview demo plan") }
+            }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Organize Downloads","Convert media files","Run Python project","Clean storage").forEach { goal -> AssistChip({ send(DemoAction.Draft(goal)) },{ Text(goal, fontSize = 10.sp) }) }
+        }
+        Text("Quick actions", style = MaterialTheme.typography.titleMedium)
+        listOf(
+            Triple(SynapseIcon.FOLDER,"Manage files",SynapseRoute.SANDBOX),
+            Triple(SynapseIcon.TERMINAL,"Run a command",SynapseRoute.TERMINAL),
+            Triple(SynapseIcon.APPS,"Manage apps",SynapseRoute.APPS),
+            Triple(SynapseIcon.PLAY,"Convert media",SynapseRoute.ATTACHMENTS),
+            Triple(SynapseIcon.TOOLS,"Run project",SynapseRoute.TOOLS),
+            Triple(SynapseIcon.SCHEDULES,"Schedule task",SynapseRoute.SCHEDULE),
+        ).chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (icon,label,route) ->
+                    Surface(onClick = { nav(route) },modifier = Modifier.weight(1f),shape = RoundedCornerShape(10.dp),color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                        Row(Modifier.padding(8.dp).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { AssetIcon(icon,size = 18.dp);Text(label,style = MaterialTheme.typography.labelSmall) }
                     }
-                }
-                Section("You", "Today · 14:29") {
-                    Text("Make these 500 travel videos smaller. Keep the originals.")
-                }
-                Section("Synapse", "Inspected · planned · policy checked") {
-                    Text(
-                        "I found 500 videos totaling 87 GiB. I’ll create compressed copies, preserve the originals, and verify each output."
-                    )
-                    RiskBadge(1)
-                    Disclosure(
-                        "Why this action?",
-                        "One file at a time keeps temporary storage bounded.",
-                    ) {
-                        Text(
-                            "The selected folder is writable. Each result is probed before it counts as verified. No original is deleted."
-                        )
-                    }
-                }
-                DemoTaskCard(s.tasks.first { it.id == "SYN-2048" }) {
-                    send(DemoAction.SelectTask("SYN-2048"))
-                    nav(SynapseRoute.MONITOR)
-                }
-                Section("Try a new goal") {
-                    listOf(
-                            "Organize my Downloads",
-                            "Extract audio from my lessons",
-                            "Show what is taking up storage",
-                        )
-                        .forEach { goal ->
-                            AssistChip(
-                                { send(DemoAction.Draft(goal)) },
-                                label = { Text(goal) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.AutoAwesome, null, Modifier.size(18.dp))
-                                },
-                            )
-                        }
-                    Muted(
-                        "The demo uses a fixed Downloads scenario to illustrate plan review; it does not contact an AI service."
-                    )
                 }
             }
         }
-        Surface(shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surfaceContainerLow) {
-            Column(
-                Modifier.fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (s.attachments.isNotEmpty())
-                    Actions {
-                        s.attachments.forEach {
-                            AssistChip(
-                                { nav(SynapseRoute.ATTACHMENTS) },
-                                label = { Text(it) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.AttachFile, null, Modifier.size(16.dp))
-                                },
-                            )
-                        }
-                    }
-                OutlinedTextField(
-                    s.draft,
-                    { send(DemoAction.Draft(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Describe your goal") },
-                    maxLines = 4,
-                    trailingIcon = {
-                        IconButton(
-                            {
-                                if (s.draft.isNotBlank()) {
-                                    send(DemoAction.Submit)
-                                    nav(SynapseRoute.PLAN)
-                                }
-                            },
-                            enabled = s.draft.isNotBlank(),
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, "Preview demo plan")
-                        }
-                    },
-                )
-                Actions {
-                    TextButton({ nav(SynapseRoute.ATTACHMENTS) }) {
-                        Icon(Icons.Default.AttachFile, null)
-                        Text("Attach")
-                    }
-                    TextButton({ nav(SynapseRoute.PRIVACY) }) { Text("Sharing preview") }
-                    TextButton({ nav(SynapseRoute.SECURITY) }) { Text("${s.mode} mode") }
-                }
-            }
+        Text("Recent tasks", style = MaterialTheme.typography.titleMedium)
+        Section("") {
+            DesignRow(SynapseIcon.APPROVAL,"Organize Downloads folder","Completed · 12 files moved","2 hours ago",onClick = { nav(SynapseRoute.TASK_RESULT) })
+            DesignRow(SynapseIcon.ACTIVITY,"Convert videos to MP4","Processing · 3 of 5 files","32 minutes ago",onClick = { send(DemoAction.SelectTask("SYN-2048"));nav(SynapseRoute.MONITOR) })
+            DesignRow(SynapseIcon.TERMINAL,"Run Python project","Pending approval","1 hour ago",onClick = { nav(SynapseRoute.PLAN) })
         }
     }
 }

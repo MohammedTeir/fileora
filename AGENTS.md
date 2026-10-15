@@ -9,8 +9,9 @@ to accept legacy backup files.
 
 ## Asset policy
 
-Only the existing Synapse launcher icon may use artwork from `assets/`.
-Do not copy, convert, trace, or derive other application resources from that
-folder. Use Compose Material icons or independently authored Android resources
-for UI changes. The launcher artwork may also appear on the app launch screen.
-Keep the `assets/` archive intact; it is not a runtime resource directory.
+The approved `assets/synapse/v3` package is the visual authority for the 31-screen UI.
+Use its supplied branding and SVG icon concepts through Android runtime resources;
+keep original source assets intact. `scripts/import-v3-icons.py` reproduces the
+VectorDrawables. Never package design-reference screenshots in the APK or use a
+screenshot as an interface. The raster references and reconstructed icon concepts
+have different provenance; do not claim pixel-perfect original vectors.
