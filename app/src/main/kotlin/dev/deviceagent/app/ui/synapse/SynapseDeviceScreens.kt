@@ -3,6 +3,13 @@
 package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
@@ -20,91 +27,12 @@ internal fun DemoDeviceRoute(
     nav: (SynapseRoute) -> Unit,
 ) {
     when (route) {
-        SynapseRoute.DEVICE ->
-            ScreenPage(
-                "OBSERVED 2 MINUTES AGO · DEMO",
-                "Know your environment",
-                "Capability checks give the agent a grounded starting point.",
-            ) {
-                Section("Android 15 · ARM64") {
-                    Badge("Ready for scoped tasks", Tone.SUCCESS)
-                    Metrics(
-                        "Storage free" to "48.2 GiB",
-                        "App memory" to "612 MiB",
-                        "Battery" to "68% · charging",
-                        "Thermal state" to "Moderate",
-                    )
-                    LinearProgressIndicator(
-                        progress = { 207.8f / 256f },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Muted("207.8 of 256 GiB used · 8 GiB total RAM")
-                    Disclosure("Resource observations") {
-                        LabeledValue("App CPU", "42% of one core · last 10 seconds")
-                        LabeledValue("Whole-device CPU", "Unavailable through public Android APIs")
-                        LabeledValue("Battery temperature", "37.8°C")
-                        LabeledValue(
-                            "Root",
-                            "${s.rootStatus} · ${if (s.rootEnabled) "demo backend enabled" else "disabled"}",
-                        )
-                        LabeledValue("Linux userspace", "1.84 GiB · isolated from system packages")
-                    }
-                }
-                LinkRow(
-                    "Folders & sandbox",
-                    "${s.folders.size} selected locations",
-                    Icons.Default.Folder,
-                ) {
-                    nav(SynapseRoute.SANDBOX)
-                }
-                LinkRow(
-                    "Linux & packages",
-                    "${s.installed.size} installed · optional runtimes",
-                    Icons.Default.Inventory2,
-                ) {
-                    nav(SynapseRoute.PACKAGES)
-                }
-                LinkRow(
-                    "Command workspace",
-                    "Review, execute and inspect bounded commands",
-                    Icons.Default.Terminal,
-                ) {
-                    nav(SynapseRoute.TERMINAL)
-                }
-                LinkRow(
-                    "Apps & APK inspector",
-                    "Visible apps and package compatibility",
-                    Icons.Default.Android,
-                ) {
-                    nav(SynapseRoute.APPS)
-                }
-                LinkRow(
-                    "Tool catalog",
-                    "Capabilities with typed inputs and risk policies",
-                    Icons.Default.Build,
-                ) {
-                    nav(SynapseRoute.TOOLS)
-                }
-                LinkRow(
-                    "Safety & root",
-                    "Review privileges and authorization rules",
-                    Icons.Default.Security,
-                ) {
-                    nav(SynapseRoute.SECURITY)
-                }
-                Secondary("Refresh sample observations") {
-                    send(
-                        DemoAction.Notice(
-                            "Demo observations refreshed. Switch to Live for this device's actual information."
-                        )
-                    )
-                }
-            }
-        SynapseRoute.SANDBOX -> SandboxDemo(s, send)
+        SynapseRoute.DEVICE -> DeviceOverviewDemo(s,send,nav)
+        SynapseRoute.SANDBOX -> SandboxDemo(s, send, nav)
         SynapseRoute.PACKAGES -> PackagesDemo(s, send, nav)
         SynapseRoute.PACKAGE_DETAIL -> PackageDetailDemo(s, send, nav)
         SynapseRoute.TERMINAL -> TerminalDemo(s, send, nav)
-        SynapseRoute.APPS -> AppsDemo(send)
+        SynapseRoute.APPS -> AppsDemo(send, nav)
         SynapseRoute.TOOLS -> ToolsDemo(nav)
         SynapseRoute.BROWSE,
         SynapseRoute.SEARCH ->
@@ -130,62 +58,104 @@ internal fun DemoDeviceRoute(
 }
 
 @Composable
-private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit) {
-    var revoke by rememberSaveable { mutableStateOf<String?>(null) }
-    ScreenPage(
-        "SCOPED STORAGE",
-        "Only the folders you choose",
-        "Android folder grants are separate from AI approval. Both are checked before a tool runs.",
-    ) {
-        Section("Selected locations") {
-            listOf("Downloads", "Movies/Trips", "Music/Converted", "Documents/Projects").forEach {
-                name ->
-                SwitchSetting(
-                    name,
-                    if (name in s.folders) "Read & write · sample grant valid" else "No demo grant",
-                    name in s.folders,
-                ) {
-                    if (it) send(DemoAction.Folder(name, true)) else revoke = name
+private fun DeviceOverviewDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    DesignPage(SynapseRoute.DEVICE,"Device","Explore your device, manage files, apps, and available tools.",nav) {
+        DesignSection("Device information",SynapseIcon.DEVICE,"Refresh",{send(DemoAction.Notice("Demo observations refreshed."))}) {
+            Row(horizontalArrangement=Arrangement.spacedBy(14.dp),verticalAlignment=Alignment.CenterVertically) {
+                AssetIcon(SynapseIcon.DEVICE,description="Sample Android device",size=66.dp)
+                Column(Modifier.weight(1f)) {
+                    Text("Samsung Galaxy A04s",style=MaterialTheme.typography.titleSmall)
+                    Muted("Android 13 (One UI Core 5.1)")
+                    SmallValue("Model","SM-A047F")
+                    SmallValue("Security patch","2023-10-01")
+                    SmallValue("Root status",s.rootStatus)
+                    SmallValue("Storage","64 GB (28.4 GB free)")
+                    LinearProgressIndicator(progress={.55f},modifier=Modifier.fillMaxWidth())
+                    SmallValue("Memory (RAM)","4 GB (1.8 GB free)")
                 }
             }
         }
-        Section("Sandbox boundaries") {
-            VerifiedRow(
-                "Workspace stays isolated",
-                "Temporary outputs stay inside the selected userspace",
-            )
-            VerifiedRow(
-                "Protected system paths blocked",
-                "/system, /data and other app sandboxes are not normal file targets",
-            )
-            VerifiedRow(
-                "Symlink and path checks",
-                "Targets must resolve within the approved operation scope",
-            )
-            LabeledValue("Temporary storage", "0.6 GiB · reconciled after interruption")
+        Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f)) { DesignSection("Battery",SynapseIcon.DEVICE){Text("100%",style=MaterialTheme.typography.titleLarge);Muted("Charging");LinearProgressIndicator(progress={1f},modifier=Modifier.fillMaxWidth(),color=Color(0xFF00B84A));SmallValue("Temperature","34°C");SmallValue("Health","Good")} }
+            Column(Modifier.weight(1f)) { DesignSection("Storage",SynapseIcon.MEMORY){Muted("64 GB total");LinearProgressIndicator(progress={.55f},modifier=Modifier.fillMaxWidth());SmallValue("Apps","18.2 GB");SmallValue("Media","12.6 GB");SmallValue("Other","4.8 GB");SmallValue("Free","28.4 GB")} }
         }
-        Notice(
-            "Revoked access pauses work",
-            "If a folder grant expires, the agent asks you to reselect it. It cannot substitute root access.",
-            Tone.WARNING,
-        )
-        Disclosure("Example access record") {
-            CodeBlock(
-                "location: Movies/Trips\nsource: Android Storage Access Framework\nread: granted\nwrite: granted\nlast_checked: 14:31:02\npolicy_scope: SYN-2048"
-            )
+        Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f)) { DesignSection("Network",SynapseIcon.NETWORK){SmallValue("Wi-Fi","Connected");SmallValue("IP address","192.168.1.105");SmallValue("Mobile data","Off")} }
+            Column(Modifier.weight(1f)) { DesignSection("System",SynapseIcon.SETTINGS){SmallValue("CPU","Octa-core 2.0 GHz");SmallValue("Architecture","arm64");SmallValue("Uptime","3 days, 4 hours")} }
+        }
+        DesignSection("Quick tools",SynapseIcon.TOOLS) {
+            Actions {
+                Secondary("Open files"){nav(SynapseRoute.SANDBOX)}
+                Secondary("Manage apps"){nav(SynapseRoute.APPS)}
+                Secondary("Run terminal"){nav(SynapseRoute.TERMINAL)}
+                Secondary("Packages"){nav(SynapseRoute.PACKAGES)}
+            }
         }
     }
-    revoke?.let { name ->
-        ConfirmAction(
-            "Remove access to $name?",
-            "Tasks using this demo location will need a new grant. Existing files are preserved.",
-            "Remove grant",
-            { revoke = null },
-        ) {
-            send(DemoAction.Folder(name, false))
-            revoke = null
+}
+
+@Composable
+private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    var location by rememberSaveable { mutableStateOf("Internal storage") }
+    var items by rememberSaveable { mutableStateOf(listOf("Alarms","Android","DCIM","Documents","Download","Movies","Music","Notifications","Pictures","Podcasts","Recordings","Ringtones","device_info.txt","log.txt","screenshot.png","video.mp4","archive.zip")) }
+    var selected by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var action by rememberSaveable { mutableStateOf<String?>(null) }
+    var name by rememberSaveable { mutableStateOf("") }
+    DesignPage(SynapseRoute.SANDBOX,"Files","Browse and manage your device files and folders. Sample storage only.",nav) {
+        Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.width(92.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                Text("Internal storage",style=MaterialTheme.typography.titleSmall)
+                LinearProgressIndicator(progress={.55f},modifier=Modifier.fillMaxWidth())
+                Text("28.4 GB free",style=MaterialTheme.typography.bodySmall)
+                listOf("Internal storage","SD card","Downloads","Pictures","Videos","Audio","Documents","Apps","System (Root)","Recent files","Large files","Screenshots","Trash").forEach { title ->
+                    Surface(onClick={location=title;selected=emptyList()},color=if(location==title) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,shape=RoundedCornerShape(6.dp)) {
+                        Row(Modifier.heightIn(min=40.dp).padding(4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)){AssetIcon(SynapseIcon.FOLDER,size=12.dp);Text(title,style=MaterialTheme.typography.labelSmall)}
+                    }
+                }
+            }
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+                Text(location,style=MaterialTheme.typography.titleSmall)
+                DesignSearch(query,{query=it},"Find files…")
+                TextButton({name="";action="New folder"}){Text("+ New folder")}
+                Row { Text("Name",Modifier.weight(1f),style=MaterialTheme.typography.labelSmall);Text("Type / Size",style=MaterialTheme.typography.labelSmall) }
+                val visible=items.filter{it.contains(query,true)}
+                if(visible.isEmpty()) Muted("No matching files")
+                visible.forEach { item ->
+                    Row(Modifier.fillMaxWidth().toggleable(item in selected,role=Role.Checkbox){checked->selected=if(checked) selected+item else selected-item}.heightIn(min=36.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                        Checkbox(item in selected,null,Modifier.size(18.dp))
+                        AssetIcon(if(item.contains('.')) SynapseIcon.FILE else SynapseIcon.FOLDER,size=14.dp)
+                        Text(item,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,maxLines=1)
+                        Text(if(item.contains('.')) item.substringAfterLast('.').uppercase()+" · 12 KB" else "Folder",style=MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
         }
+        Text("${selected.size} items selected",style=MaterialTheme.typography.bodySmall)
+        Actions { listOf("Copy","Move","Rename","Delete").forEach { op -> Secondary(op,selected.isNotEmpty() && (op!="Rename" || selected.size==1)){name=selected.firstOrNull().orEmpty();action=op} } }
+        Disclosure("Granted folders","Android SAF access remains separately scoped") { s.folders.forEach { folder -> DesignRow(SynapseIcon.FOLDER,folder,"Sample folder grant") };Secondary("Permissions"){nav(SynapseRoute.PERMISSIONS)} }
     }
+    if(action!=null) AlertDialog(onDismissRequest={action=null},title={Text("${action} · Demo")},text={Column{Text("Selected: ${selected.joinToString().ifBlank{"none"}}. No real files are changed.");if(action in listOf("New folder","Rename")) OutlinedTextField(name,{name=it},label={Text("Name")},isError=name.isBlank() || '/' in name)}},confirmButton={TextButton({when(action){"New folder"->items=items+name;"Delete"->items=items-selected.toSet();"Rename"->items=items.map{if(it==selected.first())name else it};else->send(DemoAction.Notice("${action} simulated for ${selected.size} items."))};selected=emptyList();action=null},enabled=action !in listOf("New folder","Rename") || name.isNotBlank() && '/' !in name && name !in items){Text("Confirm")}},dismissButton={TextButton({action=null}){Text("Cancel")}})
+}
+
+@Composable
+private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    var detail by rememberSaveable { mutableStateOf<String?>(null) }
+    val names=listOf("WhatsApp","YouTube","Chrome","Termux","Synapse","Google Drive","Gallery","Camera","Settings")
+    DesignPage(SynapseRoute.APPS,"Apps","View, manage, and inspect installed applications. Demo inventory.",nav) {
+        Section(""){InlineStats("Installed apps" to "72","App storage" to "18.2 GB","Updates available" to "3 apps")}
+        DesignSearch(query,{query=it},"Search apps, package name, or actions…")
+        ChoiceChips(listOf("All","User","System","Updates"),filter){filter=it}
+        DesignSection("Installed applications",SynapseIcon.APPS) {
+            names.filterIndexed{i,n->n.contains(query,true) && when(filter){"System"->i>=6;"User"->i<6;"Updates"->i in listOf(0,2,3);else->true}}.forEach { title ->
+                DesignRow(SynapseIcon.APPS,title,if(title=="Synapse") "dev.deviceagent.app · 24 MB" else "Sample package · 38 MB", "Open",onClick={detail=title})
+            }
+        }
+        DesignSection("App actions",SynapseIcon.TOOLS){Actions{listOf("Install APK","Uninstall","Disable","Check updates").forEach{label->Secondary(label){detail=label}}}}
+    }
+    DemoDetailDialog(detail,{detail=null},"Sample app details and action preview. Installation, removal, and launch are not performed by this demo.")
 }
 
 @Composable
@@ -417,58 +387,6 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             send(DemoAction.RunCommand)
             confirm = false
         }
-}
-
-@Composable
-private fun AppsDemo(send: (DemoAction) -> Unit) {
-    var query by rememberSaveable { mutableStateOf("") }
-    var selected by rememberSaveable { mutableStateOf("Notes") }
-    ScreenPage(
-        "ANDROID PACKAGE INSPECTION",
-        "Know what you install",
-        "Android controls installation. Package visibility limits what an app can inspect.",
-    ) {
-        OutlinedTextField(
-            query,
-            { query = it },
-            label = { Text("Search visible apps") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        listOf(
-                "Notes" to "2.4 · 18.2 MiB · com.example.notes",
-                "Gallery" to "5.8 · 42 MiB · com.example.gallery",
-                "Reader" to "1.9 · 24.6 MiB · com.example.reader",
-            )
-            .filter { it.first.contains(query, true) }
-            .forEach { (name, detail) ->
-                LinkRow(name, detail, Icons.Default.Android) { selected = name }
-            }
-        Section("$selected · inspection") {
-            LabeledValue("Install source", "System package installer · sample")
-            LabeledValue("Permissions", "Notifications · selected photos only")
-            LabeledValue("Signing identity", "SHA-256 fingerprint available for comparison")
-            Muted("App data and private files are outside normal inspection scope.")
-        }
-        Section("Candidate APK · notes-2.3.apk") {
-            RiskBadge(2)
-            LabeledValue("Identity", "com.example.notes · version 2.3 (23)")
-            LabeledValue("Architecture", "ARM64 · compatible with sample device")
-            VerifiedRow("Signature matches", "Sample fingerprint matches the installed app")
-            VerifiedRow("Version progression", "Installed 2.4 is newer than candidate 2.3", false)
-            Notice(
-                "Downgrade blocked",
-                "Use a newer signed package. Synapse will not bypass Android package safeguards.",
-                Tone.WARNING,
-            )
-            Secondary("Inspect a newer sample") {
-                send(
-                    DemoAction.Notice(
-                        "Sample inspection: notes-2.5.apk matches identity, signature and ARM64. A live installation would require the Android installer."
-                    )
-                )
-            }
-        }
-    }
 }
 
 @Composable
