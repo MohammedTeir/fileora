@@ -325,13 +325,13 @@ internal fun SwitchSetting(
     Row(
         Modifier.fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
-            .padding(vertical = 8.dp),
+            .heightIn(min = 48.dp).padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
-            Muted(subtitle)
+            if(subtitle.isNotEmpty()) Muted(subtitle)
         }
         Switch(checked, onCheckedChange = null, enabled = enabled, modifier = Modifier.scale(.75f))
     }

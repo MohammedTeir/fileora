@@ -35,7 +35,7 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
             }
         }
         if(route in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) Text("‹  History",Modifier.clickable(role=Role.Button){nav(SynapseRoute.ACTIVITY)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
-        if(route in listOf(SynapseRoute.PROVIDERS,SynapseRoute.CREDENTIALS,SynapseRoute.MODELS,SynapseRoute.PRIVACY,SynapseRoute.USAGE,SynapseRoute.SECURITY,SynapseRoute.MEMORY)) Text("‹  Settings",Modifier.clickable(role=Role.Button){nav(SynapseRoute.SETTINGS)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
+        if(route in listOf(SynapseRoute.PROVIDERS,SynapseRoute.CREDENTIALS,SynapseRoute.MODELS,SynapseRoute.PRIVACY,SynapseRoute.USAGE,SynapseRoute.SECURITY,SynapseRoute.MEMORY)) Text("‹  Settings",Modifier.clickable(role=Role.Button){nav(SynapseRoute.SETTINGS)}.padding(vertical=0.dp),style=MaterialTheme.typography.bodySmall)
         Column {
             Text(title, style = MaterialTheme.typography.headlineMedium)
             if (subtitle.isNotEmpty()) Muted(subtitle)
@@ -55,10 +55,13 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
             listOf(Triple("AI Providers",SynapseRoute.PROVIDERS,SynapseIcon.PROVIDERS), Triple("Permissions",SynapseRoute.PERMISSIONS,SynapseIcon.PERMISSIONS), Triple("Security",SynapseRoute.SECURITY,SynapseIcon.SECURITY), Triple("Appearance",SynapseRoute.APPEARANCE,SynapseIcon.APPEARANCE), Triple("About",SynapseRoute.ABOUT,SynapseIcon.ABOUT))
         else listOf(Triple("AI Providers",SynapseRoute.PROVIDERS,SynapseIcon.PROVIDERS), Triple("Credentials",SynapseRoute.CREDENTIALS,SynapseIcon.CREDENTIALS), Triple("Models",SynapseRoute.MODELS,SynapseIcon.MODELS), Triple("Privacy",SynapseRoute.PRIVACY,SynapseIcon.PRIVACY), Triple("Usage",SynapseRoute.USAGE,SynapseIcon.USAGE), Triple("Security",SynapseRoute.SECURITY,SynapseIcon.SECURITY), Triple("Memory",SynapseRoute.MEMORY,SynapseIcon.MEMORY))
     }
+    val scroll = rememberScrollState()
+    val selectedIndex = tabs.indexOfFirst { it.second == route || route == SynapseRoute.PACKAGE_DETAIL && it.second == SynapseRoute.PACKAGES }
+    LaunchedEffect(route, scroll.maxValue) { if(selectedIndex >= 4) scroll.scrollTo(scroll.maxValue) }
     Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = RoundedCornerShape(8.dp)) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(scroll), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             tabs.forEach { (label,target,icon) ->
-                val selected = route == target || route == SynapseRoute.PACKAGE_DETAIL && target == SynapseRoute.PACKAGES
+                val selected = route == target || route == SynapseRoute.SETTINGS && target == SynapseRoute.PROVIDERS || route == SynapseRoute.PACKAGE_DETAIL && target == SynapseRoute.PACKAGES
                 Surface(onClick = { nav(target) }, shape = RoundedCornerShape(7.dp), color = if(selected) MaterialTheme.colorScheme.primary else Color.Transparent, contentColor = if(selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface) {
                     Row(Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         AssetIcon(icon, tint = LocalContentColor.current, size = 14.dp)
