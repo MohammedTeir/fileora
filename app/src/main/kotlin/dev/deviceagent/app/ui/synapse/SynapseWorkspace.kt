@@ -248,12 +248,16 @@ internal fun DemoRouteContent(
     reset: () -> Unit = {},
 ) {
     when (route.number) {
+        31 -> TaskResultDesign(s, nav)
         in 1..11 -> DemoAgentRoute(route, s, send, nav)
         in 12..16,
         21,
         22,
         23,
-        27 ->
+        27,
+        28,
+        29,
+        30 ->
             DemoSettingsRoute(
                 route,
                 s,
