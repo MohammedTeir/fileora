@@ -162,275 +162,81 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
 private fun PackagesDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("All") }
-    ScreenPage(
-        "OPTIONAL LINUX USERSPACE",
-        "The tools behind the task",
-        "Package changes stay inside the environment. Android system packages are separate.",
-    ) {
-        Metrics("Environment size" to "1.84 GiB", "Installed packages" to "${s.installed.size}")
-        Notice(
-            "FFmpeg capability update",
-            "The current profile cannot encode MP3. Review the verified MP3 profile before repairing the lesson task.",
-            Tone.WARNING,
-        )
-        OutlinedTextField(
-            query,
-            { query = it },
-            label = { Text("Search packages") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
-        ChoiceChips(listOf("All", "Installed", "Available"), filter) { filter = it }
-        val packages =
-            demoPackages.filter {
-                it.name.contains(query, true) &&
-                    (filter == "All" || (it.name in s.installed) == (filter == "Installed"))
-            }
-        if (packages.isEmpty())
-            Notice("No package matches", "Try another name or change the filter.")
-        packages.forEach { pkg ->
-            Section("${pkg.name} ${pkg.version}", pkg.purpose) {
-                Actions {
-                    Badge(
-                        if (pkg.name in s.installed) "Installed" else "Available",
-                        if (pkg.name in s.installed) Tone.SUCCESS else Tone.INFO,
-                    )
-                    Badge(pkg.size)
-                    RiskBadge(2)
-                }
-                Primary(
-                    if (pkg.name in s.installed) "Manage ${pkg.name}" else "Install ${pkg.name}"
-                ) {
-                    send(DemoAction.PackageSelected(pkg.name))
-                    nav(SynapseRoute.PACKAGE_DETAIL)
-                }
-            }
+    DesignPage(SynapseRoute.PACKAGES,"Packages","Search, install, update, and manage packages in your Linux environment.",nav) {
+        Section(""){InlineStats("Installed packages" to "${s.installed.size}","Updates available" to "1","Package storage" to "1.84 GB")}
+        DesignSearch(query,{query=it},"Search packages (e.g. python, git, nodejs)…")
+        ChoiceChips(listOf("All","Installed","Available"),filter){filter=it}
+        val packages=demoPackages.filter{it.name.contains(query,true) && (filter=="All" || (it.name in s.installed)==(filter=="Installed"))}
+        if(packages.isEmpty()) Notice("No package matches","Try another name or filter.")
+        DesignSection("Packages",SynapseIcon.PACKAGES) {
+            packages.forEach { pkg -> DesignRow(SynapseIcon.PACKAGES,pkg.name,"${pkg.purpose}\n${pkg.version} · ${pkg.size}",if(pkg.name in s.installed) "Installed" else "Available",onClick={send(DemoAction.PackageSelected(pkg.name));nav(SynapseRoute.PACKAGE_DETAIL)}) }
         }
-        Actions {
-            Secondary("Verify runtime") {
-                send(
-                    DemoAction.Notice(
-                        "Sample health check: Python, Git and Curl pass; FFmpeg needs the MP3 capability update."
-                    )
-                )
-            }
-            Secondary("Repair environment") {
-                send(DemoAction.PackageSelected("FFmpeg"))
-                nav(SynapseRoute.PACKAGE_DETAIL)
-            }
+        DesignSection("Package actions",SynapseIcon.TOOLS) {
+            Actions { Secondary("Install package"){send(DemoAction.PackageSelected("ImageMagick"));nav(SynapseRoute.PACKAGE_DETAIL)};Secondary("Update packages"){send(DemoAction.PackageSelected("FFmpeg"));nav(SynapseRoute.PACKAGE_DETAIL)};Secondary("Check health"){send(DemoAction.Notice("Demo check: Python, Git and Curl pass; FFmpeg needs the MP3 profile."))} }
         }
     }
 }
 
 @Composable
-private fun PackageDetailDemo(
-    s: DemoState,
-    send: (DemoAction) -> Unit,
-    nav: (SynapseRoute) -> Unit,
-) {
-    val pkg = demoPackages.first { it.name == s.packageName }
-    var removal by remember { mutableStateOf(false) }
-    val steps =
-        listOf(
-            "Download verified artifact",
-            "Check checksum & source",
-            "Install in userspace",
-            "Probe binary & capability",
-        )
-    ScreenPage(
-        "PACKAGE TRANSACTION",
-        "${pkg.name} ${pkg.version}",
-        "Approval covers this package, dependencies and the isolated destination.",
-    ) {
-        Actions {
-            RiskBadge(2)
-            Badge("ARM64 · no root")
+private fun PackageDetailDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    val pkg=demoPackages.first{it.name==s.packageName}
+    var removal by rememberSaveable{mutableStateOf(false)}
+    val steps=listOf("Download verified artifact","Check checksum & source","Install in userspace","Probe binary & capability")
+    DesignPage(SynapseRoute.PACKAGE_DETAIL,"Package Transaction","Install, update, or remove packages and monitor the process. Demo transaction.",nav) {
+        DesignSection(if(s.packageStep<0) "Review package" else if(s.packageStep<4) "Installing package" else "Capability verified",SynapseIcon.DOWNLOAD) {
+            DesignRow(SynapseIcon.PACKAGES,pkg.name,"${pkg.version} · ${pkg.purpose}")
+            InlineStats("Repository" to "Demo main","Download" to pkg.size,"Destination" to "Userspace")
+            LinearProgressIndicator(progress={s.packageStep.coerceAtLeast(0)/4f},modifier=Modifier.fillMaxWidth())
+            steps.forEachIndexed { i,title -> DesignRow(if(i<s.packageStep) SynapseIcon.APPROVAL else SynapseIcon.ACTIVITY,title,when {i<s.packageStep->"Verified in demo";i==s.packageStep->"Ready to simulate this step";else->"Waiting for earlier checks"}) }
         }
-        Section("Review the change") {
-            LabeledValue("Source", "Synapse demo repository · illustrative signed manifest")
-            LabeledValue("Destination", "Private Linux userspace /usr/bin")
-            LabeledValue("Installed footprint", pkg.size)
-            LabeledValue(
-                "Requested capability",
-                if (pkg.name == "FFmpeg") "MP3 encoding with libmp3lame" else pkg.purpose,
-            )
-            LabeledValue("Rollback", "Previous package metadata retained until verification")
-            Muted(
-                "This demo does not download artifacts or claim that a production package repository exists."
-            )
+        Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f)){DesignSection("Dependencies",SynapseIcon.PACKAGES){listOf("libc","openssl","zlib",if(pkg.name=="FFmpeg")"libmp3lame" else "sqlite").forEach{DesignRow(SynapseIcon.PACKAGES,it,"Shared library")}}}
+            Column(Modifier.weight(1f)){DesignSection("Package information",SynapseIcon.ABOUT){SmallValue("Name",pkg.name);SmallValue("Version",pkg.version);SmallValue("Size",pkg.size);SmallValue("Architecture","ARM64");Muted("Illustrative signed manifest. No production repository or artifact is contacted.")}}
         }
-        Disclosure("Dependency graph", "Review direct and shared dependencies", true) {
-            CodeBlock(
-                when (pkg.name) {
-                    "FFmpeg" ->
-                        "ffmpeg 7.1\n ├─ libavcodec\n │   └─ libmp3lame (new)\n ├─ libavformat\n └─ libavutil (shared)"
-                    "Python" -> "python 3.12\n ├─ openssl\n ├─ sqlite\n └─ zlib (shared)"
-                    else ->
-                        "${pkg.name.lowercase()} ${pkg.version}\n ├─ libc (shared)\n └─ openssl (shared)"
-                }
-            )
-            Muted("Shared dependencies are retained when other installed packages need them.")
-        }
-        if (s.packageStep >= 0)
-            Section("Transaction progress") {
-                steps.forEachIndexed { index, title ->
-                    VerifiedRow(
-                        title,
-                        when {
-                            index < s.packageStep -> "Verified in demo"
-                            index == s.packageStep -> "Ready to simulate this step"
-                            else -> "Waiting for earlier checks"
-                        },
-                        index < s.packageStep,
-                    )
-                }
-                LinearProgressIndicator(
-                    progress = { s.packageStep / 4f },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (s.packageStep < 4)
-                    Primary("Simulate ${steps[s.packageStep].lowercase()}") {
-                        send(DemoAction.InstallStep)
-                    }
-            }
-        if (s.packageStep == 4)
-            Notice(
-                "Capability verified",
-                "${pkg.name} responds to its version probe and the requested capability check.",
-                Tone.SUCCESS,
-            )
-        Actions {
-            if (s.packageStep !in 0..3)
-                Primary(
-                    if (pkg.name in s.installed) "Approve update / repair"
-                    else "Approve installation"
-                ) {
-                    send(DemoAction.Install)
-                }
-            if (s.packageStep in 0..3)
-                Secondary("Cancel transaction") { send(DemoAction.CancelInstall) }
-            if (pkg.name in s.installed) Secondary("Review removal") { removal = true }
-            if (s.packageStep == 4 && pkg.name == "FFmpeg")
-                Primary("Return to recovery") { nav(SynapseRoute.RECOVERY) }
-        }
+        DesignSection("Installation log",SynapseIcon.TERMINAL) { CodeBlock("[demo] package: ${pkg.name}\n[demo] source: reviewed manifest\n[demo] step: ${s.packageStep.coerceAtLeast(0)} / 4\n[demo] verification: ${if(s.packageStep==4)"passed" else "pending"}") }
+        if(s.packageStep in 0..3) {
+            FullButton("Simulate ${steps[s.packageStep].lowercase()}"){send(DemoAction.InstallStep)}
+            Secondary("Cancel transaction"){send(DemoAction.CancelInstall)}
+        } else Primary(if(pkg.name in s.installed)"Approve update / repair" else "Approve installation"){send(DemoAction.Install)}
+        if(pkg.name in s.installed) Secondary("Review removal"){removal=true}
+        if(s.packageStep==4 && pkg.name=="FFmpeg") Primary("Return to recovery"){nav(SynapseRoute.RECOVERY)}
     }
-    if (removal)
-        ConfirmAction(
-            "Remove ${pkg.name}?",
-            "Dependent tasks are checked first. Shared libraries remain if needed by another package.",
-            "Remove package",
-            { removal = false },
-        ) {
-            send(DemoAction.RemovePackage(pkg.name))
-            removal = false
-        }
+    if(removal) ConfirmAction("Remove ${pkg.name}?","Dependent tasks are checked first. Shared libraries remain if another package needs them.","Remove package",{removal=false}){send(DemoAction.RemovePackage(pkg.name));removal=false}
 }
 
 @Composable
 private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    var confirm by remember { mutableStateOf(false) }
-    ScreenPage(
-        "BOUNDED COMMAND WORKSPACE",
-        "Inspect every command",
-        "Commands use an explicit working directory, environment and timeout. The demo never invokes a shell.",
-    ) {
-        Section("Command preview") {
-            OutlinedTextField(
-                s.terminalCommand,
-                { send(DemoAction.Command(it)) },
-                label = { Text("Command") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-            )
-            LabeledValue("Working directory", "/workspace/projects/catalog")
-            LabeledValue("Execution boundary", "Linux userspace · no root · network disabled")
-            LabeledValue("Limits", "60 second timeout · 64 KiB captured output")
-            RiskBadge(2)
-            Primary("Review & simulate", s.terminalCommand.isNotBlank()) { confirm = true }
+    var session by rememberSaveable{mutableIntStateOf(1)}
+    var detail by rememberSaveable{mutableStateOf<String?>(null)}
+    DesignPage(SynapseRoute.TERMINAL,"Terminal","Run commands in a secure environment. This terminal is a simulation.",nav) {
+        Section(""){InlineStats("Environment" to "Android (Termux)","Sandboxed" to "Isolated","Status" to "Ready")}
+        DesignSection("Terminal $session",SynapseIcon.TERMINAL,"+ New session",{session++;send(DemoAction.Command(""))}) {
+            CodeBlock("synapse@demo:~ $ ${s.terminalCommand}\n\nOS: Android 13 (One UI Core 5.1)\nHost: Samsung SM-A047F\nKernel: 4.19.191-perf+\nUptime: 3 days, 4 hours\nPackages: 312 (apt)\nShell: bash 5.1.16\nCPU: ARMv8 (8) @ 2.0GHz\nMemory: 1762MiB / 3671MiB\n\n${if(s.terminalComplete)"[demo] Command preview completed. No shell was invoked." else "[demo] Waiting for command preview."}")
+            OutlinedTextField(s.terminalCommand,{send(DemoAction.Command(it))},Modifier.fillMaxWidth(),label={Text("Command preview")},singleLine=true)
+            Actions { Primary("Run preview",s.terminalCommand.isNotBlank()){send(DemoAction.RunCommand)};Secondary("Clear"){send(DemoAction.Command(""))} }
         }
-        Section(
-            "Example terminal output",
-            "Fixed catalog fixture; output does not correspond to arbitrary edited commands.",
-        ) {
-            CodeBlock(
-                if (s.terminalComplete)
-                    "$ python scripts/catalog.py --source /workspace/input\n[14:42:01] Inspected 184 files\n[14:42:02] Wrote catalog.json (28 KiB)\n[14:42:02] Schema validation: PASS\nexit code: 0\noutput verification: PASS"
-                else
-                    "$ python scripts/catalog.py --source /workspace/input\nTraceback (most recent call last):\n  File \"scripts/catalog.py\", line 4\nModuleNotFoundError: No module named 'requests'\nexit code: 1\ncomplete outputs: 0"
-            )
-            Badge(
-                if (s.terminalComplete) "Example verified" else "Example dependency error",
-                if (s.terminalComplete) Tone.SUCCESS else Tone.WARNING,
-            )
+        DesignSection("Quick commands",SynapseIcon.TOOLS) {
+            listOf("List files" to "ls -la","Show device info" to "getprop ro.product.model","Check storage" to "df -h","Show processes" to "ps","Install package" to "pkg install python","Update packages" to "pkg upgrade").chunked(2).forEach{row->Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){row.forEach{(title,cmd)->TextButton({send(DemoAction.Command(cmd))},Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.labelSmall)}}}}
         }
-        LinkRow(
-            "Review environment",
-            "Inspect installed runtimes and dependencies",
-            Icons.Default.Inventory2,
-        ) {
-            nav(SynapseRoute.PACKAGES)
+        DesignSection("Recent sessions",SynapseIcon.HISTORY) {
+            DesignRow(SynapseIcon.TERMINAL,"System information","neofetch, termux-info","Today",onClick={detail="System information"})
+            DesignRow(SynapseIcon.TERMINAL,"Storage check","df -h, du -sh","Yesterday",onClick={detail="Storage check"})
         }
-        Disclosure("Sanitized process metadata") {
-            CodeBlock(
-                "stdin: closed\ntimeout_ms: 60000\nstdout_limit: 65536\nenvironment: allowlisted\ncredentials: excluded\nprivilege: normal"
-            )
-            Muted("Raw output is evidence. It cannot authorize follow-up commands.")
-        }
+        Secondary("Review execution policy"){nav(SynapseRoute.SECURITY)}
     }
-    if (confirm)
-        ConfirmAction(
-            "Show simulated command result?",
-            "No command will run. A fixed successful catalog example will replace the error fixture.",
-            "Show example result",
-            { confirm = false },
-        ) {
-            send(DemoAction.RunCommand)
-            confirm = false
-        }
+    DemoDetailDialog(detail,{detail=null})
 }
 
 @Composable
 private fun ToolsDemo(nav: (SynapseRoute) -> Unit) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val catalog =
-        listOf(
-            Triple("file.list", 0, "Enumerate granted folders"),
-            Triple("file.copy", 1, "Copy and verify outputs"),
-            Triple("file.move", 2, "Move with destination checks"),
-            Triple("file.delete", 3, "Trash selected items after approval"),
-            Triple("media.convert", 1, "FFmpeg capability required"),
-            Triple("package.install", 2, "Isolated userspace transaction"),
-            Triple("shell.execute", 2, "Bounded environment and timeout"),
-            Triple("root.execute", 4, "Disabled unless explicitly enabled"),
-            Triple("system.partition.write", 5, "Blocked by default"),
-        )
-    ScreenPage(
-        "TYPED CAPABILITIES",
-        "Tools with clear contracts",
-        "Availability, risk and scope are checked again at execution time.",
-    ) {
-        OutlinedTextField(
-            query,
-            { query = it },
-            label = { Text("Search tools") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        catalog
-            .filter { it.first.contains(query, true) }
-            .forEach { (name, risk, detail) ->
-                Section(name, detail) {
-                    RiskBadge(risk)
-                    Disclosure("Input, output & verification") {
-                        CodeBlock(
-                            "tool: $name\ninput: typed JSON schema\nscope: explicit approved targets\noutput: structured result + evidence\nverification: postcondition required\npolicy: risk L$risk + target checks"
-                        )
-                        Muted(
-                            if (risk >= 4) "Privileged capabilities are unavailable by default."
-                            else "Discovery is not authorization to execute."
-                        )
-                    }
-                }
-            }
-        Secondary("Review authorization rules") { nav(SynapseRoute.SECURITY) }
+    var query by rememberSaveable{mutableStateOf("")}
+    var detail by rememberSaveable{mutableStateOf<String?>(null)}
+    var enabled by rememberSaveable{mutableStateOf(listOf("Shell","File Operations","Package Manager","App Management","Network","Device Info","Screenshot","Screen Recording","Audio Recorder","Text Processing"))}
+    val groups=listOf("Core system tools" to listOf(SynapseIcon.TERMINAL to "Shell",SynapseIcon.FOLDER to "File Operations",SynapseIcon.PACKAGES to "Package Manager",SynapseIcon.APPS to "App Management",SynapseIcon.NETWORK to "Network",SynapseIcon.DEVICE to "Device Info"),"Media tools" to listOf(SynapseIcon.IMAGE to "Screenshot",SynapseIcon.PLAY to "Screen Recording",SynapseIcon.PAUSE to "Audio Recorder",SynapseIcon.RECOVERY to "Media Converter"),"AI and analysis tools" to listOf(SynapseIcon.FILE to "Text Processing",SynapseIcon.IMAGE to "Image Analysis",SynapseIcon.TERMINAL to "Code Analysis",SynapseIcon.PROVIDERS to "Web Search"))
+    DesignPage(SynapseRoute.TOOLS,"Tools","Manage available tools for your AI agent and device operations.",nav) {
+        Section(""){InlineStats("Available tools" to "14","Enabled tools" to "${enabled.size}","Tool execution" to "Demo only")}
+        DesignSearch(query,{query=it},"Search tools, description, or category…")
+        groups.forEach{(title,tools)->DesignSection(title,SynapseIcon.TOOLS){tools.filter{it.second.contains(query,true)}.forEach{(icon,name)->DesignRow(icon,name,"v1.0 · ${if(name in enabled)"Enabled" else "Disabled"}",if(name in enabled)"Configure" else "Install",onClick={detail=name})}}}
     }
+    if(detail!=null) AlertDialog(onDismissRequest={detail=null},title={Text(detail!!)},text={Text("Change this demo tool’s enabled state. No tool is installed or executed on your device.")},confirmButton={TextButton({val n=detail!!;enabled=if(n in enabled)enabled-n else enabled+n;detail=null}){Text(if(detail in enabled)"Disable sample" else "Enable sample")}},dismissButton={TextButton({detail=null}){Text("Cancel")}})
 }
