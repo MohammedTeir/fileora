@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package dev.deviceagent.app.ui.synapse
 
@@ -128,131 +128,110 @@ private fun AgentDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRou
 
 @Composable
 private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    ScreenPage(
-        "SELECTED CONTEXT",
-        "Your files, your choice",
-        "Attachments stay local until a permitted cloud request includes them.",
-    ) {
-        Section("Choose sample attachments") {
-            listOf("Movies/Trips", "itinerary.jpg", "Lesson_01_Speaking.mp4").forEach { name ->
-                SwitchSetting(
-                    name,
-                    when (name) {
-                        "Movies/Trips" -> "Folder · 500 videos · 87 GiB"
-                        "itinerary.jpg" -> "Image · 2.3 MiB · vision model needed"
-                        else -> "Video · 142 MiB · local processing"
-                    },
-                    name in s.attachments,
-                ) {
-                    send(DemoAction.Attachment(name, it))
+    var preview by rememberSaveable { mutableStateOf<String?>(null) }
+    var picker by rememberSaveable { mutableStateOf(false) }
+    val choices = listOf("screenshot_error.png","error_log.txt","PythonProject","Movies/Trips")
+    DesignPage(SynapseRoute.ATTACHMENTS,"Add attachments","Add files, images, folders, or other context to help Synapse understand your task better.",nav) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(SynapseIcon.FILE to "Add files",SynapseIcon.IMAGE to "Add images",SynapseIcon.FOLDER to "Add folder",SynapseIcon.APPS to "Add app").forEach { (icon,label) ->
+                Surface(onClick = { picker = true },modifier = Modifier.weight(1f),shape = RoundedCornerShape(10.dp),color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Column(Modifier.padding(8.dp).heightIn(min = 70.dp),horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(8.dp)) { AssetIcon(icon);Text(label,style = MaterialTheme.typography.labelSmall) }
                 }
             }
         }
-        Section("What will be shared?") {
-            LabeledValue("Destination", "${s.provider} · ${s.model}")
-            LabeledValue(
-                "Local processing",
-                if (s.attachments.isEmpty()) "No items selected" else s.attachments.joinToString(),
-            )
-            LabeledValue(
-                "Cloud context",
-                if (s.flag("filenames")) "Selected names and allowed metadata"
-                else "User goal only; filenames excluded",
-            )
-            LabeledValue("Excluded", "Video bytes; file contents unless explicitly enabled")
-            if ("itinerary.jpg" in s.attachments)
-                Notice(
-                    "Image consent required",
-                    "Choose a vision-capable model and enable selected-image sharing before a real upload.",
-                    Tone.WARNING,
-                )
-            Disclosure("Outbound categories") {
-                CodeBlock(
-                    "provider: ${s.provider}\nfilenames: ${s.flag("filenames")}\nmetadata: ${s.flag("metadata")}\nfile_contents: ${s.flag("contents")}\nmedia: ${s.flag("media")}"
-                )
+        OutlinedButton({ picker = true },Modifier.fillMaxWidth().heightIn(min = 68.dp),shape = RoundedCornerShape(12.dp)) { AssetIcon(SynapseIcon.UPLOAD);Spacer(Modifier.width(8.dp));Text("Tap to browse sample files") }
+        DesignSection("Attached items (${s.attachments.size})", action = "Clear all",onAction = { s.attachments.forEach { send(DemoAction.Attachment(it,false)) } }) {
+            if(s.attachments.isEmpty()) Muted("No attachments yet. Choose a sample above.")
+            s.attachments.forEach { name ->
+                DesignRow(if(name.endsWith("png")) SynapseIcon.IMAGE else if(name.endsWith("txt")) SynapseIcon.FILE else SynapseIcon.FOLDER,name,"Local sample · not uploaded",onClick = { preview = name },trailing = {
+                    IconButton({ preview = name }) { AssetIcon(SynapseIcon.SEARCH,"Preview $name",size = 16.dp) }
+                    IconButton({ send(DemoAction.Attachment(name,false)) }) { AssetIcon(SynapseIcon.DELETE,"Remove $name",size = 16.dp) }
+                })
             }
         }
-        Actions {
-            Primary("Use selected context") { nav(SynapseRoute.AGENT) }
-            Secondary("Privacy settings") { nav(SynapseRoute.PRIVACY) }
+        DesignSection("Suggestions") {
+            DesignRow(SynapseIcon.IMAGE,"Take screenshot","Attach an example capture",onClick = { send(DemoAction.Attachment("screenshot_error.png",true)) })
+            DesignRow(SynapseIcon.FILE,"Add logs","Include error logs",onClick = { send(DemoAction.Attachment("error_log.txt",true)) })
         }
+        Notice("Why add attachments?","Attachments help Synapse understand your task and diagnose issues. Sharing remains subject to your privacy settings.")
+        FullButton("Continue  →") { nav(SynapseRoute.PLAN) }
+        Secondary("Privacy settings") { nav(SynapseRoute.PRIVACY) }
+    }
+    if(picker) ModalBottomSheet(onDismissRequest = { picker = false }) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Choose demo context",style = MaterialTheme.typography.titleLarge)
+            choices.forEach { name -> SwitchSetting(name,"Sample only",name in s.attachments) { send(DemoAction.Attachment(name,it)) } }
+            FullButton("Use selected context") { picker = false }
+        }
+    }
+    DemoDetailDialog(preview,{ preview = null },"Local attachment preview. File content and media are not uploaded by this demo.")
+}
+
+@Composable
+private fun PlanSummary(s: DemoState, nav: (SynapseRoute) -> Unit) {
+    DesignSection("Task summary",SynapseIcon.FILE,"Edit request",{ nav(SynapseRoute.AGENT) }) {
+        Text("Organize Downloads into folders, create archives, and verify the results.",style = MaterialTheme.typography.bodySmall)
+        InlineStats("Input files" to "618", "Destination" to "1 folder", "Estimated time" to "5–10 min", "Planned actions" to "6 steps")
+    }
+}
+
+private val planSteps = listOf(
+    Triple(SynapseIcon.FOLDER,"Check and create output folder","Verify the selected destination and create missing folders."),
+    Triple(SynapseIcon.FILE,"Analyze input files","Check formats, sizes, and hashes before changes."),
+    Triple(SynapseIcon.PLAY,"Create archives","Compress 14 source archives; retain originals."),
+    Triple(SynapseIcon.FOLDER,"Organize files","Move 604 files into the selected category folders."),
+    Triple(SynapseIcon.SECURITY,"Verify results","Check every output and record its evidence."),
+    Triple(SynapseIcon.AUDIT,"Generate summary","Show results, skipped items, and issues."),
+)
+
+@Composable
+private fun PlannedSteps() {
+    DesignSection("Planned steps (6)",SynapseIcon.AUDIT) {
+        planSteps.forEachIndexed { i,(icon,title,detail) ->
+            DesignRow(icon,"${i+1}  $title",detail)
+        }
+    }
+}
+
+@Composable
+private fun PlanPermissions(nav: (SynapseRoute) -> Unit) {
+    DesignSection("Permissions required (3)",SynapseIcon.PERMISSIONS,"Review all",{ nav(SynapseRoute.PERMISSIONS) }) {
+        DesignRow(SynapseIcon.FOLDER,"File system access","Read input files", "Required")
+        DesignRow(SynapseIcon.FILE,"Create and modify files","Write only inside the selected folder", "Required")
+        DesignRow(SynapseIcon.SECURITY,"Scoped approval","Review moves before execution", "Required")
     }
 }
 
 @Composable
 private fun PlanDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    ScreenPage(
-        "PLAN REVISION ${s.planRevision}",
-        "See the changes first",
-        "${s.tasks.first{it.id=="SYN-2050"}.title}. Inspect the scope before anything runs.",
-    ) {
-        Badge("Dry run · no changes made", icon = Icons.Default.Visibility)
-        Metrics(
-            "Move" to "604 files",
-            "Compress" to "14 archives",
-            "Trash" to if (s.includeTrash) "${s.selectedDuplicates.size} selected" else "Off",
-            "Untouched" to if (s.includeTrash) "${2481-s.planCount} files" else "1,863 files",
-        )
-        Section("Destination & exclusions") {
-            OutlinedTextField(
-                s.destination,
-                { send(DemoAction.DestinationChanged(it)) },
-                label = { Text("Destination folder") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                isError = s.destination.isBlank(),
-            )
-            SwitchSetting(
-                "Review duplicate trash operations",
-                "Matching hashes and retained copies are required. Each destructive scope needs consent.",
-                s.includeTrash,
-            ) {
-                send(DemoAction.IncludeTrash(it))
-            }
-            Muted(
-                "Changing a destination, selection, or destructive scope invalidates the previous approval."
-            )
+    DesignPage(SynapseRoute.PLAN,"Plan preview","Review the generated plan. Check the steps, permissions, and estimated time before approving.",nav) {
+        PlanSummary(s,nav)
+        PlannedSteps()
+        PlanPermissions(nav)
+        Disclosure("Edit destination & exclusions",s.destination) {
+            OutlinedTextField(s.destination,{ send(DemoAction.DestinationChanged(it)) },Modifier.fillMaxWidth(),label = { Text("Destination folder") },isError = s.destination.isBlank(),singleLine = true)
+            SwitchSetting("Review duplicate trash operations","Each destructive scope requires consent.",s.includeTrash) { send(DemoAction.IncludeTrash(it)) }
         }
-        Section("The proposed steps") {
-            listOf(
-                    Triple("1 · Inspect and compare", "2,481 files · 27 duplicate candidates", 0),
-                    Triple("2 · Create category folders", "Use the selected destination only", 1),
-                    Triple("3 · Move selected files", "184 APKs · 322 images · 98 videos", 2),
-                    Triple("4 · Compress source archives", "14 files; verify output contents", 1),
-                    Triple(
-                        "5 · Review duplicate removal",
-                        if (s.includeTrash)
-                            "${s.selectedDuplicates.size} selected for recoverable trash"
-                        else "Excluded from this plan",
-                        3,
-                    ),
-                )
-                .forEach { (title, detail, risk) ->
-                    Disclosure(title, detail) {
-                        RiskBadge(risk)
-                        CodeBlock(
-                            "tool: ${if(risk==3) "file.delete" else if(risk==2) "file.move" else if(risk==0) "file.hash" else "file.compress"}\nscope: ${s.destination}\nverification: required"
-                        )
-                        Muted("Targets are checked again immediately before execution.")
-                    }
-                }
-        }
-        Notice(
-            "Space and reversibility",
-            "Estimated 1.2 GiB is recoverable only after trash is emptied. Moves and output creation have recorded undo actions.",
-        )
-        Actions {
-            Primary("Approve & Run", enabled = s.destination.isNotBlank()) {
-                nav(SynapseRoute.APPROVAL)
-            }
-            Secondary("Review targets") { nav(SynapseRoute.APPROVAL) }
-            TextButton({ nav(SynapseRoute.AGENT) }) { Text("Cancel") }
-        }
+        FullButton("Approve & Run",s.destination.isNotBlank()) { nav(SynapseRoute.APPROVAL) }
+        Secondary("Edit request") { nav(SynapseRoute.AGENT) }
     }
 }
 
 @Composable
 private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    if(s.includeTrash) { ScopedApprovalDemo(s,send,nav);return }
+    DesignPage(SynapseRoute.APPROVAL,"Approve actions","Review the planned actions, permissions, and potential changes before starting the task.",nav) {
+        PlanSummary(s,nav)
+        PlannedSteps()
+        PlanPermissions(nav)
+        Notice("You remain in control","Approval applies to revision ${s.planRevision}, destination ${s.destination}, and the listed actions only. Changes invalidate approval.")
+        FullButton("Approve scoped plan",s.destination.isNotBlank()) { send(DemoAction.Approve(s.planRevision));nav(SynapseRoute.MONITOR) }
+        Actions { Secondary("Edit plan") { nav(SynapseRoute.PLAN) };Secondary("Cancel") { nav(SynapseRoute.AGENT) } }
+    }
+}
+
+@Composable
+private fun ScopedApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     val destructive = s.includeTrash && s.selectedDuplicates.isNotEmpty()
     ScreenPage(
         "EXACT SCOPE · REVISION ${s.planRevision}",

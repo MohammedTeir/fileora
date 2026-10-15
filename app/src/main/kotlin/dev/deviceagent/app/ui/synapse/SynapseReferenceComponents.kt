@@ -22,7 +22,7 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (route.destination == Destination.AGENT && route !in listOf(SynapseRoute.AGENT, SynapseRoute.WELCOME)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton({ nav(SynapseRoute.AGENT) }, contentPadding = PaddingValues(0.dp)) { Text("‹  Agent", style = MaterialTheme.typography.bodySmall) }
+                Text("‹  Agent", Modifier.clickable(role = Role.Button) { nav(SynapseRoute.AGENT) }.padding(vertical = 5.dp), style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.weight(1f))
                 Text("Step ${(referenceRoutes.indexOf(route)-1).coerceIn(1,6)} of 6", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(8.dp))
@@ -65,8 +65,8 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
 
 @Composable
 internal fun DesignRow(icon: SynapseIcon, title: String, detail: String = "", value: String = "", tint: Color = MaterialTheme.colorScheme.primary, onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().then(if(onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier).heightIn(min = 48.dp).padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) { AssetIcon(icon, modifier = Modifier.padding(7.dp), tint = tint, size = 18.dp) }
+    Row(Modifier.fillMaxWidth().then(if(onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier).heightIn(min = if(onClick == null && trailing == null) 38.dp else 48.dp).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) { AssetIcon(icon, modifier = Modifier.padding(5.dp), tint = tint, size = 18.dp) }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             if(detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -97,9 +97,9 @@ internal fun DesignSection(title: String, icon: SynapseIcon? = null, action: Str
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             icon?.let { AssetIcon(it, size = 18.dp) }
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            if(action != null) TextButton(onAction, contentPadding = PaddingValues(0.dp), modifier = Modifier.heightIn(min = 32.dp)) { Text(action, fontSize = 10.sp) }
+            if(action != null) Text(action, Modifier.clickable(role = Role.Button, onClick = onAction).padding(vertical = 5.dp), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
         }
-        content()
+        Column(content = content)
     }
 }
 
