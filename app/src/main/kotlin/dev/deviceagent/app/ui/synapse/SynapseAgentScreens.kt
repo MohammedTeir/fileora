@@ -362,131 +362,49 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
 
 @Composable
 private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    ScreenPage(
-        s.task.id,
-        "Pick up where you left off",
-        "Resume after reconciling outputs, permissions, and available resources.",
-    ) {
-        Section(s.task.title) { TaskProgress(s.task) }
-        Section("Checkpoint ${s.task.settled}", "Saved 8 seconds ago · demo snapshot") {
-            VerifiedRow(
-                "Completed outcomes recorded",
-                "${s.task.verified} verified, ${s.task.skipped} skipped, ${s.task.blocked} blocked",
-            )
-            VerifiedRow(
-                "Partial output needs reconciliation",
-                "Current item is not counted as complete",
-                false,
-            )
-            Muted(
-                "Pause finishes at a safe boundary. A resumed task rechecks sources and destination grants."
-            )
+    var automatic by rememberSaveable { mutableStateOf(true) }
+    var keep by rememberSaveable { mutableStateOf("10 checkpoints") }
+    var created by rememberSaveable { mutableIntStateOf(0) }
+    var detail by rememberSaveable { mutableStateOf<String?>(null) }
+    DesignPage(SynapseRoute.CHECKPOINT,"Checkpoints","Manage restore points for your tasks and recorded changes. Task checkpoints do not restore your entire device.",nav) {
+        DesignSection("Automatic checkpoints",SynapseIcon.SETTINGS) {
+            SwitchSetting("Automatic checkpoints","Before important changes in this demo",automatic){automatic=it}
+            DesignChoice("Keep last",listOf("5 checkpoints","10 checkpoints","20 checkpoints"),keep){keep=it}
+            InlineStats("Storage usage" to "1.2 GB / 10 GB","Retained" to "${8+created}")
         }
-        Metrics(
-            "Battery" to "68% · charging",
-            "Thermal status" to "Moderate",
-            "Storage available" to "48.2 GiB",
-            "Temporary output" to "0.6 GiB",
-        )
-        Actions {
-            Primary(
-                if (s.task.status == DemoTaskStatus.PAUSED) "Resume from checkpoint"
-                else "Pause at safe boundary",
-                enabled = s.task.status in listOf(DemoTaskStatus.PAUSED, DemoTaskStatus.RUNNING),
-            ) {
-                send(DemoAction.PauseResume)
+        DesignRow(SynapseIcon.PLUS,"Create a checkpoint now","Create a sample restore point",onClick={created++;send(DemoAction.Notice("Demo task checkpoint created. No device snapshot was taken."))})
+        DesignSection("Checkpoints (${8+created})",SynapseIcon.CHECKPOINTS) {
+            repeat(created) { i -> DesignRow(SynapseIcon.CHECKPOINTS,"Manual checkpoint ${i+1}","Created in this demo","Just now",onClick={detail="Manual checkpoint ${i+1}"}) }
+            listOf("Before converting videos to MP4","Before organizing Downloads folder","Before running Python project","Before installing Termux","Manual checkpoint","System checkpoint","Before device configuration","Before cleaning storage").forEachIndexed { i,t ->
+                DesignRow(if(i%2==0) SynapseIcon.PLAY else SynapseIcon.CHECKPOINTS,t,"Task snapshot · ${320-i*20} MB",if(i<2) "Today" else "Yesterday",onClick={detail=t})
             }
-            Secondary("Review cancellation & rollback") { nav(SynapseRoute.UNDO) }
-            Secondary("Open monitor") { nav(SynapseRoute.MONITOR) }
         }
     }
+    if(detail!=null) AlertDialog(onDismissRequest={detail=null},title={Text(detail!!)},text={Text("Review recorded outputs and conflicts before restoring. This sample checkpoint contains task state only.")},confirmButton={TextButton({detail=null;nav(SynapseRoute.UNDO)}){Text("Review restore")}},dismissButton={TextButton({detail=null;nav(SynapseRoute.MONITOR)}){Text("Open task")}})
 }
 
 @Composable
 private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
-    var tab by rememberSaveable { mutableStateOf("Active") }
     var query by rememberSaveable { mutableStateOf("") }
-    ScreenPage(
-        "YOUR WORK, ACCOUNTED FOR",
-        "Activity",
-        "Every task has an outcome. Every change has a trail.",
-    ) {
-        ChoiceChips(listOf("Active", "History", "Scheduled"), tab) { tab = it }
-        OutlinedTextField(
-            query,
-            { query = it },
-            label = { Text("Search tasks, files or IDs") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
-        when (tab) {
-            "Active" -> {
-                val tasks =
-                    s.tasks.filter {
-                        it.status in
-                            setOf(
-                                DemoTaskStatus.RUNNING,
-                                DemoTaskStatus.PAUSED,
-                                DemoTaskStatus.WAITING,
-                                DemoTaskStatus.PLANNED,
-                            ) && (it.title.contains(query, true) || it.id.contains(query, true))
-                    }
-                if (tasks.isEmpty()) Notice("No matches", "Try a different goal or task ID.")
-                tasks.forEach { task ->
-                    DemoTaskCard(task) {
-                        send(DemoAction.SelectTask(task.id))
-                        nav(
-                            if (task.id == "SYN-2049" && !s.recoveryVerified) SynapseRoute.RECOVERY
-                            else SynapseRoute.MONITOR
-                        )
-                    }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    DesignPage(SynapseRoute.ACTIVITY,"History","View and search completed, failed, and cancelled tasks. See details, results, and restore from checkpoints.",nav) {
+        DesignSearch(query,{query=it},"Search tasks, actions, or results…")
+        ChoiceChips(listOf("All","Completed","Failed","Cancelled"),filter){filter=it}
+        val filtered=s.tasks.filter { it.title.contains(query,true) && when(filter){"Completed"->it.status==DemoTaskStatus.VERIFIED;"Failed"->it.status==DemoTaskStatus.FAILED;"Cancelled"->it.status==DemoTaskStatus.CANCELLED;else->true} }
+        if(filtered.isEmpty()) Notice("No matching tasks","Try another name or status filter.")
+        listOf("Today","Yesterday").forEachIndexed { index,label ->
+            val group=if(index==0) filtered.take(4) else filtered.drop(4)
+            if(group.isNotEmpty()) DesignSection(label) {
+                group.forEach { task ->
+                    DesignRow(if(task.status==DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL else if(task.status==DemoTaskStatus.FAILED) SynapseIcon.WARNING else SynapseIcon.PLAY,task.title,"${task.verified} of ${task.total} verified · ${task.id}",task.status.name.lowercase(),onClick={send(DemoAction.SelectTask(task.id));nav(SynapseRoute.AUDIT)})
+                    HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
                 }
             }
-            "History" -> {
-                val tasks =
-                    s.tasks.filter {
-                        it.status in
-                            setOf(
-                                DemoTaskStatus.VERIFIED,
-                                DemoTaskStatus.PARTIAL,
-                                DemoTaskStatus.CANCELLED,
-                                DemoTaskStatus.FAILED,
-                            ) && (it.title.contains(query, true) || it.id.contains(query, true))
-                    }
-                if (tasks.isEmpty()) Notice("No matching history", "Try another task name or ID.")
-                tasks.forEach { task ->
-                    LinkRow(
-                        task.title,
-                        "${task.id} · ${task.status.name.lowercase()} · ${task.verified}/${task.total} verified",
-                        Icons.Default.History,
-                    ) {
-                        send(DemoAction.SelectTask(task.id))
-                        nav(SynapseRoute.AUDIT)
-                    }
-                }
-            }
-
-            else ->
-                LinkRow(
-                    s.scheduleGoal,
-                    "${if(s.scheduleEnabled)"Enabled" else "Paused"} · after ${s.scheduleTime} when conditions permit",
-                    Icons.Default.Schedule,
-                ) {
-                    nav(SynapseRoute.SCHEDULE)
-                }
         }
-        Secondary("Manage schedules") { nav(SynapseRoute.SCHEDULE) }
     }
 }
 
-private data class AuditExample(
-    val tool: String,
-    val source: String,
-    val output: String,
-    val check: String,
-    val recovery: String,
-)
+private data class AuditExample(val tool: String, val source: String, val output: String, val check: String, val recovery: String)
 
 @Composable
 private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {

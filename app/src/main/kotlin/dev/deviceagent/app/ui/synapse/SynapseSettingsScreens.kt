@@ -233,7 +233,7 @@ internal fun DemoSettingsRoute(
             }
         SynapseRoute.SECURITY -> SecurityDemo(s, send)
         SynapseRoute.MEMORY -> MemoryDemo(s, send)
-        SynapseRoute.SCHEDULE -> ScheduleDemo(s, send)
+        SynapseRoute.SCHEDULE -> ScheduleDemo(s, send, nav)
         SynapseRoute.SETTINGS -> {
             var confirm by remember { mutableStateOf(false) }
             ScreenPage(
@@ -520,66 +520,36 @@ private fun MemoryDemo(s: DemoState, send: (DemoAction) -> Unit) {
 }
 
 @Composable
-private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit) {
-    var goal by rememberSaveable { mutableStateOf(s.scheduleGoal) }
-    var time by rememberSaveable { mutableStateOf(s.scheduleTime) }
-    var enabled by rememberSaveable { mutableStateOf(s.scheduleEnabled) }
-    val validTime = Regex("(?:[01][0-9]|2[0-3]):[0-5][0-9]").matches(time)
-    ScreenPage(
-        "BACKGROUND PLANNING",
-        "Work when conditions fit",
-        "Android schedules are opportunistic. The next eligible window is an estimate, not an exact alarm.",
-    ) {
-        Section("Daily task") {
-            OutlinedTextField(
-                goal,
-                { goal = it },
-                label = { Text("Goal") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                time,
-                { time = it },
-                label = { Text("After · HH:mm") },
-                isError = !validTime,
-                supportingText = { Text("24-hour time · Asia/Gaza") },
-            )
-            SwitchSetting(
-                "Schedule enabled",
-                "Demo schedule; no background job is registered.",
-                enabled,
-            ) {
-                enabled = it
+private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var filter by rememberSaveable { mutableStateOf("All") }
+    var edit by rememberSaveable { mutableStateOf(false) }
+    var goal by rememberSaveable(s.scheduleGoal) { mutableStateOf(s.scheduleGoal) }
+    var time by rememberSaveable(s.scheduleTime) { mutableStateOf(s.scheduleTime) }
+    val schedules=listOf(s.scheduleGoal,"Backup photos","Clean storage","Generate device report")
+    DesignPage(SynapseRoute.SCHEDULE,"Schedules","Set up recurring or one-time tasks. This demo does not register background jobs.",nav) {
+        Section("") { InlineStats("Scheduled tasks" to "4","Next task" to s.scheduleGoal) }
+        DesignSearch(query,{query=it},"Search schedules…")
+        Primary("Create schedule"){edit=true}
+        ChoiceChips(listOf("All","Active","Paused","Recurring"),filter){filter=it}
+        DesignSection("Upcoming",SynapseIcon.SCHEDULES) {
+            schedules.filter { it.contains(query,true) }.forEachIndexed { i,title ->
+                val enabled=if(i==0) s.scheduleEnabled else !s.flag("schedulePaused$i")
+                if(filter!="Active" || enabled) if(filter!="Paused" || !enabled) DesignRow(SynapseIcon.SCHEDULES,title,if(i==0) "Every day at ${s.scheduleTime}" else "Weekly · 02:00","Next run",onClick={goal=title;edit=true})
             }
         }
-        Section("Run conditions") {
-            SwitchSetting(
-                "Only while charging",
-                "Battery must remain above 40%.",
-                s.flag("charging"),
-            ) {
-                send(DemoAction.Toggle("charging", it))
-            }
-            LabeledValue("Required free storage", "At least 8 GiB")
-            LabeledValue("Thermal state", "Wait if severe or critical")
-            LabeledValue(
-                "Missing permission or approval",
-                "Pause and notify; never silently elevate privileges",
-            )
+        DesignSection("All schedules (4)",SynapseIcon.SCHEDULES) {
+            schedules.forEachIndexed { i,title -> SwitchSetting(title,if(i==0) "Every day at ${s.scheduleTime}" else "Weekly · sample schedule",if(i==0) s.scheduleEnabled else !s.flag("schedulePaused$i")) { enabled ->
+                if(i==0) send(DemoAction.Schedule(s.scheduleGoal,s.scheduleTime,enabled)) else send(DemoAction.Toggle("schedulePaused$i",!enabled))
+            } }
         }
-        Section("Next eligible run") {
-            Text(
-                if (enabled && validTime) "After $time, when constraints permit"
-                else "Paused or incomplete"
-            )
-            Muted(
-                "Preflight checks: provider, folder grants, budget, free space and policy. A destructive action waits for you."
-            )
-        }
-        Primary("Save demo schedule", goal.isNotBlank() && validTime) {
-            send(DemoAction.Schedule(goal, time, enabled))
-        }
+        Secondary("View history"){nav(SynapseRoute.ACTIVITY)}
     }
+    if(edit) AlertDialog(onDismissRequest={edit=false},title={Text("Demo schedule")},text={Column{
+        OutlinedTextField(goal,{goal=it},label={Text("Task goal")},isError=goal.isBlank())
+        OutlinedTextField(time,{time=it},label={Text("Time (HH:mm)")},isError=!Regex("(?:[01][0-9]|2[0-3]):[0-5][0-9]").matches(time))
+        Muted("Saved to the demo scenario only. Live schedules require their own approval.")
+    }},confirmButton={TextButton({send(DemoAction.Schedule(goal,time,true));edit=false},enabled=goal.isNotBlank() && Regex("(?:[01][0-9]|2[0-3]):[0-5][0-9]").matches(time)){Text("Save schedule")}},dismissButton={TextButton({edit=false}){Text("Cancel")}})
 }
 
 @Composable

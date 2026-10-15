@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -332,7 +333,7 @@ internal fun SwitchSetting(
             Text(title, style = MaterialTheme.typography.titleSmall)
             Muted(subtitle)
         }
-        Switch(checked, onCheckedChange = null, enabled = enabled)
+        Switch(checked, onCheckedChange = null, enabled = enabled, modifier = Modifier.scale(.75f))
     }
 }
 
@@ -340,7 +341,7 @@ internal fun SwitchSetting(
 internal fun ChoiceChips(options: List<String>, selected: String, onSelect: (String) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { option ->
-            FilterChip(selected == option, { onSelect(option) }, label = { Text(option) })
+            FilterChip(selected == option, { onSelect(option) }, label = { Text(option, style = MaterialTheme.typography.labelSmall) })
         }
     }
 }

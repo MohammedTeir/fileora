@@ -124,3 +124,17 @@ internal fun FullButton(text: String, enabled: Boolean = true, onClick: () -> Un
 internal fun DemoDetailDialog(title: String?, onDismiss: () -> Unit, text: String = "This is a demo preview. No device operation is performed.") {
     if(title != null) AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { Text(text) }, confirmButton = { TextButton(onDismiss) { Text("Done") } })
 }
+
+@Composable
+internal fun DesignChoice(label: String, options: List<String>, value: String, onChange: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically) {
+        Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodyMedium)
+        Box {
+            Surface(onClick={open=true},color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(6.dp)) {
+                Text("$value  ⌄",Modifier.padding(8.dp),style=MaterialTheme.typography.bodySmall)
+            }
+            DropdownMenu(open,{open=false}) { options.forEach { option -> DropdownMenuItem({Text(option)},{onChange(option);open=false}) } }
+        }
+    }
+}
