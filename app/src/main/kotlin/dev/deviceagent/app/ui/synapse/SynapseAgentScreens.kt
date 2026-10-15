@@ -43,7 +43,7 @@ internal fun DemoAgentRoute(
         SynapseRoute.CHECKPOINT -> CheckpointDemo(s, send, nav)
         SynapseRoute.ACTIVITY -> ActivityDemo(s, send, nav)
         SynapseRoute.AUDIT -> AuditDemo(s, nav)
-        SynapseRoute.UNDO -> UndoDemo(s, send)
+        SynapseRoute.UNDO -> UndoDemo(s, send, nav)
         else -> Unit
     }
 }
@@ -471,135 +471,54 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
         }
     val hasEvidence = s.task.verified > 0
     val final = s.task.status == DemoTaskStatus.VERIFIED
-    ScreenPage(
-        s.task.id,
-        "The complete picture",
-        "Review observations, policy decisions, and verified results.",
-    ) {
-        Badge(
-            s.task.status.name.lowercase(),
-            when (s.task.status) {
-                DemoTaskStatus.VERIFIED -> Tone.SUCCESS
-                DemoTaskStatus.FAILED -> Tone.ERROR
-                DemoTaskStatus.WAITING,
-                DemoTaskStatus.PARTIAL -> Tone.WARNING
-                else -> Tone.INFO
-            },
-        )
-        ChoiceChips(listOf("Summary", "Changes", "Timeline", "Tools"), tab) { tab = it }
-        when (tab) {
+    DesignPage(SynapseRoute.AUDIT,s.task.title,"${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",nav) {
+        ChoiceChips(listOf("Summary","Changes","Timeline","Tools & Logs"),tab){tab=it}
+        when(tab) {
             "Summary" -> {
-                Section(s.task.title) {
-                    TaskProgress(s.task)
-                    LabeledValue(
-                        "Final verification",
-                        if (final) "All required checks passed in this fixture"
-                        else "Pending or incomplete; not a full success",
-                    )
+                DesignSection("Task summary",SynapseIcon.FILE) { Text(s.task.title,style=MaterialTheme.typography.bodySmall);InlineStats("Processed" to "${s.task.verified}","Skipped" to "${s.task.skipped}","Blocked" to "${s.task.blocked}","Task" to s.task.id) }
+                DesignSection("Output location",SynapseIcon.FOLDER){Text(evidence.output,style=MaterialTheme.typography.bodySmall)}
+                DesignSection("Verified outputs",SynapseIcon.FILE,"Open folder",{nav(SynapseRoute.SANDBOX)}) {
+                    if(hasEvidence) repeat(s.task.verified.coerceAtMost(3)) { i -> DesignRow(SynapseIcon.FILE,"Output ${i+1}",evidence.check,"Verified") } else Muted("No verified outputs yet.")
                 }
-                Section("Verification evidence") {
-                    VerifiedRow(
-                        "Completed item checks",
-                        if (hasEvidence) evidence.check
-                        else "No completed output has been verified yet",
-                        hasEvidence,
-                    )
-                    LabeledValue("Errors & recovery", evidence.recovery)
-                    VerifiedRow(
-                        "Whole task complete",
-                        if (final) "All required outcomes accounted for"
-                        else "Remaining, failed or blocked items need review",
-                        final,
-                    )
+                DesignSection("Verification result",SynapseIcon.SECURITY) {
+                    VerifiedRow("Completed item checks",if(hasEvidence) evidence.check else "No completed output has been verified yet",hasEvidence)
+                    VerifiedRow("Whole task complete",if(final) "All required outcomes accounted for" else "Remaining, failed or blocked items need review",final)
                 }
             }
-            "Changes" ->
-                Section("Task change example") {
-                    LabeledValue("Source", evidence.source)
-                    LabeledValue("Destination", evidence.output)
-                    LabeledValue(
-                        "Observed result",
-                        if (hasEvidence) evidence.check else "Proposed output; not yet verified",
-                    )
-                    LinkRow(
-                        "Explore rollback review",
-                        "Fixed Downloads scenario with a changed-file conflict",
-                        Icons.Default.Restore,
-                    ) {
-                        nav(SynapseRoute.UNDO)
-                    }
-                }
-            "Timeline" ->
-                Section("Sample audit trail") {
-                    listOf(
-                            "14:29:02" to "Scope inspected: ${evidence.source}",
-                            "14:29:04" to "Plan and policy checked: ${evidence.tool}",
-                            "14:29:05" to evidence.recovery,
-                            "14:31:18" to "${s.task.verified} verified outcomes recorded",
-                        )
-                        .forEach { (time, event) ->
-                            Disclosure(event, time) {
-                                Text(
-                                    "Observation from demo fixture ${s.task.id}. Provider keys are excluded."
-                                )
-                            }
-                        }
-                }
-            else ->
-                Section("Typed tool evidence") {
-                    CodeBlock(
-                        "tool: ${evidence.tool}\ninput: ${evidence.source}\noutput: ${evidence.output}\npolicy: approved scope only\nverified_outcomes: ${s.task.verified}\nfinal_state: ${s.task.status.name}"
-                    )
-                    Muted("Tool output is untrusted data, not instructions.")
-                }
+            "Changes" -> DesignSection("Changes made",SynapseIcon.FILE) { DesignRow(SynapseIcon.FILE,"Source",evidence.source);DesignRow(SynapseIcon.FOLDER,"Destination",evidence.output);Muted("${s.task.verified} verified outcomes; remaining work is not reported as complete.");Secondary("Review undo"){nav(SynapseRoute.UNDO)} }
+            "Timeline" -> DesignSection("Task timeline",SynapseIcon.ACTIVITY) { demoEvents.forEach { (time,event) -> DesignRow(SynapseIcon.ACTIVITY,time,event) } }
+            else -> DesignSection("Tools & Logs",SynapseIcon.TERMINAL) { CodeBlock("tool: ${evidence.tool}\ninput: ${evidence.source}\noutput: ${evidence.output}\npolicy: approved scope only\nverified_outcomes: ${s.task.verified}\nfinal_state: ${s.task.status.name}");Muted(evidence.recovery) }
         }
-        Actions {
-            Secondary("View checkpoint") { nav(SynapseRoute.CHECKPOINT) }
-            Secondary("Explore rollback demo") { nav(SynapseRoute.UNDO) }
-        }
+        Actions { Secondary("Run again"){nav(SynapseRoute.PLAN)};Secondary("Undo changes"){nav(SynapseRoute.UNDO)};Secondary("View checkpoint"){nav(SynapseRoute.CHECKPOINT)} }
     }
 }
 
 @Composable
-private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit) {
-    var confirm by remember { mutableStateOf(false) }
-    ScreenPage(
-        "DOWNLOADS ROLLBACK SCENARIO",
-        "Restore with confidence",
-        "This fixed sample transaction demonstrates restoration and conflict review, independently of the selected task.",
-    ) {
-        if (s.rollbackDone)
-            Notice(
-                "Demo restore verified",
-                "The selected changes were reversed in the simulation. Your current ticket.png was preserved.",
-                Tone.SUCCESS,
-            )
-        Section("Reversible changes") {
-            VerifiedRow("604 moved files", "Original locations recorded")
-            VerifiedRow("27 trash entries", "Retained copies available in this scenario")
-            VerifiedRow("14 created archives", "Remove only if unchanged since creation")
-        }
-        Notice(
-            "One conflict needs review",
-            "Downloads/Images/ticket.png changed after this task.",
-            Tone.WARNING,
-        )
-        Section("Resolve conflict") {
-            ChoiceChips(listOf("Keep current", "Restore under new name"), s.restoreConflictChoice) {
-                send(DemoAction.ConflictChoice(it))
+private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    var confirm by rememberSaveable { mutableStateOf(false) }
+    var selected by rememberSaveable { mutableStateOf(listOf("Moved files","Trash entries","Created archives")) }
+    var preview by rememberSaveable { mutableStateOf(false) }
+    DesignPage(SynapseRoute.UNDO,"Undo / Rollback","Revert recorded task changes. Select what to undo and review the impact before proceeding.",nav) {
+        DesignSection("Organize Downloads",SynapseIcon.PLAY) { Muted("Fixed rollback scenario · completed demo transaction") }
+        if(s.rollbackDone) Notice("Demo restore verified","Selected changes were reversed in the simulation. Your current ticket.png was preserved.",Tone.SUCCESS)
+        else Notice("This will undo changes made by the task","Only recorded changes can be restored. Newly created files are removed only if unchanged.",Tone.ERROR)
+        DesignSection("Changes to undo (${selected.size})",SynapseIcon.UNDO) {
+            listOf("Moved files" to "604 original locations recorded","Trash entries" to "27 retained copies available","Created archives" to "14 files · remove only if unchanged").forEach { (title,detail) ->
+                Row(Modifier.fillMaxWidth().clickable { selected=if(title in selected) selected-title else selected+title }.heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically) {
+                    Checkbox(title in selected,{checked->selected=if(checked) selected+title else selected-title},enabled=!s.rollbackDone)
+                    Column { Text(title,style=MaterialTheme.typography.titleSmall);Muted(detail) }
+                }
             }
-            Muted("Permanent deletion and unsupported system changes cannot be restored.")
         }
-        Primary("Restore selected changes", enabled = !s.rollbackDone) { confirm = true }
+        DesignSection("Files to be restored",SynapseIcon.RECOVERY,"Preview files",{preview=true}) {
+            DesignRow(SynapseIcon.FILE,"Original locations","Paths are recorded per operation")
+            DesignRow(SynapseIcon.SECURITY,"Conflict policy",s.restoreConflictChoice)
+        }
+        Notice("One conflict needs review","Downloads/Images/ticket.png changed after this task.",Tone.WARNING)
+        DesignChoice("Resolve conflict",listOf("Keep current","Restore under new name"),s.restoreConflictChoice){send(DemoAction.ConflictChoice(it))}
+        FullButton("Restore selected changes",!s.rollbackDone && selected.isNotEmpty()){confirm=true}
+        Secondary("Cancel"){nav(SynapseRoute.AUDIT)}
     }
-    if (confirm)
-        ConfirmAction(
-            "Apply this demo rollback?",
-            "The selected conflict policy is: ${s.restoreConflictChoice}. The restore will be recorded as a new transaction.",
-            "Restore",
-            { confirm = false },
-        ) {
-            send(DemoAction.Rollback)
-            confirm = false
-        }
+    DemoDetailDialog(if(preview) "Restore preview" else null,{preview=false},"${selected.joinToString()} will be reviewed. Permanent deletion and unsupported system changes cannot be restored.")
+    if(confirm) ConfirmAction("Apply this demo rollback?","Selected: ${selected.joinToString()}. Conflict policy: ${s.restoreConflictChoice}. This is a simulated transaction.","Restore",{confirm=false}){send(DemoAction.Rollback);confirm=false}
 }

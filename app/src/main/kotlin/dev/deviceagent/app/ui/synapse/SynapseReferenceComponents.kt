@@ -31,11 +31,12 @@ internal fun DesignPage(route: SynapseRoute, title: String, subtitle: String, na
                 repeat(steps) { index -> Box(Modifier.padding(2.dp).size(5.dp).background(if (index < step) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) }
             }
         }
+        if(route in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) Text("‹  History",Modifier.clickable(role=Role.Button){nav(SynapseRoute.ACTIVITY)}.padding(vertical=5.dp),style=MaterialTheme.typography.bodySmall)
         Column {
             Text(title, style = MaterialTheme.typography.headlineMedium)
             if (subtitle.isNotEmpty()) Muted(subtitle)
         }
-        if (route.destination != Destination.AGENT) DesignTabs(route, nav)
+        if (route.destination != Destination.AGENT && route !in listOf(SynapseRoute.AUDIT,SynapseRoute.UNDO)) DesignTabs(route, nav)
         content()
         Spacer(Modifier.height(6.dp))
     }
@@ -136,5 +137,13 @@ internal fun DesignChoice(label: String, options: List<String>, value: String, o
             }
             DropdownMenu(open,{open=false}) { options.forEach { option -> DropdownMenuItem({Text(option)},{onChange(option);open=false}) } }
         }
+    }
+}
+
+@Composable
+internal fun SmallValue(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical=3.dp),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        Text(label,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value,Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
     }
 }
