@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.deviceagent.app.Tone
 import dev.deviceagent.app.ui.toneColors
+import dev.deviceagent.app.ui.SynapseDesignTokens
 
 @Composable
 internal fun ScreenPage(
@@ -43,8 +44,8 @@ internal fun ScreenPage(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = SynapseDesignTokens.pageHorizontal, vertical = SynapseDesignTokens.pageVertical),
+        verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.sectionGap),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
@@ -82,12 +83,12 @@ internal fun Section(
 ) {
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(SynapseDesignTokens.cardRadius),
         colors =
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(SynapseDesignTokens.cardPadding), verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.cardContentGap)) {
             if (title.isNotBlank()) Text(title, style = MaterialTheme.typography.titleMedium)
             subtitle?.let { Muted(it) }
             content()
@@ -109,8 +110,8 @@ internal fun Primary(label: String, enabled: Boolean = true, onClick: () -> Unit
     Button(
         onClick,
         enabled = enabled,
-        modifier = Modifier.heightIn(min = 48.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.heightIn(min = SynapseDesignTokens.minimumTouchTarget),
+        shape = RoundedCornerShape(SynapseDesignTokens.buttonRadius),
     ) {
         Text(label)
     }
