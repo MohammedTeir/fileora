@@ -2,6 +2,7 @@
 
 package dev.deviceagent.app.ui.synapse
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,9 +17,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.deviceagent.app.R
 
 @Composable
 internal fun DemoDeviceRoute(
@@ -220,6 +223,34 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                 Text("Internal storage", style = MaterialTheme.typography.titleSmall)
                 StorageUsageBar()
                 Text("28.4 GB free", style = MaterialTheme.typography.bodySmall)
+                listOf(
+                        Triple("Apps", "18.2 GB", Color(0xFF0867F9)),
+                        Triple("Media", "12.6 GB", Color(0xFF8855E8)),
+                        Triple("Other", "4.8 GB", Color(0xFFF4AF35)),
+                        Triple("Free", "28.4 GB", MaterialTheme.colorScheme.outlineVariant),
+                    )
+                    .forEach { (label, value, color) ->
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Box(Modifier.size(4.dp).background(color, RoundedCornerShape(50)))
+                            Text(
+                                label,
+                                Modifier.weight(1f),
+                                fontSize = 7.sp,
+                                lineHeight = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                value,
+                                fontSize = 7.sp,
+                                lineHeight = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                     listOf(
                             "Internal storage",
@@ -234,9 +265,18 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                             "Recent files",
                             "Large files",
                             "Screenshots",
+                            "Synapse workspace",
                             "Trash",
                         )
                         .forEach { title ->
+                            if (title == "Recent files") {
+                                HorizontalDivider(
+                                    Modifier.padding(vertical = 3.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                    thickness = .5.dp,
+                                )
+                                Text("Quick access", fontSize = 8.sp, lineHeight = 11.sp)
+                            }
                             Surface(
                                 onClick = {
                                     location = title
@@ -253,7 +293,25 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    AssetIcon(SynapseIcon.FOLDER, size = 12.dp)
+                                    AssetIcon(
+                                        when (title) {
+                                            "Internal storage",
+                                            "SD card" -> SynapseIcon.DEVICE
+                                            "Downloads" -> SynapseIcon.DOWNLOAD
+                                            "Pictures",
+                                            "Screenshots" -> SynapseIcon.IMAGE
+                                            "Videos" -> SynapseIcon.PLAY
+                                            "Audio" -> SynapseIcon.PAUSE
+                                            "Documents",
+                                            "Large files" -> SynapseIcon.FILE
+                                            "Apps" -> SynapseIcon.APPS
+                                            "System (Root)" -> SynapseIcon.ROOT
+                                            "Recent files" -> SynapseIcon.HISTORY
+                                            "Trash" -> SynapseIcon.DELETE
+                                            else -> SynapseIcon.FOLDER
+                                        },
+                                        size = 12.dp,
+                                    )
                                     Text(title, fontSize = 8.sp, lineHeight = 11.sp)
                                 }
                             }
@@ -451,13 +509,11 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
             }
         },
     ) {
-        Section("") {
-            InlineStats(
-                "Installed apps" to "72",
-                "App storage" to "18.2 GB",
-                "Updates available" to "3 apps",
-            )
-        }
+        DesignStatCards(
+            Triple(SynapseIcon.APPS, "Installed apps", "72"),
+            Triple(SynapseIcon.MEMORY, "App storage", "18.2 GB"),
+            Triple(SynapseIcon.RECOVERY, "Updates available", "3 apps"),
+        )
         DesignSearch(query, { query = it }, "Search apps, package name, or actions…")
         DesignSegments(listOf("All", "User", "System", "Updates"), filter) { filter = it }
         Section("", dense = true) {
@@ -486,6 +542,16 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
                             else "Sample package · 38 MB",
                             "Open",
                             onClick = { detail = title },
+                            leading =
+                                if (title == "Synapse") {
+                                    {
+                                        Image(
+                                            painterResource(R.drawable.synapse_brand_mark),
+                                            null,
+                                            Modifier.size(24.dp),
+                                        )
+                                    }
+                                } else null,
                         )
                     }
             }
@@ -527,13 +593,11 @@ private fun PackagesDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             }
         },
     ) {
-        Section("") {
-            InlineStats(
-                "Installed packages" to "${s.installed.size}",
-                "Updates available" to "1",
-                "Package storage" to "1.84 GB",
-            )
-        }
+        DesignStatCards(
+            Triple(SynapseIcon.PACKAGES, "Installed packages", "${s.installed.size}"),
+            Triple(SynapseIcon.RECOVERY, "Updates available", "1"),
+            Triple(SynapseIcon.MEMORY, "Package storage", "1.84 GB"),
+        )
         DesignSearch(query, { query = it }, "Search packages (e.g. python, git, nodejs)…")
         DesignSegments(listOf("All", "Installed", "Available"), filter) { filter = it }
         val packages =
@@ -693,13 +757,11 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         "Run commands in a secure environment. This terminal is a simulation.",
         nav,
     ) {
-        Section("") {
-            InlineStats(
-                "Environment" to "Android (Termux)",
-                "Sandboxed" to "Isolated",
-                "Status" to "Ready",
-            )
-        }
+        DesignStatCards(
+            Triple(SynapseIcon.TERMINAL, "Environment", "Android (Termux)"),
+            Triple(SynapseIcon.SECURITY, "Sandboxed", "Isolated"),
+            Triple(SynapseIcon.APPROVAL, "Status", "Ready"),
+        )
         DesignSection(
             "Terminal $session",
             SynapseIcon.TERMINAL,
@@ -774,19 +836,26 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                 }
         }
         DesignSection("Recent sessions", SynapseIcon.HISTORY, dense = true) {
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.TERMINAL,
                 "System information",
                 "neofetch, termux-info",
                 "Today",
                 onClick = { detail = "System information" },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.TERMINAL,
                 "Storage check",
                 "df -h, du -sh",
                 "Yesterday",
                 onClick = { detail = "Storage check" },
+            )
+            DesignDetailRow(
+                SynapseIcon.TERMINAL,
+                "Install tools",
+                "pkg install python nodejs",
+                "Yesterday",
+                onClick = { send(DemoAction.Command("pkg install python nodejs")) },
             )
         }
         Secondary("Review execution policy") { nav(SynapseRoute.SECURITY) }
@@ -797,6 +866,8 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
 @Composable
 private fun ToolsDemo(nav: (SynapseRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf("All categories") }
+    var status by rememberSaveable { mutableStateOf("All status") }
     var detail by rememberSaveable { mutableStateOf<String?>(null) }
     var enabled by rememberSaveable {
         mutableStateOf(
@@ -846,19 +917,54 @@ private fun ToolsDemo(nav: (SynapseRoute) -> Unit) {
         "Manage available tools for your AI agent and device operations.",
         nav,
     ) {
-        Section("") {
-            InlineStats(
-                "Available tools" to "14",
-                "Enabled tools" to "${enabled.size}",
-                "Tool execution" to "Demo only",
-            )
+        DesignStatCards(
+            Triple(SynapseIcon.TOOLS, "Available tools", "14"),
+            Triple(SynapseIcon.APPS, "Enabled tools", "${enabled.size}"),
+            Triple(SynapseIcon.TERMINAL, "Tool execution", "Demo only"),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Box(Modifier.weight(1f)) {
+                DesignSearch(
+                    query,
+                    { query = it },
+                    "Search tools, description, or category…",
+                    dense = true,
+                )
+            }
+            Box(Modifier.width(98.dp)) {
+                DesignPreference("", listOf("All categories") + groups.map { it.first }, category) {
+                    category = it
+                }
+            }
+            Box(Modifier.width(78.dp)) {
+                DesignPreference("", listOf("All status", "Enabled", "Disabled"), status) {
+                    status = it
+                }
+            }
         }
-        DesignSearch(query, { query = it }, "Search tools, description, or category…")
+        if (
+            groups.none { (title, tools) ->
+                tools.any { (_, name) ->
+                    (name.contains(query, true) || title.contains(query, true)) &&
+                        (category == "All categories" || category == title) &&
+                        (status == "All status" || (name in enabled) == (status == "Enabled"))
+                }
+            }
+        )
+            DesignNotice("No matching tools", "Try another query, category, or status.")
         groups.forEach { (title, tools) ->
-            DesignCatalogSection(title, SynapseIcon.TOOLS, "${tools.size} tools") {
-                tools
-                    .filter { it.second.contains(query, true) }
-                    .forEach { (icon, name) ->
+            val visible =
+                tools.filter { (_, name) ->
+                    (name.contains(query, true) || title.contains(query, true)) &&
+                        (category == "All categories" || category == title) &&
+                        (status == "All status" || (name in enabled) == (status == "Enabled"))
+                }
+            if (visible.isNotEmpty())
+                DesignCatalogSection(title, SynapseIcon.TOOLS, "${visible.size} tools") {
+                    visible.forEach { (icon, name) ->
                         DesignCatalogRow(
                             icon,
                             name,
@@ -878,7 +984,7 @@ private fun ToolsDemo(nav: (SynapseRoute) -> Unit) {
                             detail = name
                         }
                     }
-            }
+                }
         }
     }
     if (detail != null)

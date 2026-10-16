@@ -457,18 +457,23 @@ internal fun DesignMetrics(vararg metrics: Triple<SynapseIcon, String, String>) 
 }
 
 @Composable
-internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String) {
+internal fun DesignSearch(
+    value: String,
+    onValue: (String) -> Unit,
+    hint: String,
+    dense: Boolean = false,
+) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(8.dp)) {
         Row(
             Modifier.fillMaxWidth()
-                .heightIn(min = SynapseDesignTokens.fieldHeight)
+                .heightIn(min = if (dense) 24.dp else SynapseDesignTokens.fieldHeight)
                 .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             AssetIcon(
                 SynapseIcon.SEARCH,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                size = 16.dp,
+                size = if (dense) 13.dp else 16.dp,
             )
             Spacer(Modifier.width(8.dp))
             BasicTextField(
@@ -478,13 +483,24 @@ internal fun DesignSearch(value: String, onValue: (String) -> Unit, hint: String
                 singleLine = true,
                 textStyle =
                     MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize =
+                            if (dense) 9.sp else MaterialTheme.typography.bodyMedium.fontSize,
+                        lineHeight =
+                            if (dense) 12.sp else MaterialTheme.typography.bodyMedium.lineHeight,
                     ),
                 decorationBox = { field ->
                     if (value.isEmpty())
                         Text(
                             hint,
                             style = MaterialTheme.typography.bodyMedium,
+                            fontSize =
+                                if (dense) 9.sp else MaterialTheme.typography.bodyMedium.fontSize,
+                            lineHeight =
+                                if (dense) 12.sp
+                                else MaterialTheme.typography.bodyMedium.lineHeight,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     field()
@@ -552,6 +568,59 @@ internal fun InlineStats(vararg stats: Pair<String, String>) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DesignStatCards(vararg stats: Triple<SynapseIcon, String, String>) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        stats.forEachIndexed { index, (icon, label, value) ->
+            val color =
+                when {
+                    icon == SynapseIcon.APPS -> Color(0xFF00A85B)
+                    index == 1 -> Color(0xFF8B45E8)
+                    index == 2 -> Color(0xFF00A85B)
+                    else -> MaterialTheme.colorScheme.primary
+                }
+            Surface(
+                Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Row(
+                    Modifier.heightIn(min = 46.dp).padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    AssetIcon(
+                        icon,
+                        modifier =
+                            Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(6.dp))
+                                .padding(5.dp),
+                        size = 18.dp,
+                        tint = color,
+                    )
+                    Column {
+                        Text(
+                            label,
+                            style =
+                                MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 8.sp,
+                                    lineHeight = 10.sp,
+                                ),
+                        )
+                        Text(
+                            value,
+                            style =
+                                MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = 11.sp,
+                                    lineHeight = 14.sp,
+                                ),
+                        )
+                    }
+                }
             }
         }
     }

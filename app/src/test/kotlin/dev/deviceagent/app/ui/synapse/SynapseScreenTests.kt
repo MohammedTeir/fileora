@@ -146,7 +146,7 @@ class SynapseScreenTests {
                 }
             }
         }
-        compose.onNodeWithText("Approve installation").performScrollTo().performClick()
+        compose.onNodeWithText("Approve installation").assertIsDisplayed().performClick()
         listOf(
                 "download verified artifact",
                 "check checksum & source",
@@ -155,7 +155,7 @@ class SynapseScreenTests {
             )
             .forEach { step ->
                 compose.onNodeWithText("Capability verified").assertDoesNotExist()
-                compose.onNodeWithText("Simulate $step").performScrollTo().performClick()
+                compose.onNodeWithText("Simulate $step").assertIsDisplayed().performClick()
             }
         compose.onNodeWithText("Capability verified").assertExists()
         compose.runOnIdle { assertTrue("ImageMagick" in state.installed) }

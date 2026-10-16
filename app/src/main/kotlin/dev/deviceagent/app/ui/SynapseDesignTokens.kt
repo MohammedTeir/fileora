@@ -2,7 +2,9 @@ package dev.deviceagent.app.ui
 
 import androidx.compose.ui.unit.dp
 
-/** v3 reference geometry, normalized to a 412dp phone. Touch targets remain 48dp. */
+/**
+ * v3 reference geometry, normalized to a 412dp phone; text and scroll layouts follow font scale.
+ */
 object SynapseDesignTokens {
     val pageHorizontal = 16.dp
     val pageVertical = 12.dp

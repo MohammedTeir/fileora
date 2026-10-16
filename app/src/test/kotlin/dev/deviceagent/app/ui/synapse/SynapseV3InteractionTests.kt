@@ -197,4 +197,49 @@ class SynapseV3InteractionTests {
             assertEquals(state, SynapseWorkspaceViewModel(app, SavedStateHandle()).display.value)
         }
     }
+
+    @Test
+    fun customModelFormRejectsDuplicateAndSelectsAnAddedSample() {
+        var state by mutableStateOf(DemoState())
+        compose.setContent {
+            AgentTheme("Light") {
+                Surface(Modifier.fillMaxSize()) {
+                    ModelCatalogDemo(state, { state = reduceDemo(state, it) }, {})
+                }
+            }
+        }
+        compose.onNodeWithText("+ Add custom model").performClick()
+        compose.onNodeWithText("Add sample model").assertIsNotEnabled()
+        compose.onNodeWithText("Model identifier").performTextInput("local-llama-3")
+        compose.onNodeWithText("Add sample model").assertIsNotEnabled()
+        compose.onNodeWithText("Model identifier").performTextReplacement("local-demo-model")
+        compose.onNodeWithText("Add sample model").performClick()
+        compose.onNodeWithText("local-demo-model").performScrollTo().performClick()
+        compose.onNodeWithText("Set default").performClick()
+        compose.runOnIdle { assertEquals("local-demo-model", state.model) }
+        compose.onNodeWithText("gpt-4o").assertDoesNotExist()
+        compose
+            .onNodeWithContentDescription("Search models (e.g. gemini, gpt, claude)…")
+            .performTextInput("no-such-model")
+        compose.onNodeWithText("No matching models").assertExists()
+    }
+
+    @Test
+    fun toolCategoryAndSearchFiltersChangeVisibleCatalog() {
+        compose.setContent {
+            AgentTheme("Light") {
+                Surface(Modifier.fillMaxSize()) {
+                    DemoRouteContent(SynapseRoute.TOOLS, DemoState(), {}, {})
+                }
+            }
+        }
+        compose.onNodeWithText("All categories  ⌄").performClick()
+        compose.onNode(hasText("Media tools") and hasClickAction()).performClick()
+        compose.onNodeWithText("Shell").assertDoesNotExist()
+        compose.onNodeWithText("Screenshot").assertExists()
+        compose
+            .onNodeWithContentDescription("Search tools, description, or category…")
+            .performTextInput("no-such-tool")
+        compose.onNodeWithText("No matching tools").assertExists()
+    }
 }

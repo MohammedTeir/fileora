@@ -467,6 +467,11 @@ internal fun ModelCatalogDemo(
     nav: (SynapseRoute) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var providerFilter by rememberSaveable { mutableStateOf("All providers") }
+    var statusFilter by rememberSaveable { mutableStateOf("All status") }
+    var customModels by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var adding by rememberSaveable { mutableStateOf(false) }
+    var customName by rememberSaveable { mutableStateOf("") }
     var enabled by rememberSaveable {
         mutableStateOf(
             listOf(
@@ -486,7 +491,7 @@ internal fun ModelCatalogDemo(
             "Google Gemini" to listOf("gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"),
             "OpenAI" to listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"),
             "Anthropic Claude" to listOf("claude-3-5-sonnet", "claude-3-haiku", "claude-3-opus"),
-            "Custom Models" to listOf("local-llama-3"),
+            "Custom Models" to (listOf("local-llama-3") + customModels),
         )
     DesignPage(
         SynapseRoute.MODELS,
@@ -494,13 +499,52 @@ internal fun ModelCatalogDemo(
         "Manage and configure AI models from your providers.",
         nav,
     ) {
-        DesignNotice(
+        DesignSection(
             "Model Management",
-            "Browse, enable, and configure sample models. Live discovery stays separate.",
-        )
-        DesignSearch(query, { query = it }, "Search models (e.g. gemini, gpt, claude)…")
+            SynapseIcon.MODELS,
+            "+ Add custom model",
+            {
+                customName = ""
+                adding = true
+            },
+            subtitle = "Browse and configure sample models. Live discovery stays separate.",
+            dense = true,
+        ) {}
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Box(Modifier.weight(1f)) {
+                DesignSearch(
+                    query,
+                    { query = it },
+                    "Search models (e.g. gemini, gpt, claude)…",
+                    dense = true,
+                )
+            }
+            Box(Modifier.width(95.dp)) {
+                DesignPreference(
+                    "",
+                    listOf("All providers") + groups.map { it.first },
+                    providerFilter,
+                ) {
+                    providerFilter = it
+                }
+            }
+            Box(Modifier.width(78.dp)) {
+                DesignPreference("", listOf("All status", "Enabled", "Disabled"), statusFilter) {
+                    statusFilter = it
+                }
+            }
+        }
         groups.forEach { (provider, models) ->
-            val visible = models.filter { it.contains(query, true) }
+            val visible =
+                models.filter { name ->
+                    name.contains(query, true) &&
+                        (providerFilter == "All providers" || provider == providerFilter) &&
+                        (statusFilter == "All status" ||
+                            (name in enabled) == (statusFilter == "Enabled"))
+                }
             if (visible.isNotEmpty())
                 DesignCatalogSection(provider, SynapseIcon.PROVIDERS, "${visible.size} models") {
                     visible.forEach { name ->
@@ -528,7 +572,16 @@ internal fun ModelCatalogDemo(
                     }
                 }
         }
-        if (groups.flatMap { it.second }.none { it.contains(query, true) })
+        if (
+            groups.none { (provider, models) ->
+                models.any { name ->
+                    name.contains(query, true) &&
+                        (providerFilter == "All providers" || provider == providerFilter) &&
+                        (statusFilter == "All status" ||
+                            (name in enabled) == (statusFilter == "Enabled"))
+                }
+            }
+        )
             DesignNotice("No matching models", "Try another name or provider.")
         DesignPreference(
             "Fallback",
@@ -537,6 +590,51 @@ internal fun ModelCatalogDemo(
         ) {
             send(DemoAction.Fallback(it))
         }
+    }
+    if (adding) {
+        val valid =
+            customName.matches(Regex("[A-Za-z0-9][A-Za-z0-9._/-]{1,79}")) &&
+                groups.flatMap { it.second }.none { it.equals(customName, true) }
+        DesignDialog(
+            onDismissRequest = { adding = false },
+            title = { Text("Add custom model") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Add a sample model identifier. This does not configure or contact an endpoint."
+                    )
+                    OutlinedTextField(
+                        customName,
+                        { customName = it.take(80) },
+                        label = { Text("Model identifier") },
+                        singleLine = true,
+                        isError = customName.isNotEmpty() && !valid,
+                    )
+                    if (customName.isNotEmpty() && !valid)
+                        Text(
+                            "Use a unique identifier with letters, digits, dots, slashes, or dashes.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    {
+                        customModels = customModels + customName
+                        enabled = enabled + customName
+                        providerFilter = "Custom Models"
+                        statusFilter = "All status"
+                        query = ""
+                        adding = false
+                    },
+                    enabled = valid,
+                ) {
+                    Text("Add sample model")
+                }
+            },
+            dismissButton = { TextButton({ adding = false }) { Text("Cancel") } },
+        )
     }
     if (detail != null)
         DesignDialog(

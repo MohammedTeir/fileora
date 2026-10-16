@@ -1459,25 +1459,27 @@ private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             if (group.isNotEmpty())
                 DesignSection(label) {
                     group.forEach { task ->
-                        DesignRow(
-                            if (task.status == DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL
-                            else if (task.status == DemoTaskStatus.FAILED) SynapseIcon.WARNING
-                            else SynapseIcon.PLAY,
-                            task.title,
-                            "${task.verified} of ${task.total} verified · ${task.id}",
-                            when (task.status) {
-                                DemoTaskStatus.VERIFIED -> "Completed"
-                                DemoTaskStatus.RUNNING -> "Running"
-                                DemoTaskStatus.WAITING -> "Pending"
-                                DemoTaskStatus.FAILED -> "Failed"
-                                DemoTaskStatus.CANCELLED -> "Cancelled"
-                                else -> "Planned"
-                            },
-                            onClick = {
-                                send(DemoAction.SelectTask(task.id))
-                                nav(SynapseRoute.AUDIT)
-                            },
-                        )
+                        Box(Modifier.padding(vertical = 6.dp)) {
+                            DesignRow(
+                                if (task.status == DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL
+                                else if (task.status == DemoTaskStatus.FAILED) SynapseIcon.WARNING
+                                else SynapseIcon.PLAY,
+                                task.title,
+                                "${task.verified} of ${task.total} verified · ${task.id}",
+                                when (task.status) {
+                                    DemoTaskStatus.VERIFIED -> "Completed"
+                                    DemoTaskStatus.RUNNING -> "Running"
+                                    DemoTaskStatus.WAITING -> "Pending"
+                                    DemoTaskStatus.FAILED -> "Failed"
+                                    DemoTaskStatus.CANCELLED -> "Cancelled"
+                                    else -> "Planned"
+                                },
+                                onClick = {
+                                    send(DemoAction.SelectTask(task.id))
+                                    nav(SynapseRoute.AUDIT)
+                                },
+                            )
+                        }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
