@@ -440,7 +440,8 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
         "View, manage, and inspect installed applications. Demo inventory.",
         nav,
         footer = {
-            DesignSection("App actions", SynapseIcon.TOOLS) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("App actions", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("Install APK", "Uninstall", "Disable", "Check updates").forEach { label
                         ->
@@ -459,33 +460,35 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
         }
         DesignSearch(query, { query = it }, "Search apps, package name, or actions…")
         DesignSegments(listOf("All", "User", "System", "Updates"), filter) { filter = it }
-        Section("") {
-            names
-                .filterIndexed { i, n ->
-                    n.contains(query, true) &&
-                        when (filter) {
-                            "System" -> i >= 6
-                            "User" -> i < 6
-                            "Updates" -> i in listOf(0, 2, 3)
-                            else -> true
-                        }
-                }
-                .forEach { title ->
-                    DesignRow(
-                        when (title) {
-                            "Termux" -> SynapseIcon.TERMINAL
-                            "Settings" -> SynapseIcon.SETTINGS
-                            "Camera",
-                            "Gallery" -> SynapseIcon.IMAGE
-                            else -> SynapseIcon.APPS
-                        },
-                        title,
-                        if (title == "Synapse") "dev.deviceagent.app · 24 MB"
-                        else "Sample package · 38 MB",
-                        "Open",
-                        onClick = { detail = title },
-                    )
-                }
+        Section("", dense = true) {
+            Column {
+                names
+                    .filterIndexed { i, n ->
+                        n.contains(query, true) &&
+                            when (filter) {
+                                "System" -> i >= 6
+                                "User" -> i < 6
+                                "Updates" -> i in listOf(0, 2, 3)
+                                else -> true
+                            }
+                    }
+                    .forEach { title ->
+                        DesignRow(
+                            when (title) {
+                                "Termux" -> SynapseIcon.TERMINAL
+                                "Settings" -> SynapseIcon.SETTINGS
+                                "Camera",
+                                "Gallery" -> SynapseIcon.IMAGE
+                                else -> SynapseIcon.APPS
+                            },
+                            title,
+                            if (title == "Synapse") "dev.deviceagent.app · 24 MB"
+                            else "Sample package · 38 MB",
+                            "Open",
+                            onClick = { detail = title },
+                        )
+                    }
+            }
         }
     }
     DemoDetailDialog(
@@ -504,6 +507,25 @@ private fun PackagesDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         "Packages",
         "Search, install, update, and manage packages in your Linux environment.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DesignAction("Install package", Modifier.weight(1f)) {
+                    send(DemoAction.PackageSelected("ImageMagick"))
+                    nav(SynapseRoute.PACKAGE_DETAIL)
+                }
+                DesignAction("Update packages", Modifier.weight(1f)) {
+                    send(DemoAction.PackageSelected("FFmpeg"))
+                    nav(SynapseRoute.PACKAGE_DETAIL)
+                }
+                DesignAction("Check health", Modifier.weight(1f)) {
+                    send(
+                        DemoAction.Notice(
+                            "Demo check: Python, Git and Curl pass; FFmpeg needs the MP3 profile."
+                        )
+                    )
+                }
+            }
+        },
     ) {
         Section("") {
             InlineStats(
@@ -513,43 +535,27 @@ private fun PackagesDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             )
         }
         DesignSearch(query, { query = it }, "Search packages (e.g. python, git, nodejs)…")
-        ChoiceChips(listOf("All", "Installed", "Available"), filter) { filter = it }
+        DesignSegments(listOf("All", "Installed", "Available"), filter) { filter = it }
         val packages =
             demoPackages.filter {
                 it.name.contains(query, true) &&
                     (filter == "All" || (it.name in s.installed) == (filter == "Installed"))
             }
         if (packages.isEmpty()) Notice("No package matches", "Try another name or filter.")
-        DesignSection("Packages", SynapseIcon.PACKAGES) {
-            packages.forEach { pkg ->
-                DesignRow(
-                    SynapseIcon.PACKAGES,
-                    pkg.name,
-                    "${pkg.purpose}\n${pkg.version} · ${pkg.size}",
-                    if (pkg.name in s.installed) "Installed" else "Available",
-                    onClick = {
+        Section("", dense = true) {
+            Column {
+                packages.forEach { pkg ->
+                    DesignCatalogRow(
+                        SynapseIcon.PACKAGES,
+                        pkg.name,
+                        pkg.purpose,
+                        status = if (pkg.name in s.installed) "Installed" else "Available",
+                        meta = pkg.version,
+                        action = if (pkg.name in s.installed) "Open" else "Install",
+                    ) {
                         send(DemoAction.PackageSelected(pkg.name))
                         nav(SynapseRoute.PACKAGE_DETAIL)
-                    },
-                )
-            }
-        }
-        DesignSection("Package actions", SynapseIcon.TOOLS) {
-            Actions {
-                Secondary("Install package") {
-                    send(DemoAction.PackageSelected("ImageMagick"))
-                    nav(SynapseRoute.PACKAGE_DETAIL)
-                }
-                Secondary("Update packages") {
-                    send(DemoAction.PackageSelected("FFmpeg"))
-                    nav(SynapseRoute.PACKAGE_DETAIL)
-                }
-                Secondary("Check health") {
-                    send(
-                        DemoAction.Notice(
-                            "Demo check: Python, Git and Curl pass; FFmpeg needs the MP3 profile."
-                        )
-                    )
+                    }
                 }
             }
         }
@@ -574,8 +580,38 @@ private fun PackageDetailDemo(
     DesignPage(
         SynapseRoute.PACKAGE_DETAIL,
         "Package Transaction",
-        "Install, update, or remove packages and monitor the process. Demo transaction.",
+        "Install, update, or remove packages and monitor the process.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                if (s.packageStep in 0..3) {
+                    DesignAction(
+                        "Simulate ${steps[s.packageStep].lowercase()}",
+                        Modifier.weight(1.7f),
+                        primary = true,
+                    ) {
+                        send(DemoAction.InstallStep)
+                    }
+                    DesignAction("Cancel transaction", Modifier.weight(1f), danger = true) {
+                        send(DemoAction.CancelInstall)
+                    }
+                } else
+                    DesignAction(
+                        if (pkg.name in s.installed) "Approve update / repair"
+                        else "Approve installation",
+                        Modifier.weight(1.5f),
+                        primary = true,
+                    ) {
+                        send(DemoAction.Install)
+                    }
+                if (pkg.name in s.installed)
+                    DesignAction("Review removal", Modifier.weight(1f)) { removal = true }
+                if (s.packageStep == 4 && pkg.name == "FFmpeg")
+                    DesignAction("Return to recovery", Modifier.weight(1f)) {
+                        nav(SynapseRoute.RECOVERY)
+                    }
+            }
+        },
     ) {
         DesignSection(
             if (s.packageStep < 0) "Review package"
@@ -613,7 +649,7 @@ private fun PackageDetailDemo(
                             "zlib",
                             if (pkg.name == "FFmpeg") "libmp3lame" else "sqlite",
                         )
-                        .forEach { DesignRow(SynapseIcon.PACKAGES, it, "Shared library") }
+                        .forEach { SmallValue(it, "Library") }
                 }
             }
             Column(Modifier.weight(1f)) {
@@ -622,8 +658,9 @@ private fun PackageDetailDemo(
                     SmallValue("Version", pkg.version)
                     SmallValue("Size", pkg.size)
                     SmallValue("Architecture", "ARM64")
-                    Muted(
-                        "Illustrative signed manifest. No production repository or artifact is contacted."
+                    Text(
+                        "Demo manifest · no repository contacted",
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
@@ -633,20 +670,6 @@ private fun PackageDetailDemo(
                 "[demo] package: ${pkg.name}\n[demo] source: reviewed manifest\n[demo] step: ${s.packageStep.coerceAtLeast(0)} / 4\n[demo] verification: ${if(s.packageStep==4)"passed" else "pending"}"
             )
         }
-        if (s.packageStep in 0..3) {
-            FullButton("Simulate ${steps[s.packageStep].lowercase()}") {
-                send(DemoAction.InstallStep)
-            }
-            Secondary("Cancel transaction") { send(DemoAction.CancelInstall) }
-        } else
-            Primary(
-                if (pkg.name in s.installed) "Approve update / repair" else "Approve installation"
-            ) {
-                send(DemoAction.Install)
-            }
-        if (pkg.name in s.installed) Secondary("Review removal") { removal = true }
-        if (s.packageStep == 4 && pkg.name == "FFmpeg")
-            Primary("Return to recovery") { nav(SynapseRoute.RECOVERY) }
     }
     if (removal)
         ConfirmAction(
@@ -687,23 +710,31 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             },
         ) {
             CodeBlock(
-                "synapse@demo:~ $ ${s.terminalCommand}\n\nOS: Android 13 (One UI Core 5.1)\nHost: Samsung SM-A047F\nKernel: 4.19.191-perf+\nUptime: 3 days, 4 hours\nPackages: 312 (apt)\nShell: bash 5.1.16\nCPU: ARMv8 (8) @ 2.0GHz\nMemory: 1762MiB / 3671MiB\n\n${if(s.terminalComplete)"[demo] Command preview completed. No shell was invoked." else "[demo] Waiting for command preview."}"
+                "synapse@demo:~ $ ${s.terminalCommand}\n\nOS: Android 13 (One UI Core 5.1)\nHost: Samsung SM-A047F\nKernel: 4.19.191-perf+\nUptime: 3 days, 4 hours\nPackages: 312 (apt)\nShell: bash 5.1.16\nCPU: ARMv8 (8) @ 2.0GHz\nMemory: 1762MiB / 3671MiB\n\n${if(s.terminalComplete)"[demo] Command preview completed. No shell was invoked." else "[demo] Waiting for command preview."}",
+                dense = true,
             )
-            OutlinedTextField(
-                s.terminalCommand,
-                { send(DemoAction.Command(it)) },
-                Modifier.fillMaxWidth(),
-                label = { Text("Command preview") },
-                singleLine = true,
-            )
-            Actions {
-                Primary("Run preview", s.terminalCommand.isNotBlank()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    DesignSearch(
+                        s.terminalCommand,
+                        { send(DemoAction.Command(it)) },
+                        "Command preview",
+                    )
+                }
+                DesignAction(
+                    "Run preview",
+                    primary = true,
+                    enabled = s.terminalCommand.isNotBlank(),
+                ) {
                     send(DemoAction.RunCommand)
                 }
-                Secondary("Clear") { send(DemoAction.Command("")) }
+                DesignAction("Clear") { send(DemoAction.Command("")) }
             }
         }
-        DesignSection("Quick commands", SynapseIcon.TOOLS) {
+        DesignSection("Quick commands", SynapseIcon.TOOLS, dense = true) {
             listOf(
                     "List files" to "ls -la",
                     "Show device info" to "getprop ro.product.model",
@@ -711,19 +742,38 @@ private fun TerminalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     "Show processes" to "ps",
                     "Install package" to "pkg install python",
                     "Update packages" to "pkg upgrade",
+                    "Show IP address" to "ip addr",
+                    "Cache usage" to "du -sh ~/.cache",
                 )
-                .chunked(2)
+                .chunked(4)
                 .forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         row.forEach { (title, cmd) ->
-                            TextButton({ send(DemoAction.Command(cmd)) }, Modifier.weight(1f)) {
-                                Text(title, style = MaterialTheme.typography.labelSmall)
+                            Surface(
+                                onClick = { send(DemoAction.Command(cmd)) },
+                                modifier = Modifier.weight(1f),
+                                color =
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = .5f),
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
+                                Column(Modifier.padding(5.dp)) {
+                                    Text(title, fontSize = 8.sp, lineHeight = 11.sp)
+                                    Text(
+                                        cmd,
+                                        fontSize = 7.sp,
+                                        lineHeight = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow =
+                                            androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
                     }
                 }
         }
-        DesignSection("Recent sessions", SynapseIcon.HISTORY) {
+        DesignSection("Recent sessions", SynapseIcon.HISTORY, dense = true) {
             DesignRow(
                 SynapseIcon.TERMINAL,
                 "System information",
@@ -805,17 +855,28 @@ private fun ToolsDemo(nav: (SynapseRoute) -> Unit) {
         }
         DesignSearch(query, { query = it }, "Search tools, description, or category…")
         groups.forEach { (title, tools) ->
-            DesignSection(title, SynapseIcon.TOOLS) {
+            DesignCatalogSection(title, SynapseIcon.TOOLS, "${tools.size} tools") {
                 tools
                     .filter { it.second.contains(query, true) }
                     .forEach { (icon, name) ->
-                        DesignRow(
+                        DesignCatalogRow(
                             icon,
                             name,
-                            "v1.0 · ${if(name in enabled)"Enabled" else "Disabled"}",
-                            if (name in enabled) "Configure" else "Install",
-                            onClick = { detail = name },
-                        )
+                            when (name) {
+                                "Shell" -> "Execute shell commands in sandbox."
+                                "File Operations" -> "Read, write, move and manage files."
+                                "Package Manager" -> "Install, update and remove packages."
+                                "App Management" -> "Manage installed applications."
+                                "Network" -> "Network information and operations."
+                                "Device Info" -> "Device information and status."
+                                else -> "Sample ${name.lowercase()} tool."
+                            },
+                            status = if (name in enabled) "Enabled" else "Disabled",
+                            meta = "v1.0",
+                            action = if (name in enabled) "Configure" else "Install",
+                        ) {
+                            detail = name
+                        }
                     }
             }
         }

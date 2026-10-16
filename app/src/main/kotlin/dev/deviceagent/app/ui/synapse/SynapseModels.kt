@@ -119,6 +119,12 @@ val demoPackages =
         DemoPackage("Python", "3.12", "142 MiB", "Isolated scripts and development"),
         DemoPackage("Git", "2.47", "34 MiB", "Source control"),
         DemoPackage("Curl", "8.11", "8 MiB", "Verified HTTPS transfers"),
+        DemoPackage("Node.js", "20.11", "52 MiB", "JavaScript runtime environment"),
+        DemoPackage("Neofetch", "7.1", "2 MiB", "System information tool"),
+        DemoPackage("Htop", "3.3", "3 MiB", "Interactive process viewer"),
+        DemoPackage("Vim", "9.1", "18 MiB", "Text editor"),
+        DemoPackage("Wget", "1.21", "4 MiB", "File downloader"),
+        DemoPackage("Build-essential", "12.10", "164 MiB", "Essential build tools"),
         DemoPackage("ImageMagick", "7.1", "94 MiB", "Image resizing and conversion"),
     )
 val duplicateNames =

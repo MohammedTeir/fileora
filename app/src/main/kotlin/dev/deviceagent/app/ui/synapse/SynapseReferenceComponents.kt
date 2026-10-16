@@ -395,9 +395,10 @@ internal fun DesignSection(
     action: String? = null,
     onAction: (() -> Unit)? = null,
     subtitle: String = "",
+    dense: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Section("") {
+    Section("", dense = dense) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -744,5 +745,120 @@ internal fun StorageUsageBar() {
                 Box(Modifier.weight(amount).fillMaxHeight().background(color))
             }
         Spacer(Modifier.weight(.444f))
+    }
+}
+
+/**
+ * Compact catalog row used for long tool/model/package lists. Text still follows system font scale.
+ */
+@Composable
+internal fun DesignCatalogRow(
+    icon: SynapseIcon,
+    title: String,
+    detail: String,
+    status: String = "",
+    meta: String = "",
+    action: String = "",
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = 25.dp)
+            .padding(vertical = 1.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        AssetIcon(icon, size = 17.dp)
+        Column(Modifier.weight(1f)) {
+            Text(
+                title,
+                style =
+                    MaterialTheme.typography.titleSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
+            )
+            if (detail.isNotBlank())
+                Text(
+                    detail,
+                    style =
+                        MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 8.sp,
+                            lineHeight = 10.sp,
+                        ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+        }
+        if (meta.isNotEmpty())
+            Text(
+                meta,
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        if (status.isNotEmpty())
+            Text(
+                status,
+                Modifier.background(
+                        if (status in listOf("Enabled", "Installed")) Color(0xFFEAF6EC)
+                        else MaterialTheme.colorScheme.surfaceContainer,
+                        RoundedCornerShape(4.dp),
+                    )
+                    .padding(horizontal = 3.dp, vertical = 2.dp),
+                fontSize = 7.sp,
+                lineHeight = 9.sp,
+                color =
+                    if (status in listOf("Enabled", "Installed")) Color(0xFF14532D)
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        if (action.isNotEmpty())
+            Text(
+                action,
+                Modifier.background(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        RoundedCornerShape(5.dp),
+                    )
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+    }
+}
+
+@Composable
+internal fun DesignCatalogSection(
+    title: String,
+    icon: SynapseIcon,
+    count: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            AssetIcon(icon, size = 13.dp)
+            Text(
+                title,
+                Modifier.weight(1f),
+                style =
+                    MaterialTheme.typography.titleSmall.copy(fontSize = 10.sp, lineHeight = 14.sp),
+            )
+            Text(
+                count,
+                fontSize = 8.sp,
+                lineHeight = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            shape = RoundedCornerShape(8.dp),
+        ) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 2.dp),
+                content = content,
+            )
+        }
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.deviceagent.app.Tone
 import dev.deviceagent.app.ui.LocalSynapseAppearance
 import dev.deviceagent.app.ui.SynapseDesignTokens
@@ -84,6 +85,7 @@ internal fun Muted(text: String, modifier: Modifier = Modifier) {
 internal fun Section(
     title: String,
     subtitle: String? = null,
+    dense: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -96,13 +98,16 @@ internal fun Section(
     ) {
         Column(
             Modifier.padding(
-                when (LocalSynapseAppearance.current.density) {
-                    "Compact" -> 8.dp
-                    "Standard" -> 10.dp
-                    else -> SynapseDesignTokens.cardPadding
-                }
+                if (dense) 6.dp
+                else
+                    when (LocalSynapseAppearance.current.density) {
+                        "Compact" -> 8.dp
+                        "Standard" -> 10.dp
+                        else -> SynapseDesignTokens.cardPadding
+                    }
             ),
-            verticalArrangement = Arrangement.spacedBy(SynapseDesignTokens.cardContentGap),
+            verticalArrangement =
+                Arrangement.spacedBy(if (dense) 4.dp else SynapseDesignTokens.cardContentGap),
         ) {
             if (title.isNotBlank()) Text(title, style = MaterialTheme.typography.titleMedium)
             subtitle?.let { Muted(it) }
@@ -389,16 +394,23 @@ internal fun ChoiceChips(options: List<String>, selected: String, onSelect: (Str
 }
 
 @Composable
-internal fun CodeBlock(text: String) {
+internal fun CodeBlock(text: String, dense: Boolean = false) {
     Surface(Modifier.fillMaxWidth(), color = Color(0xFF111318), shape = RoundedCornerShape(12.dp)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             SelectionContainer {
                 Text(
                     text,
-                    Modifier.horizontalScroll(rememberScrollState()).padding(14.dp),
+                    Modifier.horizontalScroll(rememberScrollState())
+                        .padding(if (dense) 8.dp else 14.dp),
                     color = Color(0xFFD7E8D3),
                     fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodySmall,
+                    style =
+                        if (dense)
+                            MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 8.sp,
+                                lineHeight = 11.sp,
+                            )
+                        else MaterialTheme.typography.bodySmall,
                 )
             }
         }

@@ -88,3 +88,5 @@ Remaining acceptance work: obtain missing standalone artwork or approved substit
 - 12–13: compact audit tabs, side-by-side task status/destination and change/evidence panels; Audit uses its reference action footer without the global bottom tabs. Undo has compact warnings, select/deselect-all, and a fixed preview/restore footer. Native renders compared; retained rollback scope and conflict policy require different text from the reference.
 
 - 14–16: storage/RAM bars, compact quick tools and Apps actions; file sidebar, 17-row metadata table, selection and fixed Copy/Move/Rename/Delete footer restored. Two capture iterations compared. Device photo and third-party app artwork remain unavailable; official icons are used.
+
+- 17–20: compact terminal command/log panels, reusable grouped catalogs, eleven realistic Demo package entries, and persistent transaction controls. Three native capture iterations compared. All tool names fit; final tool description and transaction logs can scroll. Existing artifact/checksum/userspace/probe stages are preserved; no package operation runs on the host.

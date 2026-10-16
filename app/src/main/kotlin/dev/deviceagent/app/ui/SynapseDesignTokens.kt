@@ -16,8 +16,8 @@ object SynapseDesignTokens {
     val tabHeight = 30.dp
     val fieldHeight = 32.dp
     val iconSize = 22.dp
-    val navigationHeight = 58.dp
+    val navigationHeight = 52.dp
     val navigationRailWidth = 80.dp
     val borderWidth = 0.5.dp
-    val topBarHeight = 48.dp
+    val topBarHeight = 40.dp
 }
