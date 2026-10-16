@@ -53,6 +53,7 @@ class SynapseVisualParityTests {
                                                 "PythonProject",
                                             )
                                     )
+                            7 -> DemoState().copy(attempts = 1)
                             8, 12, 13 -> DemoState().copy(activeTaskId = completedVideoDemoId)
                             17 -> DemoState().copy(terminalCommand = "neofetch")
                             20 -> DemoState().copy(packageName = "Python", packageStep = 1)

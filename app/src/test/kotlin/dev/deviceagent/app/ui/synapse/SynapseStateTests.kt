@@ -5,6 +5,37 @@ import org.junit.Test
 
 class SynapseStateTests {
     @Test
+    fun approvedVideoScenarioPreservesApprovalRevisionAndVerifiesThreeOutputs() {
+        val initial = DemoState()
+        assertEquals(videoDemoId, initial.activeTaskId)
+        assertEquals(3, initial.planCount)
+        var approved = reduceDemo(initial, DemoAction.Approve(initial.planRevision))
+        assertEquals(videoDemoId, approved.activeTaskId)
+        assertEquals(0, approved.task.verified)
+        repeat(3) { approved = reduceDemo(approved, DemoAction.Advance) }
+        assertEquals(DemoTaskStatus.VERIFIED, approved.task.status)
+        assertEquals(3, approved.task.verified)
+        val revised = reduceDemo(approved, DemoAction.DestinationChanged("Downloads/Another folder"))
+        assertNull(revised.approvedRevision)
+        assertNull(reduceDemo(revised, DemoAction.Approve(initial.planRevision)).approvedRevision)
+    }
+
+    @Test
+    fun videoRecoveryRequiresAvailableToolAndRemainsBounded() {
+        val initial = DemoState()
+        assertFalse(reduceDemo(initial.copy(installed=emptySet()), DemoAction.RecoverVideo("retry")).recoveryVerified)
+        assertFalse(reduceDemo(initial.copy(attempts=3), DemoAction.RecoverVideo("retry")).recoveryVerified)
+        assertFalse(reduceDemo(initial.copy(recoveryAborted=true), DemoAction.RecoverVideo("retry")).recoveryVerified)
+        val recovered = reduceDemo(initial, DemoAction.RecoverVideo("retry"))
+        assertTrue(recovered.recoveryVerified)
+        assertEquals(1, recovered.attempts)
+        assertEquals(1, reduceDemo(recovered, DemoAction.RecoverVideo("retry")).attempts)
+        val skipped=reduceDemo(initial, DemoAction.RecoverVideo("skip"))
+        assertEquals(1,skipped.task.skipped)
+        assertTrue(skipped.task.status != DemoTaskStatus.VERIFIED)
+    }
+
+    @Test
     fun planEditsInvalidatePriorConsentAndApproval() {
         val approved = reduceDemo(DemoState(), DemoAction.Approve(1))
         val changes =

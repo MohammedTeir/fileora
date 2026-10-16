@@ -63,7 +63,7 @@ internal fun VideoThumbnail(index: Int, modifier: Modifier = Modifier) {
 @Composable
 internal fun DemoVideoRow(index: Int, onOpen: () -> Unit) {
     val video = demoVideos[index]
-    Row(Modifier.fillMaxWidth().heightIn(min = 55.dp).clickable(onClick = onOpen).padding(vertical = 5.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min = 49.dp).clickable(onClick = onOpen).padding(vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         VideoThumbnail(index, Modifier.width(48.dp).height(32.dp))
         Column(Modifier.weight(1f)) {
@@ -81,7 +81,7 @@ internal fun ReferenceMetricCards(vararg metrics: Triple<SynapseIcon,String,Stri
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         metrics.forEachIndexed { index,(icon,value,label) ->
             val tint = listOf(Color(0xFF00A85B),MaterialTheme.colorScheme.primary,Color(0xFF596580),Color(0xFF8B45E8))[index % 4]
-            Row(Modifier.weight(1f).background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp)).padding(horizontal=5.dp,vertical=7.dp),
+            Row(Modifier.weight(1f).background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp)).padding(horizontal=5.dp,vertical=5.dp),
                 verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
                 AssetIcon(icon,modifier=Modifier.background(tint.copy(alpha=.08f),RoundedCornerShape(6.dp)).padding(4.dp),size=17.dp,tint=tint)
                 Column {

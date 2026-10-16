@@ -277,6 +277,8 @@ sealed interface DemoAction {
 
     data class RemovePackage(val name: String) : DemoAction
 
+    data class RecoverVideo(val strategy: String) : DemoAction
+
     data object RetryRecovery : DemoAction
 
     data object Alternative : DemoAction
@@ -462,6 +464,18 @@ fun reduceDemo(s: DemoState, a: DemoAction): DemoState =
             if (a.name == "FFmpeg" && s.tasks.any { it.status == DemoTaskStatus.RUNNING })
                 s.copy(notice = "FFmpeg is used by a running demo task. Pause or finish it first.")
             else s.copy(installed = s.installed - a.name, packageStep = -1)
+        is DemoAction.RecoverVideo ->
+            when {
+                s.recoveryAborted || s.recoveryVerified || s.attempts >= 3 -> s.copy(notice = "Recovery is complete, aborted or at its attempt limit.")
+                a.strategy !in setOf("retry", "alternative", "skip") || !s.task.id.startsWith("V3-") -> s
+                a.strategy != "skip" && "FFmpeg" !in s.installed -> s.copy(notice = "Verify the FFmpeg package before retrying.")
+                else -> s.copy(attempts = s.attempts + 1, recoveryVerified = true,
+                    notice = "Demo recovery ${a.strategy} approved. Original files are preserved; no device operation ran.")
+                    .updateTask { task ->
+                        if (a.strategy == "skip") task.copy(skipped = (task.skipped + 1).coerceAtMost(task.total - task.verified), blocked = 0, status = DemoTaskStatus.RUNNING)
+                        else task.copy(blocked = 0, status = DemoTaskStatus.RUNNING)
+                    }
+            }
         DemoAction.RetryRecovery ->
             when {
                 s.recoveryVerified -> s.copy(notice = "Recovery has already been verified.")

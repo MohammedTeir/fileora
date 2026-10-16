@@ -987,124 +987,87 @@ private fun ScopedApprovalDemo(
 @Composable
 private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var cancel by rememberSaveable { mutableStateOf(false) }
-    DesignPage(
-        SynapseRoute.MONITOR,
-        "Monitor progress",
-        "Synapse is executing the approved plan. Monitor progress and stop if needed.",
-        nav,
+    var preview by rememberSaveable { mutableStateOf(false) }
+    val complete = s.task.status == DemoTaskStatus.VERIFIED
+    val step = if (complete) 6 else (s.task.verified + 3).coerceAtMost(5)
+    DesignPage(SynapseRoute.MONITOR, "Monitor progress",
+        "Synapse is executing the approved plan. You can monitor the progress in real time and stop if needed.", nav,
         footer = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DesignAction(
-                    "Stop execution",
-                    Modifier.weight(1f),
-                    danger = true,
-                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-                ) {
-                    cancel = true
-                }
-                DesignAction(
-                    if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",
-                    Modifier.weight(1f),
-                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-                ) {
-                    send(DemoAction.PauseResume)
-                }
+                DesignAction("Stop execution", Modifier.weight(1f), danger = true,
+                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED)) { cancel = true }
+                DesignAction(if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause", Modifier.weight(1f),
+                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED)) { send(DemoAction.PauseResume) }
             }
-        },
-    ) {
-        DesignSection("Task in progress", SynapseIcon.PLAY, s.task.status.name.lowercase()) {
-            Text(s.task.title, style = MaterialTheme.typography.bodySmall)
-            Text(
-                "${s.task.verified} of ${s.task.total} verified",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            LinearProgressIndicator(
-                progress = { s.task.progress },
-                modifier = Modifier.fillMaxWidth().height(5.dp),
-            )
-            Text(
-                "${s.task.skipped} skipped · ${s.task.blocked} blocked · ${s.task.running} running · ${s.task.queued} queued",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Section("") {
-            InlineStats(
-                "Input files" to "${s.task.total}",
-                "Verified" to "${s.task.verified}",
-                "Blocked" to "${s.task.blocked}",
-                "Elapsed" to "03:24",
-            )
-        }
-        DesignSection("Current step", SynapseIcon.PLAY) {
-            Text(
-                if (s.task.status == DemoTaskStatus.VERIFIED) "Verification complete"
-                else "Verify output ${s.task.settled+1}",
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Muted("Source retained · scoped output · verification required")
+        }) {
+        DesignSection("Task in progress", SynapseIcon.PLAY,
+            s.task.status.name.lowercase().replaceFirstChar { it.uppercase() }, subtitle = videoDemoDescription) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { Text("03:24", style = MaterialTheme.typography.titleSmall) }
+            LinearProgressIndicator(progress = { step / 6f }, modifier = Modifier.fillMaxWidth().height(6.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                listOf("Inspect", "Plan", "Execute", "Verify").forEach { stage ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        AssetIcon(
-                            if (stage == "Verify") SynapseIcon.ACTIVITY else SynapseIcon.APPROVAL,
-                            size = 16.dp,
-                        )
-                        Text(stage, style = MaterialTheme.typography.labelSmall)
+                Muted("$step of 6 steps completed"); Muted("${kotlin.math.round(step * 100f / 6).toInt()}%")
+            }
+        }
+        ReferenceMetricCards(
+            Triple(SynapseIcon.FILE,"${s.task.total} / ${s.task.total}","Input files"),
+            Triple(SynapseIcon.FOLDER,"1 / 1","Folder created"),
+            Triple(SynapseIcon.SETTINGS,"${(s.task.verified+1).coerceAtMost(s.task.total)} / ${s.task.total}","Actions completed"),
+            Triple(SynapseIcon.HISTORY,if (complete) "0 min" else "~2 min","Remaining"))
+        DesignSection("Current step", SynapseIcon.PLAY, if (complete) "Step 6 of 6" else "Step 3 of 6",
+            subtitle = if (complete) "All outputs verified." else "Converting video ${(s.task.verified+1).coerceAtMost(s.task.total)} of ${s.task.total} to MP4 using FFmpeg…") {
+            Row(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf("Create folder","Analyze files","Convert to MP4","Organize files","Verify results","Generate summary").forEachIndexed { i,label ->
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Surface(color = if (i <= 2 || complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, shape = CircleShape) {
+                            Text(if (i < 2 || complete) "✓" else "${i+1}",Modifier.padding(horizontal=5.dp,vertical=1.dp),fontSize=8.sp,lineHeight=11.sp,color=if(i<=2||complete) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(label,Modifier.padding(top=5.dp),fontSize=6.sp,lineHeight=8.sp,maxLines=1)
                     }
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1.2f)) {
-                DesignSection("Live log", SynapseIcon.AUDIT) {
-                    demoEvents.forEach { (time, event) ->
-                        Text(
-                            "$time  ✓  $event",
-                            Modifier.padding(vertical = 3.dp),
-                            style =
-                                MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 9.sp,
-                                    lineHeight = 12.sp,
-                                ),
-                        )
+                DesignSection("Live log", SynapseIcon.AUDIT, "All events", dense = true) {
+                    listOf("Starting task execution.","Creating folder: Converted Videos","Folder created successfully","Analyzing input files…","Found 3 video files (MP4, MOV, AVI)","Converting video 1 of 3… (completed)","Converting video 2 of 3… (in progress)","Converting video 3 of 3… (pending)","Organizing files… (pending)","Verifying results… (pending)","Generating summary… (pending)").forEachIndexed { i,text ->
+                        Row(Modifier.padding(vertical = 2.dp),horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+                            Text("09:41:${12+i*2}",fontSize=7.sp,lineHeight=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if(i<6) "✓" else if(i==6) "●" else "○",fontSize=9.sp,lineHeight=10.sp,color=if(i<6) entryColor(2) else MaterialTheme.colorScheme.primary)
+                            Text(if (complete && i>=6) text.substringBefore("…")+" · verified" else text,fontSize=7.sp,lineHeight=10.sp,
+                                color=if(i==6) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DesignSection("Current output", SynapseIcon.FOLDER) {
-                    AssetIcon(SynapseIcon.FILE, size = 40.dp)
-                    Muted("Local output preview")
-                    LinearProgressIndicator(
-                        progress = { s.task.verified.toFloat() / s.task.total.coerceAtLeast(1) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DesignSection("Current output",SynapseIcon.FOLDER, dense = true) {
+                    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically) {
+                        VideoThumbnail(0,Modifier.width(45.dp).height(32.dp).clickable { preview = true })
+                        Column(Modifier.weight(1f)) {
+                            Text("video_2_converted.mp4",fontSize=7.sp,lineHeight=10.sp)
+                            Text("MP4 · 1280×720 · 24.6 MB",fontSize=7.sp,lineHeight=9.sp)
+                            LinearProgressIndicator(progress={if (complete) 1f else .58f},modifier=Modifier.fillMaxWidth().height(4.dp))
+                        }
+                    }
                 }
-                DesignSection("Evidence", SynapseIcon.SECURITY) {
-                    Muted("File exists\nDuration checked\nSource preserved")
-                    TextButton({ nav(SynapseRoute.AUDIT) }) { Text("View all") }
+                DesignSection("Screenshots (latest)",SynapseIcon.IMAGE,"View all",{preview=true}, dense = true) {
+                    listOf(R.drawable.synapse_art_execution_capture_1,R.drawable.synapse_art_execution_capture_2,R.drawable.synapse_art_execution_capture_3,R.drawable.synapse_art_execution_capture_4).chunked(2).forEach { row ->
+                        Row(horizontalArrangement=Arrangement.spacedBy(4.dp),modifier=Modifier.padding(vertical=3.dp)) {
+                            row.forEach { drawable -> ReferenceArtwork(drawable,"Sample execution capture",Modifier.weight(1f).aspectRatio(1.4f).clickable { preview=true }) }
+                        }
+                    }
                 }
             }
         }
-        Secondary("Simulate next verified item", s.task.status == DemoTaskStatus.RUNNING) {
-            send(DemoAction.Advance)
-        }
+        Secondary("Simulate next verified item",s.task.status==DemoTaskStatus.RUNNING) {send(DemoAction.Advance)}
         Actions {
-            Secondary("Checkpoint") { nav(SynapseRoute.CHECKPOINT) }
-            Secondary("Review recovery") { nav(SynapseRoute.RECOVERY) }
-            Secondary("View result") { nav(SynapseRoute.TASK_RESULT) }
+            Secondary("Checkpoint") {nav(SynapseRoute.CHECKPOINT)}
+            Secondary("Review recovery") {nav(SynapseRoute.RECOVERY)}
+            Secondary("View result") {nav(SynapseRoute.TASK_RESULT)}
         }
     }
-    if (cancel)
-        ConfirmAction(
-            "Cancel this demo task?",
-            "Completed changes remain in the audit. Review rollback separately.",
-            "Cancel task",
-            { cancel = false },
-        ) {
-            send(DemoAction.Cancel)
-            cancel = false
-        }
+    DemoDetailDialog(if(preview) "Sample execution evidence" else null,{preview=false},"These approved-design thumbnails illustrate the Demo workflow. No device screenshot, video conversion, or file change occurred.")
+    if(cancel) ConfirmAction("Cancel this demo task?","Completed changes remain in the audit. Review rollback separately.","Cancel task",{cancel=false}) {send(DemoAction.Cancel);cancel=false}
 }
 
 @Composable
@@ -1139,7 +1102,10 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     when (selected) {
                         "Try alternative tool" -> alternative = true
                         "Provide a different file" -> ask = true
+                        "Skip this file" -> send(DemoAction.RecoverVideo("skip"))
                         else ->
+                            if (s.task.id.startsWith("V3-")) send(DemoAction.RecoverVideo("retry"))
+                            else
                             if (s.packageName == "FFmpeg" && s.packageStep == 4)
                                 send(DemoAction.RetryRecovery)
                             else {
@@ -1151,43 +1117,52 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             }
         },
     ) {
-        DesignSection("Task summary", SynapseIcon.FILE) {
-            Text("Extract lesson audio", style = MaterialTheme.typography.titleSmall)
-            InlineStats(
-                "Input files" to "156",
-                "Failed step" to "Audio encode",
-                "Elapsed" to "02:14",
-            )
+        DesignSection("Task summary", SynapseIcon.FILE, "View plan", { nav(SynapseRoute.PLAN) }, subtitle = videoDemoDescription) {
+            ReferenceMetricCards(Triple(SynapseIcon.FILE,"3 files","Input items"),Triple(SynapseIcon.FOLDER,"1 folder","Created"),Triple(SynapseIcon.SETTINGS,"Step 3 of 6","Failed"),Triple(SynapseIcon.HISTORY,"02:14","Elapsed time"))
         }
-        DesignNotice(
-            "Error occurred",
-            "The installed FFmpeg profile does not provide the MP3 encoder.",
-            Tone.ERROR,
-        ) {
-            CodeBlock("Unknown encoder 'libmp3lame'\nexit code: 1\ncomplete outputs: 0")
+        DesignNotice("Error occurred", "Failed to convert video_2.mp4 using FFmpeg. The input file appears to be corrupted or in an unsupported format.", Tone.ERROR) {
+            Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                    VideoThumbnail(2,Modifier.width(58.dp).height(44.dp))
+                    Column {
+                        Text("video_2.mp4",style=MaterialTheme.typography.titleSmall)
+                        Text("MP4 · 1920×1080 · 36.8 MB",fontSize=8.sp,lineHeight=11.sp)
+                        Text("Duration: 00:05:42",fontSize=8.sp,lineHeight=11.sp)
+                        Text("Conversion failed",fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.error)
+                    }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Error message (from FFmpeg)",fontSize=8.sp,lineHeight=11.sp)
+                    CodeBlock("ffmpeg -i input.mp4 -c:v libx264 output.mp4\nmoov atom not found\nInvalid data found when processing input", dense = true)
+                }
+            }
         }
-        DesignSection("Recovery options", SynapseIcon.RECOVERY, "${s.attempts} / 3 attempts") {
+        DesignSection("Recovery options", SynapseIcon.RECOVERY, "${s.attempts} / 3 attempts", dense = true) {
             listOf(
                     "Retry with different settings",
                     "Try alternative tool",
+                    "Skip this file",
                     "Provide a different file",
                 )
                 .forEach { option ->
                     Row(
                         Modifier.fillMaxWidth()
                             .clickable { selected = option }
-                            .heightIn(min = 34.dp),
+                            .heightIn(min = 29.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected == option, { selected = option }, Modifier.size(30.dp))
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 24.dp) {
+                            RadioButton(selected == option, { selected = option }, Modifier.size(26.dp))
+                        }
                         Column {
-                            Text(option, style = MaterialTheme.typography.titleSmall)
-                            Muted(
+                            Text(option, fontSize=10.sp,lineHeight=12.sp)
+                            Text(
                                 if (option.startsWith("Retry"))
-                                    "Review a verified FFmpeg package profile"
+                                    "Try alternative FFmpeg parameters and fallback method."
                                 else if (option.startsWith("Try"))
-                                    "Use AAC instead; explicit consent required"
-                                else "Add clarification before proceeding"
+                                    "Use a different conversion method; approval required."
+                                else if (option == "Skip this file") "Continue remaining files; report this file as failed." else "Select a replacement file for this step.",
+                                fontSize=8.sp,lineHeight=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -1196,33 +1171,33 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         DesignSection(
             "Preview of recovery plan",
             SynapseIcon.RECOVERY,
-            subtitle = "Source and destination are rechecked.",
+            subtitle = "These steps will be executed to recover from the error.", dense = true,
         ) {
             listOf(
-                    "Inspect encoder availability",
-                    "Verify package source and checksum",
-                    "Retry only after the prerequisite changes",
-                    "Validate output and preserve the source",
+                    "Analyze the file with alternative settings",
+                    "Try repairing the video file if possible",
+                    "Convert using verified fallback parameters",
+                    "Continue with remaining steps if successful",
                 )
                 .forEachIndexed { i, t ->
-                    Text("${i+1}. $t", style = MaterialTheme.typography.bodySmall)
+                    Text("${i+1}. $t", fontSize = 8.sp, lineHeight = 11.sp)
                 }
         }
         if (s.recoveryNote.isNotBlank()) Notice("Your clarification", s.recoveryNote)
         if (s.recoveryVerified)
             Primary("Return to task") {
-                send(DemoAction.SelectTask("SYN-2049"))
+                send(DemoAction.SelectTask(if (s.task.id.startsWith("V3-")) videoDemoId else "SYN-2049"))
                 nav(SynapseRoute.MONITOR)
             }
     }
     if (alternative)
         ConfirmAction(
-            "Use AAC instead of MP3?",
-            "This changes the output format. Existing sources remain unchanged.",
-            "Approve AAC output",
+            if (s.task.id.startsWith("V3-")) "Use an alternative conversion method?" else "Use AAC instead of MP3?",
+            "Review the alternate output method. Existing sources remain unchanged.",
+            "Approve alternative",
             { alternative = false },
         ) {
-            send(DemoAction.Alternative)
+            if (s.task.id.startsWith("V3-")) send(DemoAction.RecoverVideo("alternative")) else send(DemoAction.Alternative)
             alternative = false
         }
     if (ask)

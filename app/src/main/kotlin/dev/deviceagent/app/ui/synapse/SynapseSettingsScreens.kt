@@ -142,101 +142,54 @@ private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
 
 @Composable
 internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
-    var selected by rememberSaveable { mutableStateOf("Results") }
+    var selected by rememberSaveable { mutableStateOf("Converted files") }
+    var preview by rememberSaveable { mutableStateOf<Int?>(null) }
+    var upload by rememberSaveable { mutableStateOf(false) }
     val complete = s.task.status == DemoTaskStatus.VERIFIED
-    DesignPage(
-        SynapseRoute.TASK_RESULT,
-        if (complete) "Task completed" else "Task result",
-        "Review verified outcomes and recorded evidence.",
-        nav,
-        footer = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button({ nav(SynapseRoute.AGENT) }, Modifier.weight(1f).heightIn(min = 32.dp)) {
-                    Text("Create a new task  →")
-                }
-                OutlinedButton(
-                    { nav(SynapseRoute.AGENT) },
-                    Modifier.weight(1f).heightIn(min = 32.dp),
-                ) {
-                    Text("Back to Agent")
-                }
-            }
-        },
-    ) {
-        DesignSection("Task summary", SynapseIcon.FILE, "View plan", { nav(SynapseRoute.PLAN) }) {
-            Text(s.task.title, style = MaterialTheme.typography.titleSmall)
-            InlineStats(
-                "Processed" to "${s.task.verified}",
-                "Skipped" to "${s.task.skipped}",
-                "Blocked" to "${s.task.blocked}",
-                "Status" to s.task.status.name.lowercase(),
-            )
+    val video = s.task.id.startsWith("V3-VIDEO")
+    DesignPage(SynapseRoute.TASK_RESULT,if(complete) "Task completed" else "Task result",
+        if (complete) "Synapse has finished executing the plan successfully." else "Review verified outcomes and recorded evidence.",nav,
+        footer={ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            DesignAction("Create a new task  →",Modifier.weight(1f),primary=true) {nav(SynapseRoute.AGENT)}
+            DesignAction("Back to Agent",Modifier.weight(1f)) {nav(SynapseRoute.AGENT)}
+        } }) {
+        DesignSection("Task summary",SynapseIcon.FILE,"View plan",{nav(SynapseRoute.PLAN)},subtitle=if(video) videoDemoDescription else s.task.title) {
+            ReferenceMetricCards(Triple(SynapseIcon.FILE,"${s.task.verified} files","Processed"),Triple(SynapseIcon.FOLDER,"1 folder","Created"),Triple(SynapseIcon.SETTINGS,if(complete) "6 steps" else "In progress","${if(complete) "Completed" else "Verification"}"),Triple(SynapseIcon.HISTORY,"4 min 28 sec","Total time"))
         }
-        if (!complete)
-            DesignNotice(
-                "Work remains",
-                "Only ${s.task.verified} of ${s.task.total} items are verified. This task is not complete.",
-                Tone.WARNING,
-            )
-        DesignSection("Results", SynapseIcon.FOLDER) {
-            DesignSegments(listOf("Results", "Created folders", "Logs"), selected) { selected = it }
-            when (selected) {
-                "Results" -> {
-                    if (s.task.verified == 0) Muted("No verified outputs yet.")
+        if(!complete) DesignNotice("Work remains","Only ${s.task.verified} of ${s.task.total} items are verified. This task is not complete.",Tone.WARNING)
+        DesignSection("Results",SynapseIcon.FOLDER,"Open folder",{nav(SynapseRoute.SANDBOX)},subtitle=if(complete) "All planned actions were completed successfully." else "Only verified outputs are listed.") {
+            DesignSegments(listOf("Converted files", "Created folders", "Logs"),selected) {selected=it}
+            when(selected) {
+                "Converted files" -> {
+                    if(s.task.verified==0) Muted("No verified outputs yet.")
                     repeat(s.task.verified.coerceAtMost(3)) { i ->
-                        Box(
-                            Modifier.fillMaxWidth().heightIn(min = 50.dp),
-                            contentAlignment = androidx.compose.ui.Alignment.Center,
-                        ) {
-                            DesignRow(
-                                SynapseIcon.FILE,
-                                "Verified output ${i+1}",
-                                "Demo evidence · original preserved",
-                                "Verified",
-                                onClick = { nav(SynapseRoute.AUDIT) },
-                            )
-                        }
+                        if(video) DemoVideoRow(i) {preview=i}
+                        else DesignRow(SynapseIcon.FILE,"Verified output ${i+1}","Demo evidence · source preserved","Verified",onClick={nav(SynapseRoute.AUDIT)})
                     }
-                    if (s.task.verified > 3)
-                        Muted("${s.task.verified-3} additional verified outputs in the audit.")
                 }
-                "Created folders" ->
-                    DesignRow(
-                        SynapseIcon.FOLDER,
-                        s.destination,
-                        "Scoped output destination",
-                        onClick = { nav(SynapseRoute.SANDBOX) },
-                    )
-                else ->
-                    CodeBlock(
-                        "task: ${s.task.id}\nverified: ${s.task.verified}\nstatus: ${s.task.status}\nsource: demo fixture"
-                    )
+                "Created folders" -> DesignRow(SynapseIcon.FOLDER,s.destination,"Approved output destination",onClick={nav(SynapseRoute.SANDBOX)})
+                else -> CodeBlock("task: ${s.task.id}\nverified: ${s.task.verified}\nstatus: ${s.task.status}\nsource: demo fixture")
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f)) {
-                DesignSection("Output location", SynapseIcon.FOLDER) {
-                    Text(s.destination, style = MaterialTheme.typography.bodySmall)
-                    TextButton({ nav(SynapseRoute.SANDBOX) }) {
-                        Text("Open in file manager", style = MaterialTheme.typography.bodySmall)
-                    }
+                DesignSection("Output location",SynapseIcon.FOLDER,dense=true) {
+                    Text("/storage/emulated/0/Download/\nConverted Videos",style=MaterialTheme.typography.bodySmall)
+                    DesignAction("Open in file manager") {nav(SynapseRoute.SANDBOX)}
                 }
             }
             Column(Modifier.weight(1f)) {
-                DesignSection("What’s next?", SynapseIcon.TOOLS) {
-                    DesignRow(
-                        SynapseIcon.AGENT,
-                        "Create a new task",
-                        onClick = { nav(SynapseRoute.AGENT) },
-                    )
-                    DesignRow(
-                        SynapseIcon.AUDIT,
-                        "View activity log",
-                        onClick = { nav(SynapseRoute.AUDIT) },
-                    )
-                    DesignRow(SynapseIcon.UNDO, "Review undo", onClick = { nav(SynapseRoute.UNDO) })
+                DesignSection("What’s next?",SynapseIcon.TOOLS,subtitle="Try these suggestions:",dense=true) {
+                    DesignDetailRow(SynapseIcon.PLAY,"Play the converted videos",onClick={preview=0})
+                    DesignDetailRow(SynapseIcon.UPLOAD,"Upload to cloud storage",onClick={upload=true})
+                    DesignDetailRow(SynapseIcon.PLUS,"Create a new task",onClick={nav(SynapseRoute.AGENT)})
+                    DesignDetailRow(SynapseIcon.HISTORY,"View full activity log",onClick={nav(SynapseRoute.AUDIT)})
                 }
             }
         }
     }
+    if(preview!=null) DesignDialog(onDismissRequest={preview=null},title={Text("${demoVideos[preview!!].name}_converted.mp4")},text={
+        Column {VideoThumbnail(preview!!,Modifier.fillMaxWidth().height(170.dp));Muted("Demo thumbnail preview. The original video file is not stored by this simulation.")}
+    },confirmButton={TextButton({preview=null}) {Text("Close")}})
+    DemoDetailDialog(if(upload) "Demo upload preview" else null,{upload=false},"The three verified sample outputs would be shared only after provider selection and explicit upload approval. No media is uploaded in Demo mode.")
 }
