@@ -84,3 +84,5 @@ Remaining acceptance work: obtain missing standalone artwork or approved substit
 - 06–08: compact verified progress, persistent stop/pause and recovery action rows, status markers, segmented result tabs, larger output rows, and side-by-side output/next-action panels. Two native capture iterations compared; existing task counts, failed-encoder prerequisites and verified-only completion preserved. Media and device-capture thumbnails remain absent from the source package.
 
 - 09–11: checkpoint controls condensed into the reference summary, all eight checkpoint rows visible, timestamp/size metadata and official row icons restored. History filters and schedule search/create controls compacted; schedule toggles visible. Native captures compared. Existing seven-task history and schedule fixtures retained.
+
+- 12–13: compact audit tabs, side-by-side task status/destination and change/evidence panels; Audit uses its reference action footer without the global bottom tabs. Undo has compact warnings, select/deselect-all, and a fixed preview/restore footer. Native renders compared; retained rollback scope and conflict policy require different text from the reference.

@@ -1563,8 +1563,17 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
         s.task.title,
         "${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DesignAction("Run again", Modifier.weight(1f)) { nav(SynapseRoute.PLAN) }
+                DesignAction("Undo changes", Modifier.weight(1f)) { nav(SynapseRoute.UNDO) }
+                DesignAction("View checkpoint", Modifier.weight(1.3f), primary = true) {
+                    nav(SynapseRoute.CHECKPOINT)
+                }
+            }
+        },
     ) {
-        ChoiceChips(listOf("Summary", "Changes", "Timeline", "Tools & Logs"), tab) { tab = it }
+        DesignSegments(listOf("Summary", "Changes", "Timeline", "Tools & Logs"), tab) { tab = it }
         when (tab) {
             "Summary" -> {
                 DesignSection("Task summary", SynapseIcon.FILE) {
@@ -1576,8 +1585,22 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                         "Task" to s.task.id,
                     )
                 }
-                DesignSection("Output location", SynapseIcon.FOLDER) {
-                    Text(evidence.output, style = MaterialTheme.typography.bodySmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1.2f)) {
+                        DesignSection("Output location", SynapseIcon.FOLDER) {
+                            Text(evidence.output, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    Column(Modifier.weight(1f)) {
+                        DesignSection("Task status", SynapseIcon.SECURITY) {
+                            Text(
+                                if (final) "Completed" else s.task.status.name.lowercase(),
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            SmallValue("Verified", "${s.task.verified}")
+                            SmallValue("Remaining", "${s.task.total - s.task.settled}")
+                        }
+                    }
                 }
                 DesignSection(
                     "Verified outputs",
@@ -1587,23 +1610,50 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                 ) {
                     if (hasEvidence)
                         repeat(s.task.verified.coerceAtMost(3)) { i ->
-                            DesignRow(SynapseIcon.FILE, "Output ${i+1}", evidence.check, "Verified")
+                            Box(
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                DesignRow(
+                                    SynapseIcon.FILE,
+                                    "Output ${i+1}",
+                                    evidence.check,
+                                    "Verified",
+                                )
+                            }
                         }
                     else Muted("No verified outputs yet.")
                 }
-                DesignSection("Verification result", SynapseIcon.SECURITY) {
-                    VerifiedRow(
-                        "Completed item checks",
-                        if (hasEvidence) evidence.check
-                        else "No completed output has been verified yet",
-                        hasEvidence,
-                    )
-                    VerifiedRow(
-                        "Whole task complete",
-                        if (final) "All required outcomes accounted for"
-                        else "Remaining, failed or blocked items need review",
-                        final,
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        DesignSection("Changes made", SynapseIcon.FILE) {
+                            SmallValue("Verified outcomes", "${s.task.verified}")
+                            SmallValue("Skipped", "${s.task.skipped}")
+                            SmallValue("Blocked", "${s.task.blocked}")
+                            TextButton({ tab = "Changes" }) {
+                                Text(
+                                    "Review all changes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+                    Column(Modifier.weight(1f)) {
+                        DesignSection("Verification result", SynapseIcon.SECURITY) {
+                            VerifiedRow(
+                                "Completed item checks",
+                                if (hasEvidence) evidence.check
+                                else "No completed output has been verified yet",
+                                hasEvidence,
+                            )
+                            VerifiedRow(
+                                "Whole task complete",
+                                if (final) "All required outcomes accounted for"
+                                else "Remaining, failed or blocked items need review",
+                                final,
+                            )
+                        }
+                    }
                 }
             }
             "Changes" ->
@@ -1629,11 +1679,6 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                     Muted(evidence.recovery)
                 }
         }
-        Actions {
-            Secondary("Run again") { nav(SynapseRoute.PLAN) }
-            Secondary("Undo changes") { nav(SynapseRoute.UNDO) }
-            Secondary("View checkpoint") { nav(SynapseRoute.CHECKPOINT) }
-        }
     }
 }
 
@@ -1649,23 +1694,48 @@ private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
         "Undo / Rollback",
         "Revert recorded task changes. Select what to undo and review the impact before proceeding.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DesignAction("Cancel", Modifier.weight(.8f)) { nav(SynapseRoute.AUDIT) }
+                DesignAction("Preview changes", Modifier.weight(1f)) { preview = true }
+                DesignAction(
+                    "Restore selected changes",
+                    Modifier.weight(1.4f),
+                    danger = true,
+                    enabled = !s.rollbackDone && selected.isNotEmpty(),
+                ) {
+                    confirm = true
+                }
+            }
+        },
     ) {
         DesignSection("Organize Downloads", SynapseIcon.PLAY) {
             Muted("Fixed rollback scenario · completed demo transaction")
         }
         if (s.rollbackDone)
-            Notice(
+            DesignNotice(
                 "Demo restore verified",
                 "Selected changes were reversed in the simulation. Your current ticket.png was preserved.",
                 Tone.SUCCESS,
             )
         else
-            Notice(
+            DesignNotice(
                 "This will undo changes made by the task",
                 "Only recorded changes can be restored. Newly created files are removed only if unchanged.",
                 Tone.ERROR,
             )
-        DesignSection("Changes to undo (${selected.size})", SynapseIcon.UNDO) {
+        DesignSection(
+            "Changes to undo (${selected.size})",
+            SynapseIcon.UNDO,
+            if (selected.isEmpty()) "Select all" else "Deselect all",
+            {
+                if (!s.rollbackDone)
+                    selected =
+                        if (selected.isEmpty())
+                            listOf("Moved files", "Trash entries", "Created archives")
+                        else emptyList()
+            },
+        ) {
             listOf(
                     "Moved files" to "604 original locations recorded",
                     "Trash entries" to "27 retained copies available",
@@ -1678,7 +1748,7 @@ private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
                                 selected =
                                     if (title in selected) selected - title else selected + title
                             }
-                            .heightIn(min = 48.dp),
+                            .heightIn(min = 34.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(
@@ -1687,6 +1757,7 @@ private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
                                 selected = if (checked) selected + title else selected - title
                             },
                             enabled = !s.rollbackDone,
+                            modifier = Modifier.size(30.dp),
                         )
                         Column {
                             Text(title, style = MaterialTheme.typography.titleSmall)
@@ -1704,7 +1775,7 @@ private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
             DesignRow(SynapseIcon.FILE, "Original locations", "Paths are recorded per operation")
             DesignRow(SynapseIcon.SECURITY, "Conflict policy", s.restoreConflictChoice)
         }
-        Notice(
+        DesignNotice(
             "One conflict needs review",
             "Downloads/Images/ticket.png changed after this task.",
             Tone.WARNING,
@@ -1716,10 +1787,6 @@ private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
         ) {
             send(DemoAction.ConflictChoice(it))
         }
-        FullButton("Restore selected changes", !s.rollbackDone && selected.isNotEmpty()) {
-            confirm = true
-        }
-        Secondary("Cancel") { nav(SynapseRoute.AUDIT) }
     }
     DemoDetailDialog(
         if (preview) "Restore preview" else null,

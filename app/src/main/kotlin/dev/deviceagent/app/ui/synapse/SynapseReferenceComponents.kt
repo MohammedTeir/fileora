@@ -106,7 +106,7 @@ internal fun DesignPage(
                 Text(
                     "‹  History",
                     Modifier.clickable(role = Role.Button) { nav(SynapseRoute.ACTIVITY) }
-                        .padding(vertical = 5.dp),
+                        .padding(vertical = 0.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
             if (
@@ -135,14 +135,17 @@ internal fun DesignPage(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (
-                    route == SynapseRoute.RECOVERY ||
+                    route == SynapseRoute.UNDO ||
+                        route == SynapseRoute.RECOVERY ||
                         route == SynapseRoute.TASK_RESULT && title == "Task completed"
                 ) {
                     val success = title == "Task completed" || title == "Recovery verified"
                     val color = if (success) Color(0xFF00AF58) else MaterialTheme.colorScheme.error
                     Surface(color = color.copy(alpha = .1f), shape = CircleShape) {
                         AssetIcon(
-                            if (success) SynapseIcon.APPROVAL else SynapseIcon.WARNING,
+                            if (success) SynapseIcon.APPROVAL
+                            else if (route == SynapseRoute.UNDO) SynapseIcon.UNDO
+                            else SynapseIcon.WARNING,
                             modifier = Modifier.padding(8.dp),
                             tint = color,
                             size = 22.dp,
@@ -165,7 +168,10 @@ internal fun DesignPage(
                                     fontSize = 26.sp,
                                     lineHeight = 30.sp,
                                 )
-                            else if (route.destination == Destination.SETTINGS)
+                            else if (
+                                route.destination == Destination.SETTINGS ||
+                                    route in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO)
+                            )
                                 MaterialTheme.typography.titleLarge
                             else MaterialTheme.typography.headlineMedium,
                     )
