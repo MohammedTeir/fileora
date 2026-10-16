@@ -1,13 +1,24 @@
 {
-  "date_utc": "2026-10-15",
+  "date_utc": "2026-10-16",
+  "source_commit": "16f4dbf0ac0bc2887ed881a6c02f6ef7b86d098f",
   "android_compile_sdk": 35,
   "robolectric_sdk": 34,
   "viewport_dp": [
     412,
+    700
+  ],
+  "reference_display_dp": [
+    412,
     746
   ],
+  "reference_system_bars_dp": {
+    "status": 24,
+    "gesture": 22
+  },
+  "density": "mdpi",
   "font_scale": 1,
   "theme": "Light",
+  "data_mode": "Demo",
   "core_harness": {
     "task": ":agent-core:runAgentTests",
     "passed": 109,
@@ -15,7 +26,7 @@
   },
   "app_full_suite": {
     "task": ":app:testDebugUnitTest",
-    "passed": 76,
+    "passed": 78,
     "failed": 0,
     "skipped": 0
   },
@@ -29,14 +40,40 @@
     "warnings": 16
   },
   "apk_variants": 5,
+  "apks": [
+    {
+      "file": "app-arm64-v8a-debug.apk",
+      "bytes": 19189640,
+      "sha256": "b82e4ce2bf508e6660abbd1499a9e4be58449d54e31f46e3c22199006261528a"
+    },
+    {
+      "file": "app-armeabi-v7a-debug.apk",
+      "bytes": 19186798,
+      "sha256": "6654cf9ed6d5fa888b6b1dcb811443d448d3e8ab77dcacbc02249afcf58cb9b9"
+    },
+    {
+      "file": "app-universal-debug.apk",
+      "bytes": 19239713,
+      "sha256": "a33bc703b878aec2d96fb15e920b8a963758f55aa6f44e632f4dc1e1268cd389"
+    },
+    {
+      "file": "app-x86-debug.apk",
+      "bytes": 19188822,
+      "sha256": "6bdb9543d35804c864018e1257b4c415b46ece17de0c9650c7d7c335a92ce76f"
+    },
+    {
+      "file": "app-x86_64-debug.apk",
+      "bytes": 19190301,
+      "sha256": "64a0a10466d1ac455fbf045d470b8b47b735f09039da7ab929c8265cc8ea75be"
+    }
+  ],
   "visual_comparisons": 31,
-  "visual_parity": "Incomplete; see SYNAPSE_VISUAL_PARITY.md",
+  "runtime_vector_concepts": 38,
+  "visual_parity": "All 31 native renders reviewed; exact parity remains limited by missing standalone artwork and documented Demo/safety/layout differences.",
   "reference_images_in_apks": 0,
   "source_svg_in_apks": 0,
   "adaptive_foreground_pixels_outside_safe_circle": 0,
-  "source_commit": "ded803b54e3062eed0b60a7bad7c1763860a13c8",
-  "final_asset_capture_tests": {
-    "passed": 11,
-    "failed": 0
-  }
+  "emulator_available": false,
+  "physical_device_visual_verification": false,
+  "comparison_artifacts": "docs/visual-parity/index.html"
 }
