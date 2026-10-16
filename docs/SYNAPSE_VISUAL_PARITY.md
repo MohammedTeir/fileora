@@ -90,3 +90,5 @@ Remaining acceptance work: obtain missing standalone artwork or approved substit
 - 14–16: storage/RAM bars, compact quick tools and Apps actions; file sidebar, 17-row metadata table, selection and fixed Copy/Move/Rename/Delete footer restored. Two capture iterations compared. Device photo and third-party app artwork remain unavailable; official icons are used.
 
 - 17–20: compact terminal command/log panels, reusable grouped catalogs, eleven realistic Demo package entries, and persistent transaction controls. Three native capture iterations compared. All tool names fit; final tool description and transaction logs can scroll. Existing artifact/checksum/userspace/probe stages are preserved; no package operation runs on the host.
+
+- 21–24: provider/model chips, compact numeric/dropdown/slider preferences, model groups, masked Demo credential rows and compact actions. Three native capture iterations compared; credential rejection/reveal regression test passed. Third-party logos are unavailable. Provider routing and extra workspace actions remain below the reference viewport, accessible by scrolling.

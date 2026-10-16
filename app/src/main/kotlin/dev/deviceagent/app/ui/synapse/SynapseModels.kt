@@ -186,7 +186,7 @@ data class DemoState(
     val rollbackDone: Boolean = false,
     val restoreConflictChoice: String = "Keep current",
     val provider: String = "Gemini",
-    val model: String = "Fast planner",
+    val model: String = "gemini-1.5-pro",
     val fallback: String = "Recovery model",
     val credentialStored: Boolean = true,
     val connectionTested: Boolean = false,

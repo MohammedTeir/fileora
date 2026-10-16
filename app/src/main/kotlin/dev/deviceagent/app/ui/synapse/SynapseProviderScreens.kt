@@ -2,11 +2,18 @@
 
 package dev.deviceagent.app.ui.synapse
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 private val providerNames = listOf("Google Gemini", "OpenAI", "Anthropic Claude", "Custom Provider")
 private val providerDescriptions =
@@ -16,6 +23,89 @@ private val providerDescriptions =
         "Claude models from Anthropic.",
         "OpenAI-compatible API endpoint.",
     )
+
+private fun providerKey(name: String) =
+    when (name) {
+        "Google Gemini" -> "Gemini"
+        "Anthropic Claude" -> "Claude"
+        "Custom Provider" -> "Custom"
+        else -> "OpenAI"
+    }
+
+private val providerModels =
+    listOf(
+        listOf("gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"),
+        listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo"),
+        listOf("claude-3-5-sonnet", "claude-3-haiku", "claude-3-opus"),
+        listOf("Custom endpoint", "Local model", "Self-hosted"),
+    )
+
+@Composable
+private fun ProviderRow(index: Int, state: DemoState, expanded: Boolean, onClick: () -> Unit) {
+    val active = providerKey(providerNames[index]) == state.provider
+    Row(
+        Modifier.fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = if (expanded) 60.dp else 44.dp)
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AssetIcon(SynapseIcon.PROVIDERS, size = 25.dp)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Text(providerNames[index], style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (active) "Active" else "Inactive",
+                    fontSize = 7.sp,
+                    lineHeight = 9.sp,
+                    color =
+                        if (active) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                if (expanded) providerDescriptions[index] else providerModels[index].first(),
+                style =
+                    MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp, lineHeight = 11.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (expanded)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    providerModels[index].forEach { model ->
+                        Text(
+                            model,
+                            Modifier.background(
+                                    MaterialTheme.colorScheme.surfaceContainer,
+                                    RoundedCornerShape(3.dp),
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            fontSize = 7.sp,
+                            lineHeight = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+        }
+        Text(
+            "Configure  ›",
+            Modifier.background(
+                    MaterialTheme.colorScheme.primaryContainer,
+                    RoundedCornerShape(5.dp),
+                )
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 8.sp,
+            lineHeight = 11.sp,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
 
 @Composable
 internal fun SettingsOverviewDemo(
@@ -39,41 +129,38 @@ internal fun SettingsOverviewDemo(
             SynapseIcon.PROVIDERS,
             "+ Add provider",
             { nav(SynapseRoute.PROVIDERS) },
+            subtitle = "Manage AI models and credentials.",
         ) {
-            providerNames.forEachIndexed { i, name ->
-                DesignRow(
-                    SynapseIcon.PROVIDERS,
-                    name,
-                    providerDescriptions[i],
-                    if (name.contains(s.provider)) "Active" else "Configure",
-                    onClick = { nav(SynapseRoute.PROVIDERS) },
-                )
+            providerNames.indices.forEach { i ->
+                ProviderRow(i, s, expanded = false) { nav(SynapseRoute.PROVIDERS) }
             }
         }
-        DesignSection("Model Settings", SynapseIcon.MODELS) {
-            DesignChoice(
+        DesignSection(
+            "Model Settings",
+            SynapseIcon.MODELS,
+            subtitle = "Choose default model and behavior.",
+        ) {
+            DesignPreference(
                 "Default model",
                 listOf(s.model, "gemini-1.5-pro", "gpt-4o", "claude-3-5-sonnet"),
                 s.model,
             ) {
                 send(DemoAction.Model(it))
             }
-            SmallValue("Temperature", String.format(java.util.Locale.ROOT, "%.1f", temperature))
-            DesignSlider(
+            DesignSliderPreference(
+                "Temperature",
+                String.format(java.util.Locale.ROOT, "%.1f", temperature),
                 temperature,
-                { temperature = it },
-                valueRange = 0f..1f,
-                label = "Temperature",
-            )
-            OutlinedTextField(
-                tokens,
-                { tokens = it.filter(Char::isDigit) },
-                label = { Text("Max output tokens") },
-                singleLine = true,
-                isError = tokens.toIntOrNull() !in 1..32768,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            DesignChoice("Response style", listOf("Balanced", "Concise", "Detailed"), response) {
+                0f..1f,
+            ) {
+                temperature = it
+            }
+            DesignNumberPreference("Max output tokens", tokens, 1..32768) { tokens = it }
+            DesignPreference(
+                "Response style",
+                listOf("Balanced", "Concise", "Detailed"),
+                response,
+            ) {
                 response = it
             }
         }
@@ -87,12 +174,19 @@ internal fun SettingsOverviewDemo(
                 "API requests" to "1,250 / 10,000",
                 "Input tokens" to "2.4M",
                 "Output tokens" to "0.8M",
+                "Total time" to "12.5 hours",
             )
-            LinearProgressIndicator(progress = { .125f }, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { .125f },
+                modifier = Modifier.fillMaxWidth().height(4.dp),
+            )
         }
-        Secondary("Agent memory") { nav(SynapseRoute.MEMORY) }
-        Secondary("Explore setup") { nav(SynapseRoute.WELCOME) }
-        Secondary("Reset demo workspace") { confirm = true }
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            DesignAction("Agent memory", Modifier.weight(1f)) { nav(SynapseRoute.MEMORY) }
+            DesignAction("Explore setup", Modifier.weight(1f)) { nav(SynapseRoute.WELCOME) }
+            DesignAction("Reset demo workspace", Modifier.weight(1f)) { confirm = true }
+        }
     }
     if (confirm)
         ConfirmAction(
@@ -126,32 +220,26 @@ internal fun ProviderCatalogDemo(
             "+ Add provider",
             { edit = "Custom Provider" },
         ) {
-            providerNames.forEachIndexed { i, name ->
-                DesignRow(
-                    SynapseIcon.PROVIDERS,
-                    name,
-                    providerDescriptions[i],
-                    if (name.contains(s.provider)) "Selected" else "Configure",
-                    onClick = { edit = name },
-                )
+            providerNames.indices.forEach { i ->
+                ProviderRow(i, s, expanded = true) { edit = providerNames[i] }
             }
         }
         DesignSection("Default Provider", SynapseIcon.SETTINGS) {
-            DesignChoice(
+            DesignPreference(
                 "Default provider",
                 listOf("Gemini", "OpenAI", "Claude", "Custom"),
                 s.provider,
             ) {
                 send(DemoAction.Provider(it))
             }
-            DesignChoice(
+            DesignPreference(
                 "Default model",
                 listOf(s.model, "gemini-1.5-pro", "gemini-1.5-flash", "gpt-4o-mini"),
                 s.model,
             ) {
                 send(DemoAction.Model(it))
             }
-            DesignChoice(
+            DesignPreference(
                 "Fallback model",
                 listOf("Recovery model", "Same model", "Disabled"),
                 s.fallback,
@@ -160,15 +248,16 @@ internal fun ProviderCatalogDemo(
             }
             Muted("Fallback stays within the approved provider and data scope.")
         }
-        DesignSection("Provider preferences", SynapseIcon.SETTINGS) {
-            SmallValue("Request timeout", "${timeout.toInt()} seconds")
-            DesignSlider(
+        DesignSection("Provider preferences", SynapseIcon.SETTINGS, dense = true) {
+            DesignSliderPreference(
+                "Request timeout",
+                "${timeout.toInt()} seconds",
                 timeout,
-                { timeout = it },
-                valueRange = 15f..120f,
-                label = "Request timeout",
-            )
-            SwitchSetting(
+                15f..120f,
+            ) {
+                timeout = it
+            }
+            DesignSwitch(
                 "Automatic model routing",
                 "Demo preference; capability and privacy checks still apply.",
                 s.flag("routing"),
@@ -176,13 +265,15 @@ internal fun ProviderCatalogDemo(
                 send(DemoAction.Toggle("routing", it))
             }
         }
-        Actions {
-            Secondary("Credentials") { nav(SynapseRoute.CREDENTIALS) }
-            Secondary("Models") { nav(SynapseRoute.MODELS) }
-            Primary("Test connection") { send(DemoAction.TestConnection) }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesignAction("Credentials", Modifier.weight(1f)) { nav(SynapseRoute.CREDENTIALS) }
+            DesignAction("Models", Modifier.weight(1f)) { nav(SynapseRoute.MODELS) }
+            DesignAction("Test connection", Modifier.weight(1f), primary = true) {
+                send(DemoAction.TestConnection)
+            }
         }
         if (s.connectionTested)
-            Notice(
+            DesignNotice(
                 "Sample connection verified",
                 "Simulated authentication and model discovery succeeded.",
             )
@@ -228,51 +319,84 @@ internal fun CredentialCatalogDemo(
     var alias by rememberSaveable { mutableStateOf("") }
     var remove by rememberSaveable { mutableStateOf(false) }
     var revealed by rememberSaveable { mutableStateOf(false) }
+    var targetProvider by rememberSaveable { mutableStateOf(s.provider) }
     DesignPage(
         SynapseRoute.CREDENTIALS,
         "Credentials",
-        "Manage API keys and credentials for AI providers. Demo mode accepts aliases only, never real keys.",
+        "Manage API keys and credentials for AI providers.",
         nav,
     ) {
-        Notice(
+        DesignNotice(
             "Secure Credential Storage",
-            "Live keys are encrypted with Android Keystore. The entries below are sample credentials.",
+            "Live keys use Android Keystore. Demo accepts labels only; never enter a real API key.",
         )
         DesignSection(
             "Saved Credentials",
             SynapseIcon.CREDENTIALS,
             "+ Add credential",
-            { add = true },
+            {
+                targetProvider = s.provider
+                alias = ""
+                add = true
+            },
         ) {
             providerNames.forEachIndexed { i, name ->
-                DesignRow(
-                    SynapseIcon.PROVIDERS,
-                    name,
-                    if (name.contains(s.provider) && s.credentialStored)
-                        if (revealed) "demo-placeholder (not a key)" else "•••• •••• demo"
-                    else "Not configured",
-                    if (name.contains(s.provider) && s.credentialStored) "Configured"
-                    else "Add key",
-                    onClick = { add = true },
-                )
+                val configured = providerKey(name) == s.provider && s.credentialStored
+                Column(
+                    Modifier.fillMaxWidth()
+                        .clickable(role = Role.Button) {
+                            targetProvider = providerKey(name)
+                            alias = ""
+                            add = true
+                        }
+                        .padding(vertical = 6.dp)
+                ) {
+                    DesignRow(
+                        SynapseIcon.PROVIDERS,
+                        name,
+                        if (configured)
+                            if (revealed) "demo-placeholder (not a key)" else "•••• •••• demo"
+                        else "Not configured",
+                        if (configured) "Configured" else "Add label",
+                    )
+                    if (configured)
+                        Text(
+                            "Demo binding · ${if (alias.isBlank()) "Personal demo" else alias}",
+                            Modifier.padding(start = 30.dp),
+                            fontSize = 8.sp,
+                            lineHeight = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                }
             }
-            Actions {
-                Secondary(if (revealed) "Hide sample" else "Reveal sample", s.credentialStored) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DesignAction(
+                    if (revealed) "Hide sample" else "Reveal sample",
+                    Modifier.weight(1f),
+                    enabled = s.credentialStored,
+                ) {
                     revealed = !revealed
                 }
-                Primary("Test connection", s.credentialStored) { send(DemoAction.TestConnection) }
+                DesignAction(
+                    "Test connection",
+                    Modifier.weight(1f),
+                    primary = true,
+                    enabled = s.credentialStored,
+                ) {
+                    send(DemoAction.TestConnection)
+                }
             }
             if (s.connectionTested) Muted("Simulated authentication succeeded.")
         }
         DesignSection("Credential Settings", SynapseIcon.SETTINGS) {
-            SwitchSetting(
+            DesignSwitch(
                 "Keep credentials on device only",
                 "Sample preference; no demo secrets are stored.",
                 !s.flag("demoCloudKeys"),
             ) {
                 send(DemoAction.Toggle("demoCloudKeys", !it))
             }
-            SwitchSetting(
+            DesignSwitch(
                 "Auto-detect provider from key",
                 "Illustrative preference only.",
                 !s.flag("disableKeyDetection"),
@@ -312,6 +436,7 @@ internal fun CredentialCatalogDemo(
             confirmButton = {
                 TextButton(
                     {
+                        send(DemoAction.Provider(targetProvider))
                         send(DemoAction.Credential(true))
                         add = false
                     },
@@ -366,31 +491,50 @@ internal fun ModelCatalogDemo(
     DesignPage(
         SynapseRoute.MODELS,
         "Models",
-        "Manage and configure AI models from your providers. This catalog is illustrative.",
+        "Manage and configure AI models from your providers.",
         nav,
     ) {
-        DesignSection("Model Management", SynapseIcon.MODELS) {
-            Muted(
-                "Browse, enable, and configure models. Actual availability is checked in Live mode."
-            )
-        }
+        DesignNotice(
+            "Model Management",
+            "Browse, enable, and configure sample models. Live discovery stays separate.",
+        )
         DesignSearch(query, { query = it }, "Search models (e.g. gemini, gpt, claude)…")
         groups.forEach { (provider, models) ->
-            DesignSection(provider, SynapseIcon.PROVIDERS) {
-                models
-                    .filter { it.contains(query, true) }
-                    .forEach { name ->
-                        DesignRow(
+            val visible = models.filter { it.contains(query, true) }
+            if (visible.isNotEmpty())
+                DesignCatalogSection(provider, SynapseIcon.PROVIDERS, "${visible.size} models") {
+                    visible.forEach { name ->
+                        DesignCatalogRow(
                             SynapseIcon.MODELS,
                             name,
-                            if (name == s.model) "Default model" else "Sample model profile",
+                            if (name == s.model) "Default model"
+                            else
+                                when {
+                                    name.contains("flash") ||
+                                        name.contains("mini") ||
+                                        name.contains("haiku") ->
+                                        "Fast and efficient model for everyday tasks."
+                                    name.contains("pro") || name.contains("4o") ->
+                                        "Advanced multimodal model for complex tasks."
+                                    name.contains("local") -> "Local sample endpoint."
+                                    else -> "Sample text model profile."
+                                },
                             if (name in enabled) "Enabled" else "Disabled",
+                            action =
+                                if (name.contains("gemini") || name.contains("4o")) "Multimodal"
+                                else "Text",
                             onClick = { detail = name },
                         )
                     }
-            }
+                }
         }
-        DesignChoice("Fallback", listOf("Recovery model", "Same model", "Disabled"), s.fallback) {
+        if (groups.flatMap { it.second }.none { it.contains(query, true) })
+            DesignNotice("No matching models", "Try another name or provider.")
+        DesignPreference(
+            "Fallback",
+            listOf("Recovery model", "Same model", "Disabled"),
+            s.fallback,
+        ) {
             send(DemoAction.Fallback(it))
         }
     }

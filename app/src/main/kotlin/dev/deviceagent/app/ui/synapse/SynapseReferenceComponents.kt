@@ -39,10 +39,15 @@ internal fun DesignPage(
                 .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = if (route.destination == Destination.AGENT) 20.dp else 16.dp,
-                    vertical = if (route == SynapseRoute.AGENT) 18.dp else 8.dp,
+                    vertical =
+                        if (route == SynapseRoute.AGENT) 18.dp
+                        else if (route == SynapseRoute.SETTINGS) 20.dp else 8.dp,
                 ),
             verticalArrangement =
-                Arrangement.spacedBy(if (route == SynapseRoute.AGENT) 12.dp else 8.dp),
+                Arrangement.spacedBy(
+                    if (route == SynapseRoute.AGENT) 12.dp
+                    else if (route == SynapseRoute.SETTINGS) 10.dp else 8.dp
+                ),
         ) {
             if (
                 route.destination == Destination.AGENT &&
@@ -163,7 +168,7 @@ internal fun DesignPage(
                             } else append(title)
                         },
                         style =
-                            if (route == SynapseRoute.AGENT)
+                            if (route in listOf(SynapseRoute.AGENT, SynapseRoute.SETTINGS))
                                 MaterialTheme.typography.headlineMedium.copy(
                                     fontSize = 26.sp,
                                     lineHeight = 30.sp,
@@ -483,11 +488,13 @@ internal fun DesignChoice(
     label: String,
     options: List<String>,
     value: String,
+    dense: Boolean = false,
     onChange: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = SynapseDesignTokens.compactRowHeight),
+        Modifier.fillMaxWidth()
+            .heightIn(min = if (dense) 28.dp else SynapseDesignTokens.compactRowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -499,7 +506,7 @@ internal fun DesignChoice(
             ) {
                 Text(
                     "$value  ⌄",
-                    Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                    Modifier.padding(horizontal = 8.dp, vertical = if (dense) 3.dp else 5.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -531,6 +538,102 @@ internal fun SmallValue(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(value, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+internal fun DesignPreference(
+    label: String,
+    options: List<String>,
+    value: String,
+    onChange: (String) -> Unit,
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+        DesignChoice(label, options.distinct(), value, dense = true, onChange = onChange)
+    }
+}
+
+@Composable
+internal fun DesignSwitch(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    enabled: Boolean = true,
+    onChange: (Boolean) -> Unit,
+) {
+    SwitchSetting(title, subtitle, checked, enabled, dense = true, onChange = onChange)
+}
+
+@Composable
+internal fun DesignSliderPreference(
+    label: String,
+    display: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Float) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Box(Modifier.weight(1f)) { DesignSlider(value, onChange, range, label) }
+        Text(
+            display,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+internal fun DesignNumberPreference(
+    label: String,
+    value: String,
+    validRange: IntRange,
+    onChange: (String) -> Unit,
+) {
+    val invalid = value.toIntOrNull() !in validRange
+    Column {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 28.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            BasicTextField(
+                value,
+                { onChange(it.filter(Char::isDigit).take(6)) },
+                singleLine = true,
+                textStyle =
+                    MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                keyboardOptions =
+                    androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                    ),
+                modifier =
+                    Modifier.weight(1f)
+                        .semantics { contentDescription = label }
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainer,
+                            RoundedCornerShape(6.dp),
+                        )
+                        .border(
+                            if (invalid) 1.dp else 0.dp,
+                            if (invalid) MaterialTheme.colorScheme.error else Color.Transparent,
+                            RoundedCornerShape(6.dp),
+                        )
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+        }
+        if (invalid)
+            Text(
+                "Enter ${validRange.first}–${validRange.last}.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
     }
 }
 

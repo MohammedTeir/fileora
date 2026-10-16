@@ -339,22 +339,30 @@ internal fun SwitchSetting(
     subtitle: String,
     checked: Boolean,
     enabled: Boolean = true,
+    dense: Boolean = false,
     onChange: (Boolean) -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
-            .heightIn(min = SynapseDesignTokens.compactRowHeight)
-            .padding(vertical = 3.dp),
+            .heightIn(min = if (dense) 28.dp else SynapseDesignTokens.compactRowHeight)
+            .padding(vertical = if (dense) 2.dp else 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontSize = if (dense) 10.sp else 11.sp,
+                lineHeight = if (dense) 12.sp else 15.sp,
+            )
             if (subtitle.isNotEmpty())
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
+                    fontSize = if (dense) 9.sp else 10.sp,
+                    lineHeight = if (dense) 11.sp else 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
         }
