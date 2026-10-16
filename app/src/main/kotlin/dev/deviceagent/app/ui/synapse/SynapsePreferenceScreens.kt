@@ -14,12 +14,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.PackageInfoCompat
 import dev.deviceagent.app.R
 import dev.deviceagent.app.ui.LocalSynapseAppearance
@@ -80,13 +83,17 @@ internal fun PermissionsDesign(nav: (SynapseRoute) -> Unit) {
             SynapseIcon.PERMISSIONS,
             "Learn more",
             { selected = "Permission model" },
+            dense = true,
         ) {
-            Muted("Sample statuses; review actual grants in Live mode.")
-            InlineStats(
-                "Required" to "$grantedRequired / 4",
-                "Optional" to "$grantedOptional / 6",
-                "Not granted" to "${10-grants.size}",
-                "Not needed" to "0",
+            Text(
+                "Sample statuses; review actual grants in Live mode.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            DesignMetrics(
+                Triple(SynapseIcon.APPROVAL, "Required", "$grantedRequired / 4"),
+                Triple(SynapseIcon.HISTORY, "Optional", "$grantedOptional / 6"),
+                Triple(SynapseIcon.WARNING, "Not granted", "${10 - grants.size}"),
+                Triple(SynapseIcon.ABOUT, "Not needed", "0"),
             )
         }
         DesignSection(
@@ -94,16 +101,19 @@ internal fun PermissionsDesign(nav: (SynapseRoute) -> Unit) {
             SynapseIcon.PERMISSIONS,
             "$grantedRequired / 4  ${if(showRequired)"⌃" else "⌄"}",
             { showRequired = !showRequired },
+            dense = true,
         ) {
             if (showRequired)
                 required.forEach { p ->
-                    DesignRow(
-                        p.icon,
-                        p.name,
-                        p.detail,
-                        if (p.name in grants) "Granted" else "Not granted",
-                        onClick = { selected = p.name },
-                    )
+                    Box(Modifier.padding(vertical = 7.dp)) {
+                        DesignDetailRow(
+                            p.icon,
+                            p.name,
+                            p.detail,
+                            if (p.name in grants) "Granted" else "Not granted",
+                            onClick = { selected = p.name },
+                        )
+                    }
                 }
         }
         DesignSection(
@@ -111,16 +121,19 @@ internal fun PermissionsDesign(nav: (SynapseRoute) -> Unit) {
             SynapseIcon.PRIVACY,
             "$grantedOptional / 6  ${if(showOptional)"⌃" else "⌄"}",
             { showOptional = !showOptional },
+            dense = true,
         ) {
             if (showOptional)
                 optional.forEach { p ->
-                    DesignRow(
-                        p.icon,
-                        p.name,
-                        p.detail,
-                        if (p.name in grants) "Granted" else "Not granted",
-                        onClick = { selected = p.name },
-                    )
+                    Box(Modifier.padding(vertical = 7.dp)) {
+                        DesignDetailRow(
+                            p.icon,
+                            p.name,
+                            p.detail,
+                            if (p.name in grants) "Granted" else "Not granted",
+                            onClick = { selected = p.name },
+                        )
+                    }
                 }
         }
         DesignRow(
@@ -182,7 +195,7 @@ internal fun AppearanceDesign(
         "Customize the look and feel of Synapse to match your preferences.",
         nav,
     ) {
-        DesignSection("Theme", SynapseIcon.APPEARANCE) {
+        DesignSection("Theme", SynapseIcon.APPEARANCE, dense = true) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Light", "Dark", "System").forEach { theme ->
                     val chosen = appearance == theme
@@ -200,12 +213,13 @@ internal fun AppearanceDesign(
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                     ) {
                         Column(
-                            Modifier.padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            Modifier.padding(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Row(
                                 Modifier.fillMaxWidth()
-                                    .height(32.dp)
+                                    .height(30.dp)
+                                    .clip(RoundedCornerShape(4.dp))
                                     .border(
                                         .5.dp,
                                         MaterialTheme.colorScheme.outlineVariant,
@@ -241,25 +255,36 @@ internal fun AppearanceDesign(
                                     }
                                 }
                             }
-                            Text(theme, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                theme,
+                                style =
+                                    MaterialTheme.typography.titleSmall.copy(
+                                        fontSize = 10.sp,
+                                        lineHeight = 12.sp,
+                                    ),
+                            )
                             Text(
                                 if (chosen) "Selected"
                                 else if (theme == "System") "Follow system"
                                 else if (theme == "Dark") "Easy on the eyes"
                                 else "Clean and bright",
-                                style = MaterialTheme.typography.labelSmall,
+                                style =
+                                    MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.sp,
+                                        lineHeight = 11.sp,
+                                    ),
                             )
                         }
                     }
                 }
             }
         }
-        DesignSection("Color accent", SynapseIcon.APPEARANCE) {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+        DesignSection("Color accent", SynapseIcon.APPEARANCE, dense = true) {
+            Row(Modifier.fillMaxWidth()) {
                 listOf("Blue", "Purple", "Green", "Orange", "Red", "Pink", "Custom").forEach { name
                     ->
                     Column(
-                        Modifier.widthIn(min = 48.dp).heightIn(min = 48.dp).selectable(
+                        Modifier.weight(1f).heightIn(min = 42.dp).selectable(
                             display.accent == name,
                             role = Role.RadioButton,
                         ) {
@@ -281,45 +306,103 @@ internal fun AppearanceDesign(
                                     else Modifier
                                 )
                                 .padding(3.dp)
-                                .background(display.copy(accent = name).accentColor, CircleShape)
+                                .background(
+                                    if (name == "Custom")
+                                        Brush.sweepGradient(
+                                            listOf(
+                                                Color.Red,
+                                                Color.Yellow,
+                                                Color.Green,
+                                                Color.Cyan,
+                                                Color.Blue,
+                                                Color.Magenta,
+                                                Color.Red,
+                                            )
+                                        )
+                                    else
+                                        Brush.linearGradient(
+                                            listOf(
+                                                display.copy(accent = name).accentColor,
+                                                display.copy(accent = name).accentColor,
+                                            )
+                                        ),
+                                    CircleShape,
+                                )
                         )
-                        Text(name, style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            name,
+                            style =
+                                MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    lineHeight = 11.sp,
+                                ),
+                        )
                     }
                 }
             }
         }
-        DesignSection("Typography", SynapseIcon.MODELS) {
-            ChoiceChips(listOf("Small", "Medium", "Large", "Extra large"), display.textSize) {
-                update(display.copy(textSize = it))
+        DesignSection("Typography", SynapseIcon.MODELS, dense = true) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("Text size", Modifier.width(62.dp), style = MaterialTheme.typography.bodySmall)
+                listOf("Small", "Medium", "Large", "Extra large").forEachIndexed { index, name ->
+                    val selected = display.textSize == name
+                    Surface(
+                        Modifier.weight(1f).selectable(selected, role = Role.RadioButton) {
+                            update(display.copy(textSize = name))
+                        },
+                        color =
+                            if (selected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainer,
+                        shape = RoundedCornerShape(5.dp),
+                        border =
+                            if (selected) BorderStroke(.5.dp, MaterialTheme.colorScheme.primary)
+                            else null,
+                    ) {
+                        Column(
+                            Modifier.padding(vertical = 3.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text("Aa", fontSize = (10 + index).sp, lineHeight = 14.sp)
+                            Text(
+                                name,
+                                fontSize = 7.sp,
+                                lineHeight = 9.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
-            DesignChoice(
+            DesignPreference(
                 "Font style",
                 listOf("System default", "Serif", "Monospace"),
                 display.font,
             ) {
                 update(display.copy(font = it))
             }
-            Muted("Text also follows the Android font-size setting.")
         }
-        DesignSection("Display & layout", SynapseIcon.DEVICE) {
-            DesignChoice(
+        DesignSection("Display & layout", SynapseIcon.DEVICE, dense = true) {
+            DesignPreference(
                 "App density",
                 listOf("Comfortable", "Standard", "Compact"),
                 display.density,
             ) {
                 update(display.copy(density = it))
             }
-            SwitchSetting(
+            DesignSwitch(
                 "Show detailed information",
                 "Secondary descriptions in demo lists.",
                 display.details,
             ) {
                 update(display.copy(details = it))
             }
-            SwitchSetting("Animations", "Use decorative launch transitions.", !reducedMotion) {
+            DesignSwitch("Animations", "Use decorative launch transitions.", !reducedMotion) {
                 onReducedMotion(!it)
             }
-            SwitchSetting(
+            DesignSwitch(
                 "Show app icons",
                 "Decorative icons alongside visible labels.",
                 display.icons,
@@ -327,21 +410,21 @@ internal fun AppearanceDesign(
                 update(display.copy(icons = it))
             }
         }
-        DesignSection("Accessibility", SynapseIcon.PERMISSIONS) {
-            SwitchSetting(
+        DesignSection("Accessibility", SynapseIcon.PERMISSIONS, dense = true) {
+            DesignSwitch(
                 "High contrast mode",
                 "Stronger text and component borders.",
                 display.highContrast,
             ) {
                 update(display.copy(highContrast = it))
             }
-            SwitchSetting(
+            DesignSwitch(
                 "Reduce motion",
                 "Minimize decorative transitions.",
                 reducedMotion,
                 onChange = onReducedMotion,
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.ABOUT,
                 "Screen reader support",
                 "TalkBack uses Android accessibility settings",
@@ -411,30 +494,56 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
         "App information, version details, credits, and support.",
         nav,
     ) {
-        Section("") {
+        Section("", dense = true) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Image(
                     painterResource(R.drawable.synapse_brand_mark),
                     "Synapse logo",
-                    Modifier.size(44.dp),
+                    Modifier.size(50.dp),
                 )
                 Column(Modifier.weight(1f)) {
                     Text("Synapse", style = MaterialTheme.typography.titleLarge)
-                    Muted("Your AI-powered device operator")
                     Text(
-                        "Version ${pkg.versionName ?: "Unknown"} · Build ${PackageInfoCompat.getLongVersionCode(pkg)}",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Your AI-powered device operator",
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "Plan tasks, manage files, and review device actions with explicit approval.",
+                        fontSize = 8.sp,
+                        lineHeight = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Column(Modifier.width(72.dp), horizontalAlignment = Alignment.End) {
+                    Text(
+                        "Version ${pkg.versionName ?: "Unknown"}",
+                        fontSize = 9.sp,
+                        lineHeight = 12.sp,
+                    )
+                    Text(
+                        "Build ${PackageInfoCompat.getLongVersionCode(pkg)}",
+                        fontSize = 8.sp,
+                        lineHeight = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                listOf("Productivity", "Automation", "AI Assistant").forEach {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("Productivity", "Automation", "AI Assistant", "Open & Flexible").forEach {
                     Text(
                         it,
-                        style = MaterialTheme.typography.labelSmall,
+                        Modifier.background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(50),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        fontSize = 7.sp,
+                        lineHeight = 10.sp,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -445,8 +554,10 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
             SynapseIcon.DOWNLOAD,
             "Check for updates",
             { open("/releases") },
+            subtitle = "View published versions and release notes.",
+            dense = true,
         ) {
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.DOWNLOAD,
                 "Published releases",
                 "View versions and change notes",
@@ -454,14 +565,19 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
                 onClick = { open("/releases") },
             )
         }
-        DesignSection("Help & resources", SynapseIcon.ABOUT) {
-            DesignRow(
+        DesignSection(
+            "Help & resources",
+            SynapseIcon.ABOUT,
+            subtitle = "Get help, learn how to use Synapse, and explore resources.",
+            dense = true,
+        ) {
+            DesignDetailRow(
                 SynapseIcon.FILE,
                 "User guide",
                 "Learn how to use Synapse",
                 onClick = { open("#readme") },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.ABOUT,
                 "FAQ",
                 "Questions about scope, approval, and safety",
@@ -470,27 +586,32 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
                         "Synapse asks before risky changes and verifies recorded outcomes. Try demo explores sample workflows; Go live uses your granted folders and configured provider. Missing runtimes are shown as unavailable."
                 },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.FILE,
                 "Documentation",
                 "Technical details and integration",
                 onClick = { open("/tree/main/docs") },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.NETWORK,
                 "Community",
                 "Visit the project repository",
                 onClick = { open("") },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.AGENT,
                 "Send feedback",
                 "Open the project issue tracker",
                 onClick = { open("/issues") },
             )
         }
-        DesignSection("Legal", SynapseIcon.FILE) {
-            DesignRow(
+        DesignSection(
+            "Legal",
+            SynapseIcon.FILE,
+            subtitle = "Review legal information and licenses.",
+            dense = true,
+        ) {
+            DesignDetailRow(
                 SynapseIcon.FILE,
                 "Terms of service",
                 onClick = {
@@ -498,13 +619,13 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
                         "This repository does not publish separate app-specific terms. Connected AI services have their own terms, billing, and data policies."
                 },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.PRIVACY,
                 "Privacy policy",
                 "Review data sharing controls",
                 onClick = { nav(SynapseRoute.PRIVACY) },
             )
-            DesignRow(
+            DesignDetailRow(
                 SynapseIcon.TERMINAL,
                 "Open source licenses",
                 onClick = {
@@ -513,13 +634,30 @@ internal fun AboutDesign(nav: (SynapseRoute) -> Unit) {
                 },
             )
         }
-        DesignSection("Additional information", SynapseIcon.ABOUT) {
-            SmallValue("Package name", context.packageName)
-            SmallValue(
-                "Minimum Android version",
-                "Android 8.0 (API ${context.applicationInfo.minSdkVersion})",
-            )
-            SmallValue("Build", PackageInfoCompat.getLongVersionCode(pkg).toString())
+        DesignSection(
+            "Additional information",
+            SynapseIcon.ABOUT,
+            subtitle = "Details about the installed app and Android requirements.",
+            dense = true,
+        ) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                        "Package name" to context.packageName,
+                        "Minimum Android" to "8.0 (API ${context.applicationInfo.minSdkVersion})",
+                        "Build" to PackageInfoCompat.getLongVersionCode(pkg).toString(),
+                    )
+                    .forEach { (name, value) ->
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                name,
+                                fontSize = 8.sp,
+                                lineHeight = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(value, fontSize = 8.sp, lineHeight = 11.sp)
+                        }
+                    }
+            }
         }
     }
     if (detail != null)

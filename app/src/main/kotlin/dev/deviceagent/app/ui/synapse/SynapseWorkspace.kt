@@ -150,7 +150,15 @@ internal fun SynapseWorkspace(
                 },
                 snackbarHost = { SnackbarHost(snackbar) },
                 bottomBar = {
-                    if (!rail && route !in listOf(SynapseRoute.WELCOME, SynapseRoute.AUDIT))
+                    if (
+                        !rail &&
+                            route !in
+                                listOf(
+                                    SynapseRoute.WELCOME,
+                                    SynapseRoute.AUDIT,
+                                    SynapseRoute.PERMISSIONS,
+                                )
+                    )
                         Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
                             Row(
                                 Modifier.fillMaxWidth()
