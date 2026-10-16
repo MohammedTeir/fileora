@@ -57,9 +57,11 @@ private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         nav,
     ) {
         Section("") { InlineStats("Scheduled tasks" to "4", "Next task" to s.scheduleGoal) }
-        DesignSearch(query, { query = it }, "Search schedules…")
-        Primary("Create schedule") { edit = true }
-        ChoiceChips(listOf("All", "Active", "Paused", "Recurring"), filter) { filter = it }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.weight(1f)) { DesignSearch(query, { query = it }, "Search schedules…") }
+            DesignAction("Create schedule", primary = true) { edit = true }
+        }
+        DesignSegments(listOf("All", "Active", "Paused", "Recurring"), filter) { filter = it }
         DesignSection("Upcoming", SynapseIcon.SCHEDULES) {
             schedules
                 .filter { it.contains(query, true) }
@@ -68,10 +70,15 @@ private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     if (filter != "Active" || enabled)
                         if (filter != "Paused" || !enabled)
                             DesignRow(
-                                SynapseIcon.SCHEDULES,
+                                listOf(
+                                    SynapseIcon.PLAY,
+                                    SynapseIcon.IMAGE,
+                                    SynapseIcon.DELETE,
+                                    SynapseIcon.FILE,
+                                )[i],
                                 title,
                                 if (i == 0) "Every day at ${s.scheduleTime}" else "Weekly · 02:00",
-                                "Next run",
+                                if (i == 0) "Today, ${s.scheduleTime}" else "Weekly, 02:00",
                                 onClick = {
                                     goal = title
                                     edit = true
@@ -83,7 +90,8 @@ private fun ScheduleDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
             schedules.forEachIndexed { i, title ->
                 SwitchSetting(
                     title,
-                    if (i == 0) "Every day at ${s.scheduleTime}" else "Weekly · sample schedule",
+                    if (i == 0) "Every day at ${s.scheduleTime} · Next run today"
+                    else "Weekly · Next run 02:00",
                     if (i == 0) s.scheduleEnabled else !s.flag("schedulePaused$i"),
                 ) { enabled ->
                     if (i == 0) send(DemoAction.Schedule(s.scheduleGoal, s.scheduleTime, enabled))

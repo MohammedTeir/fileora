@@ -244,9 +244,16 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                         Triple("Models", SynapseRoute.MODELS, SynapseIcon.MODELS),
                         Triple("Privacy", SynapseRoute.PRIVACY, SynapseIcon.PRIVACY),
                         Triple("Usage", SynapseRoute.USAGE, SynapseIcon.USAGE),
-                        Triple("Security", SynapseRoute.SECURITY, SynapseIcon.SECURITY),
-                        Triple("Memory", SynapseRoute.MEMORY, SynapseIcon.MEMORY),
-                    )
+                    ) +
+                        when (route) {
+                            SynapseRoute.SECURITY ->
+                                listOf(
+                                    Triple("Security", SynapseRoute.SECURITY, SynapseIcon.SECURITY)
+                                )
+                            SynapseRoute.MEMORY ->
+                                listOf(Triple("Memory", SynapseRoute.MEMORY, SynapseIcon.MEMORY))
+                            else -> emptyList()
+                        }
         }
     val scroll = rememberScrollState()
     val selectedIndex =
@@ -261,10 +268,7 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(8.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(scroll),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             tabs.forEach { (label, target, icon) ->
                 val selected =
                     route == target ||
@@ -272,6 +276,7 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                         route == SynapseRoute.PACKAGE_DETAIL && target == SynapseRoute.PACKAGES
                 Surface(
                     onClick = { nav(target) },
+                    modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(7.dp),
                     color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     contentColor =
@@ -280,12 +285,16 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                 ) {
                     Row(
                         Modifier.heightIn(min = SynapseDesignTokens.tabHeight)
-                            .padding(horizontal = 7.dp),
+                            .padding(horizontal = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
-                        AssetIcon(icon, tint = LocalContentColor.current, size = 12.dp)
-                        Text(label, fontSize = 9.sp)
+                        AssetIcon(icon, tint = LocalContentColor.current, size = 11.dp)
+                        Text(
+                            label,
+                            fontSize = if (tabs.size > 4) 8.sp else 9.sp,
+                            lineHeight = 12.sp,
+                        )
                     }
                 }
             }

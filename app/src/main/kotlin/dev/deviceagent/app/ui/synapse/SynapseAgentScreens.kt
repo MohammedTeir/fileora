@@ -1293,7 +1293,7 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
         "Manage restore points for your tasks and recorded changes. Task checkpoints do not restore your entire device.",
         nav,
     ) {
-        DesignSection("Automatic checkpoints", SynapseIcon.SETTINGS) {
+        Section("") {
             SwitchSetting(
                 "Automatic checkpoints",
                 "Before important changes in this demo",
@@ -1301,26 +1301,53 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
             ) {
                 automatic = it
             }
-            DesignChoice(
-                "Keep last",
-                listOf("5 checkpoints", "10 checkpoints", "20 checkpoints"),
-                keep,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                keep = it
+                Column(Modifier.weight(1f)) {
+                    DesignChoice(
+                        "Keep last",
+                        listOf("5 checkpoints", "10 checkpoints", "20 checkpoints"),
+                        keep,
+                    ) {
+                        keep = it
+                    }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Storage usage", style = MaterialTheme.typography.bodySmall)
+                    Text("1.2 GB / 10 GB", style = MaterialTheme.typography.titleSmall)
+                    LinearProgressIndicator(
+                        progress = { .12f },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                    )
+                }
             }
-            InlineStats("Storage usage" to "1.2 GB / 10 GB", "Retained" to "${8+created}")
         }
-        DesignRow(
-            SynapseIcon.PLUS,
-            "Create a checkpoint now",
-            "Create a sample restore point",
-            onClick = {
-                created++
-                send(
-                    DemoAction.Notice("Demo task checkpoint created. No device snapshot was taken.")
-                )
-            },
-        )
+        Section("") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                IconTile(SynapseIcon.PLUS, entryColor(3), 26)
+                Column(Modifier.weight(1f)) {
+                    Text("Create a checkpoint now", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Create a sample restore point",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DesignAction("+ Create", primary = true) {
+                    created++
+                    send(
+                        DemoAction.Notice(
+                            "Demo task checkpoint created. No device snapshot was taken."
+                        )
+                    )
+                }
+            }
+        }
         DesignSection("Checkpoints (${8+created})", SynapseIcon.CHECKPOINTS) {
             repeat(created) { i ->
                 DesignRow(
@@ -1343,11 +1370,35 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
                 )
                 .forEachIndexed { i, t ->
                     DesignRow(
-                        if (i % 2 == 0) SynapseIcon.PLAY else SynapseIcon.CHECKPOINTS,
+                        listOf(
+                            SynapseIcon.PLAY,
+                            SynapseIcon.FOLDER,
+                            SynapseIcon.TERMINAL,
+                            SynapseIcon.APPS,
+                            SynapseIcon.SECURITY,
+                            SynapseIcon.SETTINGS,
+                            SynapseIcon.PRIVACY,
+                            SynapseIcon.IMAGE,
+                        )[i],
                         t,
                         "Task snapshot · ${320-i*20} MB",
-                        if (i < 2) "Today" else "Yesterday",
                         onClick = { detail = t },
+                        trailing = {
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    if (i < 2) "Today, ${if(i == 0) "09:40" else "08:15"}"
+                                    else "Yesterday",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    "${320-i*20} MB",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text("⋮", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        },
                     )
                 }
         }
@@ -1391,7 +1442,7 @@ private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         nav,
     ) {
         DesignSearch(query, { query = it }, "Search tasks, actions, or results…")
-        ChoiceChips(listOf("All", "Completed", "Failed", "Cancelled"), filter) { filter = it }
+        DesignSegments(listOf("All", "Completed", "Failed", "Cancelled"), filter) { filter = it }
         val filtered =
             s.tasks.filter {
                 it.title.contains(query, true) &&
@@ -1414,7 +1465,14 @@ private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                             else SynapseIcon.PLAY,
                             task.title,
                             "${task.verified} of ${task.total} verified · ${task.id}",
-                            task.status.name.lowercase(),
+                            when (task.status) {
+                                DemoTaskStatus.VERIFIED -> "Completed"
+                                DemoTaskStatus.RUNNING -> "Running"
+                                DemoTaskStatus.WAITING -> "Pending"
+                                DemoTaskStatus.FAILED -> "Failed"
+                                DemoTaskStatus.CANCELLED -> "Cancelled"
+                                else -> "Planned"
+                            },
                             onClick = {
                                 send(DemoAction.SelectTask(task.id))
                                 nav(SynapseRoute.AUDIT)
