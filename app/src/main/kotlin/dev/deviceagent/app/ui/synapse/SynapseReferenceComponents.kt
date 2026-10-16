@@ -309,7 +309,7 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(8.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             tabs.forEach { (label, target, icon) ->
                 val selected =
                     route == target ||
@@ -328,12 +328,12 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                         Modifier.heightIn(min = SynapseDesignTokens.tabHeight)
                             .padding(horizontal = if (tabs.size > 5) 3.dp else 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
                     ) {
                         AssetIcon(
                             icon,
                             tint = LocalContentColor.current,
-                            size = if (tabs.size > 5) 10.dp else 11.dp,
+                            size = if (tabs.size > 5) 11.dp else 13.dp,
                         )
                         Text(
                             label,
@@ -525,7 +525,11 @@ internal fun DesignSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            icon?.let { AssetIcon(it, size = if (dense) 14.dp else 18.dp) }
+            icon?.let {
+                Surface(color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .65f), shape = RoundedCornerShape(7.dp)) {
+                    AssetIcon(it, modifier = Modifier.padding(if (dense) 3.dp else 5.dp), size = if (dense) 14.dp else 18.dp)
+                }
+            }
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
                 if (subtitle.isNotEmpty())

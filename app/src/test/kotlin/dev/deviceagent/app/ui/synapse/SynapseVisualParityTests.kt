@@ -53,7 +53,7 @@ class SynapseVisualParityTests {
                                                 "PythonProject",
                                             )
                                     )
-                            8 -> DemoState().copy(activeTaskId = "SYN-2044")
+                            8, 12, 13 -> DemoState().copy(activeTaskId = completedVideoDemoId)
                             17 -> DemoState().copy(terminalCommand = "neofetch")
                             20 -> DemoState().copy(packageName = "Python", packageStep = 1)
                             else -> DemoState()

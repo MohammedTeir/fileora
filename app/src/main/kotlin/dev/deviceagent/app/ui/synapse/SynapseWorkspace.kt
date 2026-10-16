@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -107,23 +108,32 @@ internal fun SynapseWorkspace(
                                 Text(
                                     if (demo) "Demo data · simulated actions"
                                     else "Your AI-powered device operator",
-                                    fontSize = 8.sp,
+                                    fontSize = 9.sp,
                                     lineHeight = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            TextButton(
-                                {
-                                    demo = !demo
-                                    preview = PreviewState.READY.name
-                                },
-                                contentPadding = PaddingValues(6.dp),
+                            Surface(
+                                onClick = { demo = !demo; preview = PreviewState.READY.name },
+                                color = if (demo) Color(0xFFEAF8F1) else MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape,
                             ) {
-                                Text(if (demo) "Go live" else "Try demo", fontSize = 10.sp)
+                                Row(Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Box(Modifier.size(5.dp).background(if (demo) Color(0xFF00A85B) else MaterialTheme.colorScheme.primary, CircleShape))
+                                    Text(if (demo) "Go live" else "Try demo", fontSize = 9.sp, lineHeight = 12.sp)
+                                }
+                            }
+                            IconButton({ navigate(if (route.destination == Destination.AGENT) SynapseRoute.ACTIVITY else SynapseRoute.SEARCH) }, Modifier.size(32.dp)) {
+                                Icon(if (route.destination == Destination.AGENT) Icons.Default.NotificationsNone else Icons.Default.Search,
+                                    if (route.destination == Destination.AGENT) "Notifications" else "Search", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Box {
-                                IconButton({ states = true }, Modifier.size(40.dp)) {
-                                    AssetIcon(SynapseIcon.SETTINGS, "Workspace menu", size = 20.dp)
+                                IconButton({ states = true }, Modifier.size(30.dp)) {
+                                    Surface(color = MaterialTheme.colorScheme.outlineVariant, shape = CircleShape) {
+                                        Icon(Icons.Default.Person, "Workspace menu", Modifier.padding(3.dp).size(17.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                                 DropdownMenu(states, { states = false }) {
                                     DropdownMenuItem(

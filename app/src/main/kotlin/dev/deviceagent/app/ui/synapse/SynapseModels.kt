@@ -167,10 +167,10 @@ data class DemoState(
                 status = DemoTaskStatus.FAILED,
             ),
             DemoTask("SYN-2047", "Clean old exports", 45, 12, status = DemoTaskStatus.CANCELLED),
-        ),
-    val activeTaskId: String = "SYN-2048",
+        ) + referenceDemoTasks,
+    val activeTaskId: String = videoDemoId,
     val draft: String = "",
-    val destination: String = "Downloads/Organized",
+    val destination: String = videoDemoDestination,
     val planRevision: Int = 1,
     val approvedRevision: Int? = null,
     val includeTrash: Boolean = false,
@@ -232,7 +232,7 @@ data class DemoState(
         get() = tasks.first { it.id == activeTaskId }
 
     val planCount: Int
-        get() = 618 + if (includeTrash) selectedDuplicates.size else 0
+        get() = if (includeTrash) 618 + selectedDuplicates.size else 3
 
     fun flag(key: String): Boolean = flags[key] == true
 
@@ -336,7 +336,7 @@ fun reduceDemo(s: DemoState, a: DemoAction): DemoState =
                         consent = false,
                         planRevision = s.planRevision + 1,
                     )
-                    .updateTask("SYN-2050") {
+                    .updateTask(if (s.includeTrash) "SYN-2050" else videoDemoId) {
                         it.copy(
                             title = s.draft,
                             total = s.planCount,
@@ -382,11 +382,11 @@ fun reduceDemo(s: DemoState, a: DemoAction): DemoState =
                 else ->
                     s.copy(
                             approvedRevision = a.revision,
-                            activeTaskId = "SYN-2050",
+                            activeTaskId = if (s.includeTrash) "SYN-2050" else videoDemoId,
                             rollbackDone = false,
                             notice = "Demo plan approved. No device files were changed.",
                         )
-                        .updateTask("SYN-2050") {
+                        .updateTask(if (s.includeTrash) "SYN-2050" else videoDemoId) {
                             it.copy(
                                 total = s.planCount,
                                 verified = 0,

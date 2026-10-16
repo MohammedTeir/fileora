@@ -6,6 +6,8 @@
 package dev.deviceagent.app.ui.synapse
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -83,13 +85,8 @@ private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
                     "Turn your ideas into real actions on your Android device using AI. Synapse can inspect, plan, ask for your approval, and handle the rest."
                 )
             }
-            // The source package has no standalone phone illustration. Use the supplied mark
-            // intact.
-            Image(
-                painterResource(R.drawable.synapse_brand_mark),
-                "Synapse brand mark",
-                Modifier.weight(1f).padding(14.dp).aspectRatio(1f),
-            )
+            ReferenceArtwork(R.drawable.synapse_art_welcome_phones, "Synapse phones and Android tools",
+                Modifier.weight(1f).aspectRatio(188f / 172f).clip(RoundedCornerShape(12.dp)))
         }
         Row(
             Modifier.padding(vertical = 10.dp),
@@ -185,7 +182,7 @@ private fun WelcomeDemo(nav: (SynapseRoute) -> Unit) {
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
-                            IconTile(icon, entryColor(index), 30)
+                            if (index == 0) ProviderArtwork("Gemini", 30) else IconTile(icon, entryColor(index), 30)
                             Column(Modifier.weight(1f)) {
                                 Text(title, style = MaterialTheme.typography.titleSmall)
                                 Text(
@@ -574,9 +571,9 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 AssetIcon(SynapseIcon.UPLOAD)
-                Text("Tap to browse sample files", style = MaterialTheme.typography.titleSmall)
+                Text("Drag and drop files here", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Choose files from the demo picker",
+                    "or tap to browse sample files",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -598,6 +595,7 @@ private fun AttachmentsDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Syna
                         name == "PythonProject" -> "Folder · 18 files · 12 MB"
                         else -> "Local sample · not uploaded"
                     },
+                    leading = if (name.endsWith("png")) { { VideoThumbnail(0, Modifier.width(32.dp).height(24.dp)) } } else null,
                     onClick = { preview = name },
                     trailing = {
                         IconButton({ preview = name }, Modifier.size(28.dp)) {
@@ -673,39 +671,14 @@ private fun PlanSummary(s: DemoState, nav: (SynapseRoute) -> Unit) {
         SynapseIcon.FILE,
         "Edit request",
         { nav(SynapseRoute.AGENT) },
-        subtitle = "Organize Downloads, create archives, and verify outputs.",
+        subtitle = if (s.includeTrash) "Organize Downloads, create archives, and verify outputs." else videoDemoDescription,
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            listOf(
-                    Triple(SynapseIcon.FILE, "618 files", "Input items"),
-                    Triple(SynapseIcon.FOLDER, "1 folder", "Destination"),
-                    Triple(SynapseIcon.HISTORY, "5–10 min", "Estimated time"),
-                    Triple(SynapseIcon.SETTINGS, "6 steps", "Planned actions"),
-                )
-                .forEach { (icon, value, label) ->
-                    Row(
-                        Modifier.weight(1f).padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        AssetIcon(icon, size = 16.dp)
-                        Column {
-                            Text(
-                                value,
-                                fontSize = 9.sp,
-                                lineHeight = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                label,
-                                fontSize = 8.sp,
-                                lineHeight = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-        }
+        ReferenceMetricCards(
+            Triple(SynapseIcon.FILE, "${s.planCount} files", "Input items"),
+            Triple(SynapseIcon.FOLDER, "1 folder", "Will be created"),
+            Triple(SynapseIcon.HISTORY, "~5–10 minutes", "Estimated time"),
+            Triple(SynapseIcon.SETTINGS, "6 steps", "Planned actions"),
+        )
     }
 }
 
@@ -714,29 +687,29 @@ private val planSteps =
         Triple(
             SynapseIcon.FOLDER,
             "Check and create output folder",
-            "Verify the selected destination and create missing folders.",
+            "Create folder “Converted Videos” in Downloads if it doesn’t exist.",
         ),
         Triple(
             SynapseIcon.FILE,
             "Analyze input files",
-            "Check formats, sizes, and hashes before changes.",
+            "Check file formats and extract video information (duration, size, etc.).",
         ),
         Triple(
             SynapseIcon.PLAY,
-            "Create archives",
-            "Compress 14 source archives; retain originals.",
+            "Convert videos to MP4",
+            "Use FFmpeg to convert 3 video files to MP4 (H.264, AAC).",
         ),
         Triple(
             SynapseIcon.FOLDER,
             "Organize files",
-            "Move 604 files into the selected category folders.",
+            "Move converted files to “Converted Videos” folder.",
         ),
         Triple(
             SynapseIcon.SECURITY,
             "Verify results",
-            "Check every output and record its evidence.",
+            "Check that all files were converted successfully.",
         ),
-        Triple(SynapseIcon.AUDIT, "Generate summary", "Show results, skipped items, and issues."),
+        Triple(SynapseIcon.AUDIT, "Generate summary", "Show results and any issues found."),
     )
 
 @Composable
@@ -813,7 +786,7 @@ private fun PlanPermissions(nav: (SynapseRoute) -> Unit, compact: Boolean = fals
                     "Create and modify files",
                     "Write inside the selected folder",
                 ),
-                Triple(SynapseIcon.SECURITY, "Scoped approval", "Review moves before execution"),
+                Triple(SynapseIcon.TERMINAL, "Run terminal command", "Use FFmpeg"),
             )
         if (compact)
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -848,7 +821,7 @@ private fun PlanPermissions(nav: (SynapseRoute) -> Unit, compact: Boolean = fals
             }
         else
             rows.forEach { (icon, title, description) ->
-                DesignRow(icon, title, description, "Required")
+                DesignRow(icon, title, description, "Required", dense = true)
             }
     }
 }
@@ -864,17 +837,14 @@ private fun PlanDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRout
         footer = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton({ edit = true }, Modifier.weight(1f).heightIn(min = 32.dp)) {
-                    Text(
-                        "Edit destination & exclusions",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text("Edit request", style = MaterialTheme.typography.bodySmall)
                 }
                 Button(
                     { nav(SynapseRoute.APPROVAL) },
                     Modifier.weight(1f).heightIn(min = 32.dp),
                     enabled = s.destination.isNotBlank(),
                 ) {
-                    Text("Approve & Run")
+                    Text("Approve and start  →")
                 }
             }
         },
@@ -929,7 +899,7 @@ private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     { nav(SynapseRoute.PLAN) },
                     Modifier.weight(1f).heightIn(min = 32.dp),
                 ) {
-                    Text("Edit plan")
+                    Text("Cancel")
                 }
                 Button(
                     {
@@ -939,7 +909,7 @@ private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     Modifier.weight(1.4f).heightIn(min = 32.dp),
                     enabled = s.destination.isNotBlank(),
                 ) {
-                    Text("Approve scoped plan")
+                    Text("Approve and start")
                 }
             }
         },
@@ -948,8 +918,8 @@ private fun ApprovalDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         PlannedSteps(approval = true)
         PlanPermissions(nav)
         DesignNotice(
-            "Revision ${s.planRevision} · ${s.destination}",
-            "Only listed actions. Plan changes require approval again.",
+            "Synapse will only perform the actions listed above.",
+            "You can monitor progress in real time and stop at any time. Changes require approval again.",
         )
     }
 }

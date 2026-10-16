@@ -1,0 +1,699 @@
+{
+  "provenance": "User-authorized isolated pixel extraction from approved v3 raster artwork. These are not original vector masters. No full screen, card, or interactive control is extracted. Execution captures are the sample screenshot thumbnails depicted as image content in screen 06.",
+  "reference_display": [
+    412,
+    746
+  ],
+  "assets": [
+    {
+      "name": "welcome_phones",
+      "source": "assets/synapse/v3/references/screen_01.png",
+      "source_sha256": "61bea8a243b2e522a5a9c42fac1dd0258f3e2cc2d07d7b9c66b056931e6306d0",
+      "bounds_source_pixels": [
+        489,
+        181,
+        914,
+        570
+      ],
+      "bounds_normalized_display": [
+        216,
+        80,
+        404,
+        252
+      ],
+      "dimensions": [
+        425,
+        389
+      ],
+      "runtime": "drawable-nodpi/synapse_art_welcome_phones.png",
+      "sha256": "17212f86e26538568595f90ec842c2ba28b7016901ca2b1b0d0f4f6ebb7d8d6c"
+    },
+    {
+      "name": "device_galaxy_a04s",
+      "source": "assets/synapse/v3/references/screen_14.png",
+      "source_sha256": "2769a843f6d7dcc1ac09d2069542553b7ff98754058f274f126e802ab6dc0368",
+      "bounds_source_pixels": [
+        72,
+        467,
+        187,
+        719
+      ],
+      "bounds_normalized_display": [
+        35,
+        227,
+        91,
+        349
+      ],
+      "dimensions": [
+        115,
+        252
+      ],
+      "runtime": "drawable-nodpi/synapse_art_device_galaxy_a04s.png",
+      "sha256": "d65914ff8410d4fda474a9a437503b480b49857fa7ce4c1e6847e2e424489bfb"
+    },
+    {
+      "name": "video_1",
+      "source": "assets/synapse/v3/references/screen_08.png",
+      "source_sha256": "9cf5db3bf2d538fcc68600191e5b2b00ff244ee28bea03341d175bfb9e7ba7c4",
+      "bounds_source_pixels": [
+        68,
+        792,
+        176,
+        862
+      ],
+      "bounds_normalized_display": [
+        30,
+        350,
+        78,
+        381
+      ],
+      "dimensions": [
+        108,
+        70
+      ],
+      "runtime": "drawable-nodpi/synapse_art_video_1.png",
+      "sha256": "f66bd6155417d7585ae0498e3f7f5fb3886a24e78d206e0083ee052dfe9baa4d"
+    },
+    {
+      "name": "video_2",
+      "source": "assets/synapse/v3/references/screen_08.png",
+      "source_sha256": "9cf5db3bf2d538fcc68600191e5b2b00ff244ee28bea03341d175bfb9e7ba7c4",
+      "bounds_source_pixels": [
+        68,
+        901,
+        176,
+        971
+      ],
+      "bounds_normalized_display": [
+        30,
+        398,
+        78,
+        429
+      ],
+      "dimensions": [
+        108,
+        70
+      ],
+      "runtime": "drawable-nodpi/synapse_art_video_2.png",
+      "sha256": "8f59b9dea7c79e578cdcac187de9d3606e4b9cad6fa1aecaa5dc6a7393f72e21"
+    },
+    {
+      "name": "video_3",
+      "source": "assets/synapse/v3/references/screen_08.png",
+      "source_sha256": "9cf5db3bf2d538fcc68600191e5b2b00ff244ee28bea03341d175bfb9e7ba7c4",
+      "bounds_source_pixels": [
+        68,
+        1009,
+        176,
+        1079
+      ],
+      "bounds_normalized_display": [
+        30,
+        446,
+        78,
+        477
+      ],
+      "dimensions": [
+        108,
+        70
+      ],
+      "runtime": "drawable-nodpi/synapse_art_video_3.png",
+      "sha256": "6813361943ca8069ea172bccc8808a5f5ab6389a0ae70d94c8b309f62a812890"
+    },
+    {
+      "name": "provider_google",
+      "source": "assets/synapse/v3/references/screen_22.png",
+      "source_sha256": "520fa0e7a5dc0f4dc6e1c6cf6b8deece9640dc0c402d3b28662564d76bf3044a",
+      "bounds_source_pixels": [
+        61,
+        507,
+        122,
+        566
+      ],
+      "bounds_normalized_display": [
+        27,
+        224,
+        54,
+        250
+      ],
+      "dimensions": [
+        61,
+        59
+      ],
+      "runtime": "drawable-nodpi/synapse_art_provider_google.png",
+      "sha256": "f3a74e358fc67f3171a196dd0a8c789fa98ef2d783ba7ed792228f10b6c5572b"
+    },
+    {
+      "name": "provider_openai",
+      "source": "assets/synapse/v3/references/screen_22.png",
+      "source_sha256": "520fa0e7a5dc0f4dc6e1c6cf6b8deece9640dc0c402d3b28662564d76bf3044a",
+      "bounds_source_pixels": [
+        59,
+        640,
+        127,
+        706
+      ],
+      "bounds_normalized_display": [
+        26,
+        283,
+        56,
+        312
+      ],
+      "dimensions": [
+        68,
+        66
+      ],
+      "runtime": "drawable-nodpi/synapse_art_provider_openai.png",
+      "sha256": "4fb831a66ea9ab317edc24fdc06418b6439295d5ed0f5bdc61b12ef100c40631"
+    },
+    {
+      "name": "provider_anthropic",
+      "source": "assets/synapse/v3/references/screen_22.png",
+      "source_sha256": "520fa0e7a5dc0f4dc6e1c6cf6b8deece9640dc0c402d3b28662564d76bf3044a",
+      "bounds_source_pixels": [
+        57,
+        772,
+        129,
+        846
+      ],
+      "bounds_normalized_display": [
+        25,
+        341,
+        57,
+        374
+      ],
+      "dimensions": [
+        72,
+        74
+      ],
+      "runtime": "drawable-nodpi/synapse_art_provider_anthropic.png",
+      "sha256": "8e685c73364b3facdce83bec9a3099158331c3680ab13938430e0b22a4434d7c"
+    },
+    {
+      "name": "app_whatsapp",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        605,
+        101,
+        655
+      ],
+      "bounds_normalized_display": [
+        25,
+        294,
+        49,
+        318
+      ],
+      "dimensions": [
+        50,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_whatsapp.png",
+      "sha256": "4cd807afd8abfc457b72c39671e30292276807fa548d52f4a5d317340bd065d9"
+    },
+    {
+      "name": "app_youtube",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        53,
+        675,
+        101,
+        723
+      ],
+      "bounds_normalized_display": [
+        26,
+        328,
+        49,
+        351
+      ],
+      "dimensions": [
+        48,
+        48
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_youtube.png",
+      "sha256": "f5f5e1f4ab5fa6636da0023620d2480d68132ad388c208bb1a5ced4d94a75462"
+    },
+    {
+      "name": "app_chrome",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        53,
+        743,
+        101,
+        791
+      ],
+      "bounds_normalized_display": [
+        26,
+        361,
+        49,
+        384
+      ],
+      "dimensions": [
+        48,
+        48
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_chrome.png",
+      "sha256": "28eeae79af5733510b48d2d7404a8f1105bb906df39ddf633ce0a9ec358ef4d7"
+    },
+    {
+      "name": "app_termux",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        811,
+        101,
+        863
+      ],
+      "bounds_normalized_display": [
+        25,
+        394,
+        49,
+        419
+      ],
+      "dimensions": [
+        50,
+        52
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_termux.png",
+      "sha256": "7b6aa8f4f90ebda18e0ebbea0db0200838d3d1d40aeb2e64d82d74865ce9d76e"
+    },
+    {
+      "name": "app_drive",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        953,
+        101,
+        1003
+      ],
+      "bounds_normalized_display": [
+        25,
+        463,
+        49,
+        487
+      ],
+      "dimensions": [
+        50,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_drive.png",
+      "sha256": "0a107285fa4d3b23aa72b0ee13703ffd95af46f1c5b906ebc472a0a63612f3f8"
+    },
+    {
+      "name": "app_gallery",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        1027,
+        101,
+        1077
+      ],
+      "bounds_normalized_display": [
+        25,
+        499,
+        49,
+        523
+      ],
+      "dimensions": [
+        50,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_gallery.png",
+      "sha256": "1e432ed750a4a548516217b9e3d9d82cbfcaca3b1c2b76a89591e93bf9168660"
+    },
+    {
+      "name": "app_camera",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        1102,
+        101,
+        1151
+      ],
+      "bounds_normalized_display": [
+        25,
+        535,
+        49,
+        559
+      ],
+      "dimensions": [
+        50,
+        49
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_camera.png",
+      "sha256": "b5874c139217a8be900e814a07c9a56a9c719705192386f630135d3c65c538eb"
+    },
+    {
+      "name": "app_settings",
+      "source": "assets/synapse/v3/references/screen_16.png",
+      "source_sha256": "a58214588c5539cb375ee2b6eac8858c96b778fc7d69b30c44df715d7c6354bd",
+      "bounds_source_pixels": [
+        51,
+        1176,
+        101,
+        1225
+      ],
+      "bounds_normalized_display": [
+        25,
+        571,
+        49,
+        595
+      ],
+      "dimensions": [
+        50,
+        49
+      ],
+      "runtime": "drawable-nodpi/synapse_art_app_settings.png",
+      "sha256": "04291b91256e7e2f0f1cee22fd08c1c1c2886b3ca0e1e55eb49fb2bceee83d6f"
+    },
+    {
+      "name": "package_python",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        625,
+        95,
+        672
+      ],
+      "bounds_normalized_display": [
+        22,
+        276,
+        42,
+        297
+      ],
+      "dimensions": [
+        45,
+        47
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_python.png",
+      "sha256": "f9b547bf85e7ef7142734988356dea4aed305680860700419b42705013cae029"
+    },
+    {
+      "name": "package_nodejs",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        695,
+        95,
+        744
+      ],
+      "bounds_normalized_display": [
+        22,
+        307,
+        42,
+        329
+      ],
+      "dimensions": [
+        45,
+        49
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_nodejs.png",
+      "sha256": "82b1be337346d96e6a19cb7989457c0ae3de876d5e169f6f8665a18d39c72853"
+    },
+    {
+      "name": "package_git",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        763,
+        95,
+        810
+      ],
+      "bounds_normalized_display": [
+        22,
+        337,
+        42,
+        358
+      ],
+      "dimensions": [
+        45,
+        47
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_git.png",
+      "sha256": "b39b3dbfdcd0b5ef023ae6b8dcf999793eb9f611dac3fd599d41414a6cb94454"
+    },
+    {
+      "name": "package_curl",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        833,
+        95,
+        880
+      ],
+      "bounds_normalized_display": [
+        22,
+        368,
+        42,
+        389
+      ],
+      "dimensions": [
+        45,
+        47
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_curl.png",
+      "sha256": "acea17bfce8d05d3c0748f25a4e217e64324efe6c76a07126a32db6a2a94aa6e"
+    },
+    {
+      "name": "package_ffmpeg",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        901,
+        95,
+        948
+      ],
+      "bounds_normalized_display": [
+        22,
+        398,
+        42,
+        419
+      ],
+      "dimensions": [
+        45,
+        47
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_ffmpeg.png",
+      "sha256": "ca1a5e7904b1360fc3a86d2a3ae9a241d5a2fd963765d6635b0717eac29af95b"
+    },
+    {
+      "name": "package_neofetch",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        966,
+        95,
+        1016
+      ],
+      "bounds_normalized_display": [
+        22,
+        427,
+        42,
+        449
+      ],
+      "dimensions": [
+        45,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_neofetch.png",
+      "sha256": "c4d0db1f64569990eef1fdd9fac232b0ac70a07754d3d7f39efd8ba11c83a32a"
+    },
+    {
+      "name": "package_htop",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        1034,
+        95,
+        1084
+      ],
+      "bounds_normalized_display": [
+        22,
+        457,
+        42,
+        479
+      ],
+      "dimensions": [
+        45,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_htop.png",
+      "sha256": "9ee69979ed7008d70d5ff69a1b5fbdb20bb8d5520f78f65067045cfdf07c4177"
+    },
+    {
+      "name": "package_vim",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        1102,
+        95,
+        1149
+      ],
+      "bounds_normalized_display": [
+        22,
+        487,
+        42,
+        508
+      ],
+      "dimensions": [
+        45,
+        47
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_vim.png",
+      "sha256": "eed6efcbf19a1ec26d46c8bc47df91e39d2292b5f65785202cf2e296d063bea0"
+    },
+    {
+      "name": "package_wget",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        1170,
+        95,
+        1220
+      ],
+      "bounds_normalized_display": [
+        22,
+        517,
+        42,
+        539
+      ],
+      "dimensions": [
+        45,
+        50
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_wget.png",
+      "sha256": "e720921d701aef278007062003f5550a21849aa95794a8081eb4c37e136a88df"
+    },
+    {
+      "name": "package_build",
+      "source": "assets/synapse/v3/references/screen_19.png",
+      "source_sha256": "ce9c80aee4703151cf10abf243672060e11906324565d2c114c5aaeadeb2a2d6",
+      "bounds_source_pixels": [
+        50,
+        1238,
+        95,
+        1290
+      ],
+      "bounds_normalized_display": [
+        22,
+        547,
+        42,
+        570
+      ],
+      "dimensions": [
+        45,
+        52
+      ],
+      "runtime": "drawable-nodpi/synapse_art_package_build.png",
+      "sha256": "f20f80b595516f9320bb7b1f117b6cb9c6da2a07b88c0b648aac86747c4b4b98"
+    },
+    {
+      "name": "execution_capture_1",
+      "source": "assets/synapse/v3/references/screen_06.png",
+      "source_sha256": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+      "bounds_source_pixels": [
+        502,
+        1021,
+        646,
+        1124
+      ],
+      "bounds_normalized_display": [
+        244,
+        496,
+        314,
+        546
+      ],
+      "dimensions": [
+        144,
+        103
+      ],
+      "runtime": "drawable-nodpi/synapse_art_execution_capture_1.png",
+      "sha256": "413c05b27f9138f8ed9212f1ec2f7589e65ce6e1a65add1c12272a1a3ab8c88e"
+    },
+    {
+      "name": "execution_capture_2",
+      "source": "assets/synapse/v3/references/screen_06.png",
+      "source_sha256": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+      "bounds_source_pixels": [
+        657,
+        1021,
+        807,
+        1124
+      ],
+      "bounds_normalized_display": [
+        319,
+        496,
+        392,
+        546
+      ],
+      "dimensions": [
+        150,
+        103
+      ],
+      "runtime": "drawable-nodpi/synapse_art_execution_capture_2.png",
+      "sha256": "4dae2628e4936dd35ea43b554c63d4f3d64d57f372f7b2b0aa28b20a1386cb75"
+    },
+    {
+      "name": "execution_capture_3",
+      "source": "assets/synapse/v3/references/screen_06.png",
+      "source_sha256": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+      "bounds_source_pixels": [
+        502,
+        1134,
+        646,
+        1237
+      ],
+      "bounds_normalized_display": [
+        244,
+        551,
+        314,
+        601
+      ],
+      "dimensions": [
+        144,
+        103
+      ],
+      "runtime": "drawable-nodpi/synapse_art_execution_capture_3.png",
+      "sha256": "9ba987718f998288efe16522b8a951615ca0e74efe1ae3803ca6d6e887279ba9"
+    },
+    {
+      "name": "execution_capture_4",
+      "source": "assets/synapse/v3/references/screen_06.png",
+      "source_sha256": "33b867a8cfa982a9b65f46f295364c104cdaa39265a063434f017f111d1e5cbd",
+      "bounds_source_pixels": [
+        657,
+        1134,
+        807,
+        1237
+      ],
+      "bounds_normalized_display": [
+        319,
+        551,
+        392,
+        601
+      ],
+      "dimensions": [
+        150,
+        103
+      ],
+      "runtime": "drawable-nodpi/synapse_art_execution_capture_4.png",
+      "sha256": "e2df25890f2603517c0580b2edefdcd7cbd211ac173122fe0489576c9a29fac4"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # Synapse v3 visual parity
 
+**Follow-up parity pass in progress.** The user authorized extraction of isolated artwork pixels from approved references on 2026-10-16. Thirty provenance-tracked illustrations, photographs, thumbnails and logos now have standalone runtime assets. Screens 01–05 were rebuilt and compared after integrating Welcome/attachment artwork and the three-video planning fixture. The previous final-pass table below will be refreshed after the remaining batches.
+
 31/31 approved references have real, navigable Compose implementations. The final implementation at `16f4dbf` passes the full Android and core test suites, assembly, and lint. All 31 current native renders were compared with their references. **Exact visual parity is not complete:** missing standalone artwork and the explicitly listed Demo/safety differences remain. No pixel-perfect claim is made.
 
 The work preserves existing Live behavior, scoped approval, package verification, and privileged-operation guards. All `assets/synapse/v3/references/screen_01.png` through `screen_31.png` exist. The verified mapping below follows reference order, independently of legacy enum IDs. The All screens directory exposes this same order.

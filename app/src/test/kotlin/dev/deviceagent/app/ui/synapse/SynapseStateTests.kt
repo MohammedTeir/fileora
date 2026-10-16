@@ -53,7 +53,7 @@ class SynapseStateTests {
 
     @Test
     fun progressCountsRemainConservedAcrossPauseResumeAndCompletion() {
-        var s = DemoState()
+        var s = DemoState(activeTaskId = "SYN-2048")
         fun check() {
             val t = s.task
             assertEquals(t.total, t.verified + t.skipped + t.blocked + t.running + t.queued)
