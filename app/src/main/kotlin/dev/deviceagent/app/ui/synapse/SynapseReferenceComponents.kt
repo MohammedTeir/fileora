@@ -41,12 +41,14 @@ internal fun DesignPage(
                     horizontal = if (route.destination == Destination.AGENT) 20.dp else 16.dp,
                     vertical =
                         if (route == SynapseRoute.AGENT) 18.dp
-                        else if (route == SynapseRoute.SETTINGS) 20.dp else 8.dp,
+                        else if (route == SynapseRoute.SETTINGS) 20.dp
+                        else if (route.destination == Destination.SETTINGS) 6.dp else 8.dp,
                 ),
             verticalArrangement =
                 Arrangement.spacedBy(
                     if (route == SynapseRoute.AGENT) 12.dp
-                    else if (route == SynapseRoute.SETTINGS) 10.dp else 8.dp
+                    else if (route == SynapseRoute.SETTINGS) 10.dp
+                    else if (route.destination == Destination.SETTINGS) 6.dp else 8.dp
                 ),
         ) {
             if (
@@ -174,6 +176,19 @@ internal fun DesignPage(
                                     lineHeight = 30.sp,
                                 )
                             else if (
+                                route in
+                                    listOf(
+                                        SynapseRoute.SECURITY,
+                                        SynapseRoute.MEMORY,
+                                        SynapseRoute.PERMISSIONS,
+                                        SynapseRoute.APPEARANCE,
+                                    )
+                            )
+                                MaterialTheme.typography.titleLarge.copy(
+                                    fontSize = 18.sp,
+                                    lineHeight = 22.sp,
+                                )
+                            else if (
                                 route.destination == Destination.SETTINGS ||
                                     route in listOf(SynapseRoute.AUDIT, SynapseRoute.UNDO)
                             )
@@ -188,6 +203,19 @@ internal fun DesignPage(
                                     MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 12.sp,
                                         lineHeight = 16.sp,
+                                    )
+                                else if (
+                                    route in
+                                        listOf(
+                                            SynapseRoute.SECURITY,
+                                            SynapseRoute.MEMORY,
+                                            SynapseRoute.PERMISSIONS,
+                                            SynapseRoute.APPEARANCE,
+                                        )
+                                )
+                                    MaterialTheme.typography.bodySmall.copy(
+                                        fontSize = 9.sp,
+                                        lineHeight = 12.sp,
                                     )
                                 else MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -298,14 +326,19 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                 ) {
                     Row(
                         Modifier.heightIn(min = SynapseDesignTokens.tabHeight)
-                            .padding(horizontal = 5.dp),
+                            .padding(horizontal = if (tabs.size > 5) 3.dp else 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
-                        AssetIcon(icon, tint = LocalContentColor.current, size = 11.dp)
+                        AssetIcon(
+                            icon,
+                            tint = LocalContentColor.current,
+                            size = if (tabs.size > 5) 10.dp else 11.dp,
+                        )
                         Text(
                             label,
-                            fontSize = if (tabs.size > 4) 8.sp else 9.sp,
+                            fontSize =
+                                if (tabs.size > 5) 7.sp else if (tabs.size > 4) 8.sp else 9.sp,
                             lineHeight = 12.sp,
                         )
                     }
@@ -324,6 +357,8 @@ internal fun DesignRow(
     tint: Color = MaterialTheme.colorScheme.primary,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    dense: Boolean = false,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     Row(
         Modifier.fillMaxWidth()
@@ -331,20 +366,34 @@ internal fun DesignRow(
                 if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick)
                 else Modifier
             )
-            .heightIn(min = SynapseDesignTokens.compactRowHeight)
-            .padding(vertical = 2.dp),
+            .heightIn(min = if (dense) 24.dp else SynapseDesignTokens.compactRowHeight)
+            .padding(vertical = if (dense) 1.dp else 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp),
     ) {
-        Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) {
-            AssetIcon(icon, modifier = Modifier.padding(4.dp), tint = tint, size = 16.dp)
-        }
+        if (leading != null) leading()
+        else
+            Surface(color = tint.copy(alpha = .08f), shape = RoundedCornerShape(8.dp)) {
+                AssetIcon(
+                    icon,
+                    modifier = Modifier.padding(if (dense) 2.dp else 4.dp),
+                    tint = tint,
+                    size = 16.dp,
+                )
+            }
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontSize = if (dense) 10.sp else 11.sp,
+                lineHeight = if (dense) 12.sp else 15.sp,
+            )
             if (detail.isNotEmpty() && LocalSynapseAppearance.current.details)
                 Text(
                     detail,
                     style = MaterialTheme.typography.bodySmall,
+                    fontSize = if (dense) 8.sp else 10.sp,
+                    lineHeight = if (dense) 10.sp else 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
         }
@@ -352,6 +401,58 @@ internal fun DesignRow(
         trailing?.invoke()
         if (onClick != null && trailing == null)
             Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+internal fun DesignDetailRow(
+    icon: SynapseIcon,
+    title: String,
+    detail: String = "",
+    value: String = "",
+    onClick: (() -> Unit)? = null,
+) {
+    DesignRow(icon, title, detail, value, dense = true, onClick = onClick)
+}
+
+@Composable
+internal fun DesignMetrics(vararg metrics: Triple<SynapseIcon, String, String>) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        metrics.forEachIndexed { index, (icon, label, value) ->
+            val tint =
+                listOf(
+                    MaterialTheme.colorScheme.primary,
+                    Color(0xFF8151E7),
+                    Color(0xFF00A85B),
+                    Color(0xFFDB8D16),
+                )[index % 4]
+            Row(
+                Modifier.weight(1f).padding(vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                AssetIcon(icon, size = 16.dp, tint = tint)
+                Column {
+                    Text(
+                        value,
+                        style =
+                            MaterialTheme.typography.titleSmall.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp,
+                            ),
+                    )
+                    Text(
+                        label,
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 8.sp,
+                                lineHeight = 11.sp,
+                            ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -408,7 +509,7 @@ internal fun DesignSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            icon?.let { AssetIcon(it, size = 18.dp) }
+            icon?.let { AssetIcon(it, size = if (dense) 14.dp else 18.dp) }
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
                 if (subtitle.isNotEmpty())
@@ -494,7 +595,7 @@ internal fun DesignChoice(
     var open by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth()
-            .heightIn(min = if (dense) 28.dp else SynapseDesignTokens.compactRowHeight),
+            .heightIn(min = if (dense) 24.dp else SynapseDesignTokens.compactRowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)

@@ -196,7 +196,7 @@
       412,
       700
     ],
-    "mean_absolute_rgb_difference": 19.76,
+    "mean_absolute_rgb_difference": 19.63,
     "note": "Diagnostic only; not a perceptual similarity score. System bars excluded; app windows aligned."
   },
   "screen_26": {
@@ -204,7 +204,7 @@
       412,
       700
     ],
-    "mean_absolute_rgb_difference": 26.94,
+    "mean_absolute_rgb_difference": 25.36,
     "note": "Diagnostic only; not a perceptual similarity score. System bars excluded; app windows aligned."
   },
   "screen_27": {
@@ -212,7 +212,7 @@
       412,
       700
     ],
-    "mean_absolute_rgb_difference": 19.25,
+    "mean_absolute_rgb_difference": 18.46,
     "note": "Diagnostic only; not a perceptual similarity score. System bars excluded; app windows aligned."
   },
   "screen_28": {
@@ -220,7 +220,7 @@
       412,
       700
     ],
-    "mean_absolute_rgb_difference": 20.64,
+    "mean_absolute_rgb_difference": 22.48,
     "note": "Diagnostic only; not a perceptual similarity score. System bars excluded; app windows aligned."
   },
   "screen_29": {

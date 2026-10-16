@@ -98,7 +98,7 @@ internal fun Section(
     ) {
         Column(
             Modifier.padding(
-                if (dense) 6.dp
+                if (dense) 5.dp
                 else
                     when (LocalSynapseAppearance.current.density) {
                         "Compact" -> 8.dp
@@ -107,7 +107,7 @@ internal fun Section(
                     }
             ),
             verticalArrangement =
-                Arrangement.spacedBy(if (dense) 4.dp else SynapseDesignTokens.cardContentGap),
+                Arrangement.spacedBy(if (dense) 3.dp else SynapseDesignTokens.cardContentGap),
         ) {
             if (title.isNotBlank()) Text(title, style = MaterialTheme.typography.titleMedium)
             subtitle?.let { Muted(it) }
@@ -345,7 +345,7 @@ internal fun SwitchSetting(
     Row(
         Modifier.fillMaxWidth()
             .toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
-            .heightIn(min = if (dense) 28.dp else SynapseDesignTokens.compactRowHeight)
+            .heightIn(min = if (dense) 24.dp else SynapseDesignTokens.compactRowHeight)
             .padding(vertical = if (dense) 2.dp else 3.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

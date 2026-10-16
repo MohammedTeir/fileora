@@ -121,7 +121,7 @@ class SynapseV3InteractionTests {
                 }
             }
         }
-        compose.onNodeWithText("Add preference").performScrollTo().performClick()
+        compose.onNodeWithText("Add preference").assertIsDisplayed().performClick()
         compose.onNodeWithText("Save preference").assertIsNotEnabled()
         compose
             .onNode(hasText("Preference") and hasSetTextAction())
@@ -131,7 +131,7 @@ class SynapseV3InteractionTests {
             assertTrue(state.memories.any { it.text == "Keep source filenames" && !it.observed })
             assertEquals(facts, state.memories.filter { it.observed })
         }
-        compose.onNodeWithText("Clear preferences").performScrollTo().performClick()
+        compose.onNodeWithText("Clear preferences").assertIsDisplayed().performClick()
         compose.onNodeWithText("Forget").performClick()
         compose.runOnIdle { assertEquals(facts, state.memories) }
     }
@@ -186,12 +186,13 @@ class SynapseV3InteractionTests {
                 }
             }
         }
+        val baseFontSize = compose.runOnIdle { fontScale }
         compose.onNodeWithText("Purple").performScrollTo().performClick()
         compose.onNodeWithText("Medium").performScrollTo().performClick()
         compose.onNodeWithText("High contrast mode").performScrollTo().performClick()
         compose.runOnIdle {
             assertEquals("Purple", state.accent)
-            assertEquals(12f * 1.12f, fontScale, .01f)
+            assertEquals(baseFontSize * 1.12f, fontScale, .01f)
             assertTrue(state.highContrast)
             assertEquals(state, SynapseWorkspaceViewModel(app, SavedStateHandle()).display.value)
         }
