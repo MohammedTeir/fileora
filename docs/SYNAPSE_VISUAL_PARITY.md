@@ -80,3 +80,5 @@ Remaining acceptance work: obtain missing standalone artwork or approved substit
 - Shared: reference-sized tabs, fields, rows, switch tracks and bottom navigation; typography and card spacing tightened. Native captures now align app windows after excluding system bars. The remaining batches are being rechecked with these shared changes.
 
 - 03–05: compared three capture iterations; attachment picker captions and four suggestions added, attachments shown in a three-item review fixture, numbered plan stages and expandable action scope restored, permission summary made compact. Continue/approval rows stay visible as details scroll. Source media thumbnails remain unavailable; the existing Downloads scope and consent behavior remain authoritative.
+
+- 06–08: compact verified progress, persistent stop/pause and recovery action rows, status markers, segmented result tabs, larger output rows, and side-by-side output/next-action panels. Two native capture iterations compared; existing task counts, failed-encoder prerequisites and verified-only completion preserved. Media and device-capture thumbnails remain absent from the source package.

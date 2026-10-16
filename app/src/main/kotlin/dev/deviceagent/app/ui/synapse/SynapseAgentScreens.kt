@@ -1022,10 +1022,41 @@ private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
         "Monitor progress",
         "Synapse is executing the approved plan. Monitor progress and stop if needed.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DesignAction(
+                    "Stop execution",
+                    Modifier.weight(1f),
+                    danger = true,
+                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
+                ) {
+                    cancel = true
+                }
+                DesignAction(
+                    if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",
+                    Modifier.weight(1f),
+                    enabled = s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
+                ) {
+                    send(DemoAction.PauseResume)
+                }
+            }
+        },
     ) {
         DesignSection("Task in progress", SynapseIcon.PLAY, s.task.status.name.lowercase()) {
             Text(s.task.title, style = MaterialTheme.typography.bodySmall)
-            TaskProgress(s.task)
+            Text(
+                "${s.task.verified} of ${s.task.total} verified",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            LinearProgressIndicator(
+                progress = { s.task.progress },
+                modifier = Modifier.fillMaxWidth().height(5.dp),
+            )
+            Text(
+                "${s.task.skipped} skipped · ${s.task.blocked} blocked · ${s.task.running} running · ${s.task.queued} queued",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Section("") {
             InlineStats(
@@ -1060,8 +1091,12 @@ private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                     demoEvents.forEach { (time, event) ->
                         Text(
                             "$time  ✓  $event",
-                            Modifier.padding(vertical = 5.dp),
-                            style = MaterialTheme.typography.bodySmall,
+                            Modifier.padding(vertical = 3.dp),
+                            style =
+                                MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 9.sp,
+                                    lineHeight = 12.sp,
+                                ),
                         )
                     }
                 }
@@ -1079,20 +1114,6 @@ private fun MonitorDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                     Muted("File exists\nDuration checked\nSource preserved")
                     TextButton({ nav(SynapseRoute.AUDIT) }) { Text("View all") }
                 }
-            }
-        }
-        Actions {
-            Secondary(
-                "Stop execution",
-                s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-            ) {
-                cancel = true
-            }
-            Primary(
-                if (s.task.status == DemoTaskStatus.PAUSED) "Resume" else "Pause",
-                s.task.status in listOf(DemoTaskStatus.RUNNING, DemoTaskStatus.PAUSED),
-            ) {
-                send(DemoAction.PauseResume)
             }
         }
         Secondary("Simulate next verified item", s.task.status == DemoTaskStatus.RUNNING) {
@@ -1128,6 +1149,37 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
         else if (s.recoveryAborted) "Recovery stopped" else "Task needs recovery",
         "Synapse encountered an issue. Review the error and choose how to proceed.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DesignAction(
+                    "Abort task",
+                    Modifier.weight(1f),
+                    danger = true,
+                    enabled = !s.recoveryVerified && !s.recoveryAborted,
+                ) {
+                    send(DemoAction.AbortRecovery)
+                }
+                DesignAction("Ask for help", Modifier.weight(1f)) { ask = true }
+                DesignAction(
+                    "Approve recovery",
+                    Modifier.weight(1.3f),
+                    primary = true,
+                    enabled = !s.recoveryAborted && !s.recoveryVerified && s.attempts < 3,
+                ) {
+                    when (selected) {
+                        "Try alternative tool" -> alternative = true
+                        "Provide a different file" -> ask = true
+                        else ->
+                            if (s.packageName == "FFmpeg" && s.packageStep == 4)
+                                send(DemoAction.RetryRecovery)
+                            else {
+                                send(DemoAction.PackageSelected("FFmpeg"))
+                                nav(SynapseRoute.PACKAGE_DETAIL)
+                            }
+                    }
+                }
+            }
+        },
     ) {
         DesignSection("Task summary", SynapseIcon.FILE) {
             Text("Extract lesson audio", style = MaterialTheme.typography.titleSmall)
@@ -1137,7 +1189,7 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                 "Elapsed" to "02:14",
             )
         }
-        Notice(
+        DesignNotice(
             "Error occurred",
             "The installed FFmpeg profile does not provide the MP3 encoder.",
             Tone.ERROR,
@@ -1154,10 +1206,10 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     Row(
                         Modifier.fillMaxWidth()
                             .clickable { selected = option }
-                            .heightIn(min = 48.dp),
+                            .heightIn(min = 34.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(selected == option, { selected = option })
+                        RadioButton(selected == option, { selected = option }, Modifier.size(30.dp))
                         Column {
                             Text(option, style = MaterialTheme.typography.titleSmall)
                             Muted(
@@ -1171,10 +1223,10 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                     }
                 }
         }
-        Disclosure(
+        DesignSection(
             "Preview of recovery plan",
-            "Source and destination are rechecked.",
-            initiallyOpen = true,
+            SynapseIcon.RECOVERY,
+            subtitle = "Source and destination are rechecked.",
         ) {
             listOf(
                     "Inspect encoder availability",
@@ -1185,28 +1237,6 @@ private fun RecoveryDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synapse
                 .forEachIndexed { i, t ->
                     Text("${i+1}. $t", style = MaterialTheme.typography.bodySmall)
                 }
-        }
-        FullButton(
-            "Approve recovery",
-            !s.recoveryAborted && !s.recoveryVerified && s.attempts < 3,
-        ) {
-            when (selected) {
-                "Try alternative tool" -> alternative = true
-                "Provide a different file" -> ask = true
-                else ->
-                    if (s.packageName == "FFmpeg" && s.packageStep == 4)
-                        send(DemoAction.RetryRecovery)
-                    else {
-                        send(DemoAction.PackageSelected("FFmpeg"))
-                        nav(SynapseRoute.PACKAGE_DETAIL)
-                    }
-            }
-        }
-        Actions {
-            Secondary("Abort task", !s.recoveryVerified && !s.recoveryAborted) {
-                send(DemoAction.AbortRecovery)
-            }
-            Secondary("Ask for help") { ask = true }
         }
         if (s.recoveryNote.isNotBlank()) Notice("Your clarification", s.recoveryNote)
         if (s.recoveryVerified)

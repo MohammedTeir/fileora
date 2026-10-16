@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import dev.deviceagent.app.Tone
 
 @Composable
@@ -139,6 +141,19 @@ internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
         if (complete) "Task completed" else "Task result",
         "Review verified outcomes and recorded evidence.",
         nav,
+        footer = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button({ nav(SynapseRoute.AGENT) }, Modifier.weight(1f).heightIn(min = 32.dp)) {
+                    Text("Create a new task  →")
+                }
+                OutlinedButton(
+                    { nav(SynapseRoute.AGENT) },
+                    Modifier.weight(1f).heightIn(min = 32.dp),
+                ) {
+                    Text("Back to Agent")
+                }
+            }
+        },
     ) {
         DesignSection("Task summary", SynapseIcon.FILE, "View plan", { nav(SynapseRoute.PLAN) }) {
             Text(s.task.title, style = MaterialTheme.typography.titleSmall)
@@ -150,24 +165,29 @@ internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
             )
         }
         if (!complete)
-            Notice(
+            DesignNotice(
                 "Work remains",
                 "Only ${s.task.verified} of ${s.task.total} items are verified. This task is not complete.",
                 Tone.WARNING,
             )
         DesignSection("Results", SynapseIcon.FOLDER) {
-            ChoiceChips(listOf("Results", "Created folders", "Logs"), selected) { selected = it }
+            DesignSegments(listOf("Results", "Created folders", "Logs"), selected) { selected = it }
             when (selected) {
                 "Results" -> {
                     if (s.task.verified == 0) Muted("No verified outputs yet.")
                     repeat(s.task.verified.coerceAtMost(3)) { i ->
-                        DesignRow(
-                            SynapseIcon.FILE,
-                            "Verified output ${i+1}",
-                            "Demo evidence · original preserved",
-                            "Verified",
-                            onClick = { nav(SynapseRoute.AUDIT) },
-                        )
+                        Box(
+                            Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                            contentAlignment = androidx.compose.ui.Alignment.Center,
+                        ) {
+                            DesignRow(
+                                SynapseIcon.FILE,
+                                "Verified output ${i+1}",
+                                "Demo evidence · original preserved",
+                                "Verified",
+                                onClick = { nav(SynapseRoute.AUDIT) },
+                            )
+                        }
                     }
                     if (s.task.verified > 3)
                         Muted("${s.task.verified-3} additional verified outputs in the audit.")
@@ -185,19 +205,30 @@ internal fun TaskResultDesign(s: DemoState, nav: (SynapseRoute) -> Unit) {
                     )
             }
         }
-        DesignSection("Output location", SynapseIcon.FOLDER) {
-            Text(s.destination, style = MaterialTheme.typography.bodySmall)
-            Secondary("Open in file manager") { nav(SynapseRoute.SANDBOX) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                DesignSection("Output location", SynapseIcon.FOLDER) {
+                    Text(s.destination, style = MaterialTheme.typography.bodySmall)
+                    TextButton({ nav(SynapseRoute.SANDBOX) }) {
+                        Text("Open in file manager", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                DesignSection("What’s next?", SynapseIcon.TOOLS) {
+                    DesignRow(
+                        SynapseIcon.AGENT,
+                        "Create a new task",
+                        onClick = { nav(SynapseRoute.AGENT) },
+                    )
+                    DesignRow(
+                        SynapseIcon.AUDIT,
+                        "View activity log",
+                        onClick = { nav(SynapseRoute.AUDIT) },
+                    )
+                    DesignRow(SynapseIcon.UNDO, "Review undo", onClick = { nav(SynapseRoute.UNDO) })
+                }
+            }
         }
-        DesignSection("What’s next?", SynapseIcon.TOOLS) {
-            DesignRow(SynapseIcon.AGENT, "Create a new task", onClick = { nav(SynapseRoute.AGENT) })
-            DesignRow(
-                SynapseIcon.AUDIT,
-                "View full activity log",
-                onClick = { nav(SynapseRoute.AUDIT) },
-            )
-            DesignRow(SynapseIcon.UNDO, "Review undo", onClick = { nav(SynapseRoute.UNDO) })
-        }
-        FullButton("Back to Agent") { nav(SynapseRoute.AGENT) }
     }
 }

@@ -130,38 +130,58 @@ internal fun DesignPage(
                         .padding(vertical = 0.dp),
                     style = MaterialTheme.typography.bodySmall,
                 )
-            Column {
-                Text(
-                    buildAnnotatedString {
-                        if (route == SynapseRoute.AGENT && title.contains(", ")) {
-                            append(title.substringBefore(", ") + ", ")
-                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                append(title.substringAfter(", "))
-                            }
-                        } else append(title)
-                    },
-                    style =
-                        if (route == SynapseRoute.AGENT)
-                            MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 26.sp,
-                                lineHeight = 30.sp,
-                            )
-                        else if (route.destination == Destination.SETTINGS)
-                            MaterialTheme.typography.titleLarge
-                        else MaterialTheme.typography.headlineMedium,
-                )
-                if (subtitle.isNotEmpty())
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (
+                    route == SynapseRoute.RECOVERY ||
+                        route == SynapseRoute.TASK_RESULT && title == "Task completed"
+                ) {
+                    val success = title == "Task completed" || title == "Recovery verified"
+                    val color = if (success) Color(0xFF00AF58) else MaterialTheme.colorScheme.error
+                    Surface(color = color.copy(alpha = .1f), shape = CircleShape) {
+                        AssetIcon(
+                            if (success) SynapseIcon.APPROVAL else SynapseIcon.WARNING,
+                            modifier = Modifier.padding(8.dp),
+                            tint = color,
+                            size = 22.dp,
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f)) {
                     Text(
-                        subtitle,
+                        buildAnnotatedString {
+                            if (route == SynapseRoute.AGENT && title.contains(", ")) {
+                                append(title.substringBefore(", ") + ", ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                    append(title.substringAfter(", "))
+                                }
+                            } else append(title)
+                        },
                         style =
                             if (route == SynapseRoute.AGENT)
-                                MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
+                                MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 26.sp,
+                                    lineHeight = 30.sp,
                                 )
-                            else MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            else if (route.destination == Destination.SETTINGS)
+                                MaterialTheme.typography.titleLarge
+                            else MaterialTheme.typography.headlineMedium,
                     )
+                    if (subtitle.isNotEmpty())
+                        Text(
+                            subtitle,
+                            style =
+                                if (route == SynapseRoute.AGENT)
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                        lineHeight = 16.sp,
+                                    )
+                                else MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                }
             }
             if (
                 route.destination != Destination.AGENT &&
@@ -628,5 +648,65 @@ internal fun DesignNotice(
             }
             content()
         }
+    }
+}
+
+@Composable
+internal fun DesignSegments(options: List<String>, selected: String, onSelect: (String) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        options.forEach { option ->
+            Surface(
+                onClick = { onSelect(option) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(6.dp),
+                color =
+                    if (selected == option) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceContainer,
+                contentColor =
+                    if (selected == option) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            ) {
+                Text(
+                    option,
+                    Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                    fontSize = 9.sp,
+                    lineHeight = 12.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DesignAction(
+    label: String,
+    modifier: Modifier = Modifier,
+    primary: Boolean = false,
+    danger: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.heightIn(min = 32.dp),
+        shape = RoundedCornerShape(50),
+        color =
+            if (!enabled) MaterialTheme.colorScheme.surfaceContainer
+            else if (primary) MaterialTheme.colorScheme.primary
+            else if (danger) MaterialTheme.colorScheme.errorContainer.copy(alpha = .3f)
+            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = .6f),
+        contentColor =
+            if (!enabled) MaterialTheme.colorScheme.onSurfaceVariant
+            else if (primary) MaterialTheme.colorScheme.onPrimary
+            else if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+    ) {
+        Text(
+            label,
+            Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
