@@ -86,3 +86,5 @@ Remaining acceptance work: obtain missing standalone artwork or approved substit
 - 09–11: checkpoint controls condensed into the reference summary, all eight checkpoint rows visible, timestamp/size metadata and official row icons restored. History filters and schedule search/create controls compacted; schedule toggles visible. Native captures compared. Existing seven-task history and schedule fixtures retained.
 
 - 12–13: compact audit tabs, side-by-side task status/destination and change/evidence panels; Audit uses its reference action footer without the global bottom tabs. Undo has compact warnings, select/deselect-all, and a fixed preview/restore footer. Native renders compared; retained rollback scope and conflict policy require different text from the reference.
+
+- 14–16: storage/RAM bars, compact quick tools and Apps actions; file sidebar, 17-row metadata table, selection and fixed Copy/Move/Rename/Delete footer restored. Two capture iterations compared. Device photo and third-party app artwork remain unavailable; official icons are used.

@@ -224,8 +224,10 @@ internal fun DesignTabs(route: SynapseRoute, nav: (SynapseRoute) -> Unit) {
                     Triple("Apps", SynapseRoute.APPS, SynapseIcon.APPS),
                     Triple("Terminal", SynapseRoute.TERMINAL, SynapseIcon.TERMINAL),
                     Triple("Tools", SynapseRoute.TOOLS, SynapseIcon.TOOLS),
-                    Triple("Packages", SynapseRoute.PACKAGES, SynapseIcon.PACKAGES),
-                )
+                ) +
+                    if (route in listOf(SynapseRoute.PACKAGES, SynapseRoute.PACKAGE_DETAIL))
+                        listOf(Triple("Packages", SynapseRoute.PACKAGES, SynapseIcon.PACKAGES))
+                    else emptyList()
             else ->
                 if (
                     route in
@@ -723,5 +725,24 @@ internal fun DesignAction(
             style = MaterialTheme.typography.labelSmall,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
+    }
+}
+
+@Composable
+internal fun StorageUsageBar() {
+    Row(
+        Modifier.fillMaxWidth()
+            .height(5.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
+    ) {
+        listOf(
+                .284f to MaterialTheme.colorScheme.primary,
+                .197f to Color(0xFFA54FFF),
+                .075f to Color(0xFFFFBF24),
+            )
+            .forEach { (amount, color) ->
+                Box(Modifier.weight(amount).fillMaxHeight().background(color))
+            }
+        Spacer(Modifier.weight(.444f))
     }
 }

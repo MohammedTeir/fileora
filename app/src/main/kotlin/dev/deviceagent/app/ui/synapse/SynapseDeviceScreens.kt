@@ -2,6 +2,8 @@
 
 package dev.deviceagent.app.ui.synapse
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun DemoDeviceRoute(
@@ -82,11 +85,17 @@ private fun DeviceOverviewDemo(
                     Text("Samsung Galaxy A04s", style = MaterialTheme.typography.titleSmall)
                     Muted("Android 13 (One UI Core 5.1)")
                     SmallValue("Model", "SM-A047F")
+                    SmallValue("Android version", "13")
                     SmallValue("Security patch", "2023-10-01")
                     SmallValue("Root status", s.rootStatus)
                     SmallValue("Storage", "64 GB (28.4 GB free)")
                     LinearProgressIndicator(progress = { .55f }, modifier = Modifier.fillMaxWidth())
                     SmallValue("Memory (RAM)", "4 GB (1.8 GB free)")
+                    LinearProgressIndicator(
+                        progress = { .55f },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        color = Color(0xFF9A45FF),
+                    )
                 }
             }
         }
@@ -107,7 +116,7 @@ private fun DeviceOverviewDemo(
             Column(Modifier.weight(1f)) {
                 DesignSection("Storage", SynapseIcon.MEMORY) {
                     Muted("64 GB total")
-                    LinearProgressIndicator(progress = { .55f }, modifier = Modifier.fillMaxWidth())
+                    StorageUsageBar()
                     SmallValue("Apps", "18.2 GB")
                     SmallValue("Media", "12.6 GB")
                     SmallValue("Other", "4.8 GB")
@@ -131,12 +140,17 @@ private fun DeviceOverviewDemo(
                 }
             }
         }
-        DesignSection("Quick tools", SynapseIcon.TOOLS) {
-            Actions {
-                Secondary("Open files") { nav(SynapseRoute.SANDBOX) }
-                Secondary("Manage apps") { nav(SynapseRoute.APPS) }
-                Secondary("Run terminal") { nav(SynapseRoute.TERMINAL) }
-                Secondary("Packages") { nav(SynapseRoute.PACKAGES) }
+        DesignSection("Quick tools", SynapseIcon.TOOLS, "See all", { nav(SynapseRoute.TOOLS) }) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(
+                        "Open files" to SynapseRoute.SANDBOX,
+                        "Manage apps" to SynapseRoute.APPS,
+                        "Run terminal" to SynapseRoute.TERMINAL,
+                        "Packages" to SynapseRoute.PACKAGES,
+                    )
+                    .forEach { (label, target) ->
+                        DesignAction(label, Modifier.weight(1f)) { nav(target) }
+                    }
             }
         }
     }
@@ -168,7 +182,7 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
             )
         )
     }
-    var selected by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var selected by rememberSaveable { mutableStateOf(listOf("Download")) }
     var query by rememberSaveable { mutableStateOf("") }
     var action by rememberSaveable { mutableStateOf<String?>(null) }
     var name by rememberSaveable { mutableStateOf("") }
@@ -177,61 +191,97 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
         "Files",
         "Browse and manage your device files and folders. Sample storage only.",
         nav,
+        footer = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "${selected.size} selected",
+                    Modifier.weight(.8f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                listOf("Copy", "Move", "Rename", "Delete").forEach { op ->
+                    DesignAction(
+                        op,
+                        Modifier.weight(1f),
+                        danger = op == "Delete",
+                        enabled = selected.isNotEmpty() && (op != "Rename" || selected.size == 1),
+                    ) {
+                        name = selected.firstOrNull().orEmpty()
+                        action = op
+                    }
+                }
+            }
+        },
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.width(92.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.width(102.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("Internal storage", style = MaterialTheme.typography.titleSmall)
-                LinearProgressIndicator(progress = { .55f }, modifier = Modifier.fillMaxWidth())
+                StorageUsageBar()
                 Text("28.4 GB free", style = MaterialTheme.typography.bodySmall)
-                listOf(
-                        "Internal storage",
-                        "SD card",
-                        "Downloads",
-                        "Pictures",
-                        "Videos",
-                        "Audio",
-                        "Documents",
-                        "Apps",
-                        "System (Root)",
-                        "Recent files",
-                        "Large files",
-                        "Screenshots",
-                        "Trash",
-                    )
-                    .forEach { title ->
-                        Surface(
-                            onClick = {
-                                location = title
-                                selected = emptyList()
-                            },
-                            color =
-                                if (location == title) MaterialTheme.colorScheme.primaryContainer
-                                else Color.Transparent,
-                            shape = RoundedCornerShape(6.dp),
-                        ) {
-                            Row(
-                                Modifier.heightIn(min = 40.dp).padding(4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    listOf(
+                            "Internal storage",
+                            "SD card",
+                            "Downloads",
+                            "Pictures",
+                            "Videos",
+                            "Audio",
+                            "Documents",
+                            "Apps",
+                            "System (Root)",
+                            "Recent files",
+                            "Large files",
+                            "Screenshots",
+                            "Trash",
+                        )
+                        .forEach { title ->
+                            Surface(
+                                onClick = {
+                                    location = title
+                                    selected = emptyList()
+                                },
+                                color =
+                                    if (location == title)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else Color.Transparent,
+                                shape = RoundedCornerShape(6.dp),
                             ) {
-                                AssetIcon(SynapseIcon.FOLDER, size = 12.dp)
-                                Text(title, style = MaterialTheme.typography.labelSmall)
+                                Row(
+                                    Modifier.heightIn(min = 24.dp).padding(3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    AssetIcon(SynapseIcon.FOLDER, size = 12.dp)
+                                    Text(title, fontSize = 8.sp, lineHeight = 11.sp)
+                                }
                             }
                         }
-                    }
+                }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(location, style = MaterialTheme.typography.titleSmall)
-                DesignSearch(query, { query = it }, "Find files…")
-                TextButton({
-                    name = ""
-                    action = "New folder"
-                }) {
-                    Text("+ New folder")
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f)) { DesignSearch(query, { query = it }, "Find files…") }
+                    TextButton(
+                        {
+                            name = ""
+                            action = "New folder"
+                        },
+                        contentPadding = PaddingValues(3.dp),
+                    ) {
+                        Text("+ New folder", fontSize = 8.sp, lineHeight = 11.sp)
+                    }
                 }
                 Row {
-                    Text("Name", Modifier.weight(1f), style = MaterialTheme.typography.labelSmall)
-                    Text("Type / Size", style = MaterialTheme.typography.labelSmall)
+                    Text("Name", Modifier.weight(1f), fontSize = 8.sp, lineHeight = 12.sp)
+                    Text("Type", Modifier.width(26.dp), fontSize = 8.sp, lineHeight = 12.sp)
+                    Text("Size", Modifier.width(35.dp), fontSize = 8.sp, lineHeight = 12.sp)
+                    Text("Modified", Modifier.width(42.dp), fontSize = 8.sp, lineHeight = 12.sp)
                 }
                 val visible = items.filter { it.contains(query, true) }
                 if (visible.isEmpty()) Muted("No matching files")
@@ -241,37 +291,75 @@ private fun SandboxDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseR
                             .toggleable(item in selected, role = Role.Checkbox) { checked ->
                                 selected = if (checked) selected + item else selected - item
                             }
-                            .heightIn(min = 36.dp),
+                            .background(
+                                if (item in selected) MaterialTheme.colorScheme.primaryContainer
+                                else Color.Transparent,
+                                RoundedCornerShape(4.dp),
+                            )
+                            .heightIn(min = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Checkbox(item in selected, null, Modifier.size(18.dp))
+                        Box(
+                            Modifier.size(11.dp)
+                                .border(
+                                    .7.dp,
+                                    MaterialTheme.colorScheme.outline,
+                                    RoundedCornerShape(2.dp),
+                                )
+                                .background(
+                                    if (item in selected) MaterialTheme.colorScheme.primary
+                                    else Color.Transparent,
+                                    RoundedCornerShape(2.dp),
+                                )
+                        ) {
+                            if (item in selected)
+                                AssetIcon(
+                                    SynapseIcon.APPROVAL,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    size = 11.dp,
+                                )
+                        }
                         AssetIcon(
                             if (item.contains('.')) SynapseIcon.FILE else SynapseIcon.FOLDER,
-                            size = 14.dp,
+                            size = 12.dp,
                         )
                         Text(
                             item,
                             Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 8.sp,
+                            lineHeight = 11.sp,
                             maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                         Text(
-                            if (item.contains('.'))
-                                item.substringAfterLast('.').uppercase() + " · 12 KB"
+                            if (item.contains('.')) item.substringAfterLast('.').uppercase()
                             else "Folder",
-                            style = MaterialTheme.typography.labelSmall,
+                            Modifier.width(26.dp),
+                            fontSize = 7.sp,
+                            lineHeight = 10.sp,
+                        )
+                        Text(
+                            when (item) {
+                                "device_info.txt" -> "12 KB"
+                                "log.txt" -> "320 KB"
+                                "screenshot.png" -> "2.4 MB"
+                                "video.mp4" -> "24.1 MB"
+                                "archive.zip" -> "5.8 MB"
+                                else -> "–"
+                            },
+                            Modifier.width(35.dp),
+                            fontSize = 7.sp,
+                            lineHeight = 10.sp,
+                        )
+                        Text(
+                            "Sep 20",
+                            Modifier.width(42.dp),
+                            fontSize = 7.sp,
+                            lineHeight = 10.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-            }
-        }
-        Text("${selected.size} items selected", style = MaterialTheme.typography.bodySmall)
-        Actions {
-            listOf("Copy", "Move", "Rename", "Delete").forEach { op ->
-                Secondary(op, selected.isNotEmpty() && (op != "Rename" || selected.size == 1)) {
-                    name = selected.firstOrNull().orEmpty()
-                    action = op
                 }
             }
         }
@@ -351,6 +439,16 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
         "Apps",
         "View, manage, and inspect installed applications. Demo inventory.",
         nav,
+        footer = {
+            DesignSection("App actions", SynapseIcon.TOOLS) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("Install APK", "Uninstall", "Disable", "Check updates").forEach { label
+                        ->
+                        DesignAction(label, Modifier.weight(1f)) { detail = label }
+                    }
+                }
+            }
+        },
     ) {
         Section("") {
             InlineStats(
@@ -360,8 +458,8 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
             )
         }
         DesignSearch(query, { query = it }, "Search apps, package name, or actions…")
-        ChoiceChips(listOf("All", "User", "System", "Updates"), filter) { filter = it }
-        DesignSection("Installed applications", SynapseIcon.APPS) {
+        DesignSegments(listOf("All", "User", "System", "Updates"), filter) { filter = it }
+        Section("") {
             names
                 .filterIndexed { i, n ->
                     n.contains(query, true) &&
@@ -374,7 +472,13 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
                 }
                 .forEach { title ->
                     DesignRow(
-                        SynapseIcon.APPS,
+                        when (title) {
+                            "Termux" -> SynapseIcon.TERMINAL
+                            "Settings" -> SynapseIcon.SETTINGS
+                            "Camera",
+                            "Gallery" -> SynapseIcon.IMAGE
+                            else -> SynapseIcon.APPS
+                        },
                         title,
                         if (title == "Synapse") "dev.deviceagent.app · 24 MB"
                         else "Sample package · 38 MB",
@@ -382,13 +486,6 @@ private fun AppsDemo(send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
                         onClick = { detail = title },
                     )
                 }
-        }
-        DesignSection("App actions", SynapseIcon.TOOLS) {
-            Actions {
-                listOf("Install APK", "Uninstall", "Disable", "Check updates").forEach { label ->
-                    Secondary(label) { detail = label }
-                }
-            }
         }
     }
     DemoDetailDialog(
