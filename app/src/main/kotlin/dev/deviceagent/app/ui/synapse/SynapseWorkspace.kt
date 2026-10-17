@@ -62,6 +62,7 @@ internal fun SynapseWorkspace(
     var states by remember { mutableStateOf(false) }
     val route = SynapseRoute.valueOf(stack.substringAfterLast('|'))
     val navigate: (SynapseRoute) -> Unit = { target ->
+        if (demo && directory && target in listOf(SynapseRoute.TASK_RESULT, SynapseRoute.AUDIT, SynapseRoute.UNDO)) send(DemoAction.SelectTask(completedVideoDemoId))
         if (target != route) stack = (stack.split('|').takeLast(20) + target.name).joinToString("|")
         preview = PreviewState.READY.name
         directory = false

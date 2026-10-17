@@ -63,7 +63,7 @@ internal fun VideoThumbnail(index: Int, modifier: Modifier = Modifier) {
 @Composable
 internal fun DemoVideoRow(index: Int, onOpen: () -> Unit) {
     val video = demoVideos[index]
-    Row(Modifier.fillMaxWidth().heightIn(min = 49.dp).clickable(onClick = onOpen).padding(vertical = 5.dp),
+    Row(Modifier.fillMaxWidth().heightIn(min = 42.dp).clickable(onClick = onOpen).padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         VideoThumbnail(index, Modifier.width(48.dp).height(32.dp))
         Column(Modifier.weight(1f)) {

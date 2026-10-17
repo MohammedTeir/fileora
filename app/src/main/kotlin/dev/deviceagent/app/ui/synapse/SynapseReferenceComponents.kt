@@ -142,15 +142,16 @@ internal fun DesignPage(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (
-                    route == SynapseRoute.UNDO ||
+                    route == SynapseRoute.UNDO || route == SynapseRoute.AUDIT ||
                         route == SynapseRoute.RECOVERY ||
                         route == SynapseRoute.TASK_RESULT && title == "Task completed"
                 ) {
                     val success = title == "Task completed" || title == "Recovery verified"
-                    val color = if (success) Color(0xFF00AF58) else MaterialTheme.colorScheme.error
+                    val color = if (success) Color(0xFF00AF58) else if(route == SynapseRoute.AUDIT) Color(0xFF8B45E8) else MaterialTheme.colorScheme.error
                     Surface(color = color.copy(alpha = .1f), shape = CircleShape) {
                         AssetIcon(
                             if (success) SynapseIcon.APPROVAL
+                            else if (route == SynapseRoute.AUDIT) SynapseIcon.PLAY
                             else if (route == SynapseRoute.UNDO) SynapseIcon.UNDO
                             else SynapseIcon.WARNING,
                             modifier = Modifier.padding(8.dp),

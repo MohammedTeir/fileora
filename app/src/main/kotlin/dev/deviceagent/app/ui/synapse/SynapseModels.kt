@@ -440,7 +440,7 @@ fun reduceDemo(s: DemoState, a: DemoAction): DemoState =
         DemoAction.Rollback ->
             s.copy(
                 rollbackDone = true,
-                notice = "Demo restore verified. The changed ticket.png was preserved.",
+                notice = if(s.task.id.startsWith("V3-VIDEO")) "Demo restore verified. Selected video changes were reversed; device files are unchanged." else "Demo restore verified. The changed ticket.png was preserved.",
             )
         is DemoAction.ConflictChoice -> s.copy(restoreConflictChoice = a.choice)
         is DemoAction.PackageSelected ->

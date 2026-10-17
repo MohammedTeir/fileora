@@ -1450,8 +1450,11 @@ private data class AuditExample(
 @Composable
 private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
     var tab by rememberSaveable { mutableStateOf("Summary") }
+    var outputPreview by rememberSaveable { mutableStateOf<Int?>(null) }
+    val video = s.task.id.startsWith("V3-VIDEO")
     val evidence =
         when (s.task.id) {
+            videoDemoId, completedVideoDemoId, "V3-VIDEO-FAILED" -> AuditExample("media.convert", "Downloads/video_1.mp4", "/storage/emulated/0/Download/Converted Videos", "All files are valid MP4; durations and sizes match", "Approved video conversion fixture")
             "SYN-2049" ->
                 AuditExample(
                     "media.extract_audio",
@@ -1515,56 +1518,63 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
     DesignPage(
         SynapseRoute.AUDIT,
         s.task.title,
-        "${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",
+        if (video) "${s.task.verified} of ${s.task.total} files converted successfully" else "${s.task.verified} of ${s.task.total} items verified · ${s.task.status.name.lowercase()}",
         nav,
         footer = {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 DesignAction("Run again", Modifier.weight(1f)) { nav(SynapseRoute.PLAN) }
                 DesignAction("Undo changes", Modifier.weight(1f)) { nav(SynapseRoute.UNDO) }
-                DesignAction("View checkpoint", Modifier.weight(1.3f), primary = true) {
-                    nav(SynapseRoute.CHECKPOINT)
+                DesignAction("View full activity log  →", Modifier.weight(1.3f), primary = true) {
+                    tab = "Tools & Logs"
                 }
             }
         },
     ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) {
+            Text(if(video) "◷  4 min 28 sec     ▫  ${s.task.total} files     ▫  1 folder created" else "${s.task.verified} verified outcomes", Modifier.weight(1f), fontSize=8.sp,lineHeight=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(if(final) "✓ Completed" else s.task.status.name.lowercase(),fontSize=8.sp,lineHeight=12.sp,color=if(final)entryColor(2) else entryColor(3))
+        }
         DesignSegments(listOf("Summary", "Changes", "Timeline", "Tools & Logs"), tab) { tab = it }
         when (tab) {
             "Summary" -> {
-                DesignSection("Task summary", SynapseIcon.FILE) {
-                    Text(s.task.title, style = MaterialTheme.typography.bodySmall)
-                    InlineStats(
-                        "Processed" to "${s.task.verified}",
-                        "Skipped" to "${s.task.skipped}",
-                        "Blocked" to "${s.task.blocked}",
-                        "Task" to s.task.id,
-                    )
+                DesignSection("Task summary", SynapseIcon.FILE, subtitle = if(video) videoDemoDescription else s.task.title) {
+                    if(video) ReferenceMetricCards(Triple(SynapseIcon.FILE,"${s.task.verified} files","Processed"),Triple(SynapseIcon.FOLDER,"1 folder","Created"),Triple(SynapseIcon.SETTINGS,if(final)"6 steps" else "In progress","Completed"),Triple(SynapseIcon.HISTORY,"4 min 28 sec","Total time"))
+                    else InlineStats("Processed" to "${s.task.verified}","Skipped" to "${s.task.skipped}","Blocked" to "${s.task.blocked}","Task" to s.task.id)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1.2f)) {
-                        DesignSection("Output location", SynapseIcon.FOLDER) {
+                        DesignSection("Output location", SynapseIcon.FOLDER, dense = true) {
                             Text(evidence.output, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     Column(Modifier.weight(1f)) {
-                        DesignSection("Task status", SynapseIcon.SECURITY) {
+                        DesignSection("Task status", SynapseIcon.SECURITY, dense = true) {
                             Text(
                                 if (final) "Completed" else s.task.status.name.lowercase(),
                                 style = MaterialTheme.typography.titleSmall,
                             )
-                            SmallValue("Verified", "${s.task.verified}")
-                            SmallValue("Remaining", "${s.task.total - s.task.settled}")
+                            if(video && final) {
+                                SmallValue("Started", "Today, 09:35")
+                                SmallValue("Finished", "Today, 09:40")
+                                SmallValue("Duration", "4 min 28 sec")
+                            } else {
+                                SmallValue("Verified", "${s.task.verified}")
+                                SmallValue("Remaining", "${s.task.total - s.task.settled}")
+                            }
                         }
                     }
                 }
                 DesignSection(
-                    "Verified outputs",
+                    if(video) "Converted files (${s.task.verified})" else "Verified outputs",
                     SynapseIcon.FILE,
                     "Open folder",
                     { nav(SynapseRoute.SANDBOX) },
+                    dense = true,
                 ) {
                     if (hasEvidence)
                         repeat(s.task.verified.coerceAtMost(3)) { i ->
-                            Box(
+                            if(video) DemoVideoRow(i) { outputPreview=i }
+                            else Box(
                                 Modifier.fillMaxWidth().heightIn(min = 48.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -1580,7 +1590,12 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(Modifier.weight(1f)) {
-                        DesignSection("Changes made", SynapseIcon.FILE) {
+                        DesignSection("Changes made", SynapseIcon.FILE, dense = true) {
+                            if(video) {
+                                DesignDetailRow(SynapseIcon.PLUS,"${s.task.verified} new files",onClick={tab="Changes"})
+                                DesignDetailRow(SynapseIcon.FOLDER,"1 new folder",onClick={tab="Changes"})
+                                DesignDetailRow(SynapseIcon.FILE,"0 files modified",onClick={tab="Changes"})
+                            } else {
                             SmallValue("Verified outcomes", "${s.task.verified}")
                             SmallValue("Skipped", "${s.task.skipped}")
                             SmallValue("Blocked", "${s.task.blocked}")
@@ -1590,10 +1605,19 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
+                            }
                         }
                     }
                     Column(Modifier.weight(1f)) {
-                        DesignSection("Verification result", SynapseIcon.SECURITY) {
+                        DesignSection("Verification result", SynapseIcon.SECURITY, dense = true) {
+                            if(video) {
+                                listOf("All files converted successfully", "Files are valid MP4 format", "Output folder created", "File sizes match expected values").forEach { check ->
+                                    Row(Modifier.padding(vertical=3.dp),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                                        Text(if(final) "✓" else "○",fontSize=8.sp,lineHeight=10.sp,color=if(final)entryColor(2) else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(check,fontSize=8.sp,lineHeight=10.sp)
+                                    }
+                                }
+                            } else {
                             VerifiedRow(
                                 "Completed item checks",
                                 if (hasEvidence) evidence.check
@@ -1606,6 +1630,7 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                                 else "Remaining, failed or blocked items need review",
                                 final,
                             )
+                            }
                         }
                     }
                 }
@@ -1634,10 +1659,65 @@ private fun AuditDemo(s: DemoState, nav: (SynapseRoute) -> Unit) {
                 }
         }
     }
+    if(outputPreview!=null) DesignDialog(onDismissRequest={outputPreview=null},title={Text("${demoVideos[outputPreview!!].name}_converted.mp4")},text={Column {VideoThumbnail(outputPreview!!,Modifier.fillMaxWidth().height(160.dp));Muted("Verified sample output. This is a Demo preview.")}},confirmButton={TextButton({outputPreview=null}){Text("Close")}})
 }
 
 @Composable
 private fun UndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
+    if(!s.task.id.startsWith("V3-VIDEO")) { LegacyUndoDemo(s,send,nav); return }
+    var confirm by rememberSaveable {mutableStateOf(false)}
+    var preview by rememberSaveable {mutableStateOf(false)}
+    val changes=demoVideos.map {"${it.name}_converted.mp4"}+"Converted Videos"
+    var selected by rememberSaveable {mutableStateOf(changes)}
+    var originals by rememberSaveable {mutableStateOf(demoVideos.map {it.name})}
+    val complete=s.task.status==DemoTaskStatus.VERIFIED
+    DesignPage(SynapseRoute.UNDO,"Undo / Rollback","Revert changes made by this task.\nSelect what to undo and review the impact before proceeding.",nav,
+        footer={Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+            DesignAction("Cancel",Modifier.weight(.8f)){nav(SynapseRoute.AUDIT)}
+            DesignAction("Preview changes",Modifier.weight(1f)){preview=true}
+            DesignAction("Undo changes",Modifier.weight(1.2f),danger=true,enabled=complete&&!s.rollbackDone&&(selected.isNotEmpty()||originals.isNotEmpty())){confirm=true}
+        }}) {
+        DesignSection("Convert videos to MP4",SynapseIcon.PLAY,"View task details",{nav(SynapseRoute.AUDIT)},subtitle="${s.task.verified} of ${s.task.total} files converted successfully",dense=true) {
+            Text(if(complete)"Completed  ·  Today, 09:35  ·  4 min 28 sec" else "Task must finish before this rollback can be approved.",fontSize=9.sp,lineHeight=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if(s.rollbackDone) DesignNotice("Demo restore verified","The selected recorded changes were reversed in the simulation. No device files were changed.",Tone.SUCCESS)
+        else DesignNotice("This will undo changes made by the task","The selected changes will be reverted using the checkpoint. New files will be removed only if unchanged.",Tone.ERROR) {
+            Text("• Converted files will be removed.\n• Created folders will be deleted (if empty).\n• Original files will be restored from the checkpoint.",fontSize=8.sp,lineHeight=11.sp)
+        }
+        DesignSection("Changes to undo (${selected.size})",SynapseIcon.APPROVAL,if(selected.isEmpty())"Select all" else "Deselect all",{if(!s.rollbackDone)selected=if(selected.isEmpty())changes else emptyList()},dense=true) {
+            changes.forEachIndexed { i,name ->
+                Row(Modifier.fillMaxWidth().heightIn(min=29.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 24.dp) {Checkbox(name in selected,{if(it)selected=selected+name else selected=selected-name},enabled=!s.rollbackDone,modifier=Modifier.size(25.dp))}
+                    IconTile(if(i<3)SynapseIcon.PLAY else SynapseIcon.FOLDER,if(i<3)entryColor(3) else entryColor(0),25)
+                    Column(Modifier.weight(1f)) {
+                        Text(name,fontSize=10.sp,lineHeight=13.sp)
+                        Text(if(i<3)"/storage/emulated/0/Download/Converted Videos/" else "/storage/emulated/0/Download/",fontSize=7.sp,lineHeight=9.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Column(horizontalAlignment=Alignment.End) {
+                        Text(if(i<3)"Delete file" else "Delete folder",fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.error)
+                        Text(if(i<3)demoVideos[i].size else "(if empty)",fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        DesignSection("Files to be restored (${originals.size})",SynapseIcon.UNDO,"Preview files",{preview=true},subtitle="These files will be restored from the checkpoint.",dense=true) {
+            demoVideos.forEach { video ->
+                Row(Modifier.fillMaxWidth().heightIn(min=25.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 24.dp) {Checkbox(video.name in originals,{if(it)originals=originals+video.name else originals=originals-video.name},enabled=!s.rollbackDone,modifier=Modifier.size(25.dp))}
+                    AssetIcon(SynapseIcon.FILE,size=19.dp)
+                    Column(Modifier.weight(1f)) {Text("${video.name}.mp4",fontSize=10.sp,lineHeight=12.sp);Text("/storage/emulated/0/Download/",fontSize=7.sp,lineHeight=9.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                    Text(video.originalSize,fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        DesignNotice("Important notes","• Only changes made by this task are included.\n• Other files and system changes will not be affected.\n• Externally modified files are preserved for conflict review.",Tone.WARNING,compact=true)
+    }
+    DemoDetailDialog(if(preview)"Restore preview" else null,{preview=false},"Remove if unchanged: ${selected.joinToString()}. Restore: ${originals.joinToString()}. Scope is limited to this sample task. ${s.restoreConflictChoice} remains the conflict policy.")
+    if(confirm) ConfirmAction("Apply this demo rollback?","Review ${selected.size} removals and ${originals.size} original-file restores. Modified files are kept. No device files are changed by this simulation.","Restore",{confirm=false}) {send(DemoAction.Rollback);confirm=false}
+}
+
+@Composable
+private fun LegacyUndoDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var confirm by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable {
         mutableStateOf(listOf("Moved files", "Trash entries", "Created archives"))
