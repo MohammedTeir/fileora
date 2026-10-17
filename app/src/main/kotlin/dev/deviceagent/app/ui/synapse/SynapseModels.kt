@@ -196,8 +196,8 @@ data class DemoState(
     val requestBudget: Int = 40,
     val terminalCommand: String = "python scripts/catalog.py --source /workspace/input",
     val terminalComplete: Boolean = false,
-    val scheduleGoal: String = "Compress new travel videos",
-    val scheduleTime: String = "22:00",
+    val scheduleGoal: String = "Backup photos",
+    val scheduleTime: String = "02:00",
     val scheduleEnabled: Boolean = true,
     val memories: List<DemoMemory> =
         listOf(

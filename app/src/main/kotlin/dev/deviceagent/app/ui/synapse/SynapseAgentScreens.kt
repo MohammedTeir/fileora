@@ -1326,18 +1326,18 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
                             SynapseIcon.IMAGE,
                         )[i],
                         t,
-                        "Task snapshot · ${320-i*20} MB",
+                        listOf("Auto checkpoint · Task: Convert videos to MP4","Auto checkpoint · Task: Organize files","Auto checkpoint · Task: Run script","Auto checkpoint · Task: Install app","Created manually by user","System checkpoint · System update","Auto checkpoint · System settings","Auto checkpoint · Task: Clean storage")[i],
                         onClick = { detail = t },
                         trailing = {
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     if (i < 2) "Today, ${if(i == 0) "09:40" else "08:15"}"
-                                    else "Yesterday",
+                                    else listOf("Yesterday, 16:22", "Yesterday, 14:10", "Jun 20, 2026 18:30", "Jun 18, 2026 11:12", "Jun 15, 2026 20:45", "Jun 12, 2026 09:14")[i-2],
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    "${320-i*20} MB",
+                                    "${listOf(320,210,430,180,250,520,310,190)[i]} MB",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -1380,55 +1380,62 @@ private fun CheckpointDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (Synap
 private fun ActivityDemo(s: DemoState, send: (DemoAction) -> Unit, nav: (SynapseRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("All") }
-    DesignPage(
-        SynapseRoute.ACTIVITY,
-        "History",
-        "View and search completed, failed, and cancelled tasks. See details, results, and restore from checkpoints.",
-        nav,
-    ) {
-        DesignSearch(query, { query = it }, "Search tasks, actions, or results…")
-        DesignSegments(listOf("All", "Completed", "Failed", "Cancelled"), filter) { filter = it }
-        val filtered =
-            s.tasks.filter {
-                it.title.contains(query, true) &&
-                    when (filter) {
-                        "Completed" -> it.status == DemoTaskStatus.VERIFIED
-                        "Failed" -> it.status == DemoTaskStatus.FAILED
-                        "Cancelled" -> it.status == DemoTaskStatus.CANCELLED
-                        else -> true
-                    }
+    var earlier by rememberSaveable { mutableStateOf(false) }
+    val statuses = s.tasks.associateBy { it.id }
+    val matching = demoHistoryRecords.filter { record ->
+        val status = statuses[record.id]?.status ?: record.status
+        (record.title + record.detail).contains(query,true) && when(filter) {
+            "Completed" -> status == DemoTaskStatus.VERIFIED
+            "Failed" -> status == DemoTaskStatus.FAILED
+            "Cancelled" -> status == DemoTaskStatus.CANCELLED
+            else -> true
+        }
+    }
+    DesignPage(SynapseRoute.ACTIVITY,"History","View and search all completed, failed, and cancelled tasks.\nYou can see details, results, and restore from checkpoints.",nav) {
+        DesignSearch(query,{query=it},"Search tasks, actions, or results…",dense=true)
+        Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) {
+            listOf("All","Completed","Failed","Cancelled").forEach { label ->
+                val count = demoHistoryRecords.count { record -> when(label) {
+                    "Completed" -> statuses[record.id]?.status == DemoTaskStatus.VERIFIED
+                    "Failed" -> statuses[record.id]?.status == DemoTaskStatus.FAILED
+                    "Cancelled" -> statuses[record.id]?.status == DemoTaskStatus.CANCELLED
+                    else -> true
+                } }
+                Surface(onClick={filter=label},modifier=Modifier.weight(1f),shape=RoundedCornerShape(50),color=if(filter==label) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Text("$label ($count)",Modifier.padding(horizontal=5.dp,vertical=7.dp),fontSize=8.sp,lineHeight=11.sp,color=if(filter==label) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-        if (filtered.isEmpty()) Notice("No matching tasks", "Try another name or status filter.")
-        listOf("Today", "Yesterday").forEachIndexed { index, label ->
-            val group = if (index == 0) filtered.take(4) else filtered.drop(4)
-            if (group.isNotEmpty())
-                DesignSection(label) {
-                    group.forEach { task ->
-                        Box(Modifier.padding(vertical = 6.dp)) {
-                            DesignRow(
-                                if (task.status == DemoTaskStatus.VERIFIED) SynapseIcon.APPROVAL
-                                else if (task.status == DemoTaskStatus.FAILED) SynapseIcon.WARNING
-                                else SynapseIcon.PLAY,
-                                task.title,
-                                "${task.verified} of ${task.total} verified · ${task.id}",
-                                when (task.status) {
-                                    DemoTaskStatus.VERIFIED -> "Completed"
-                                    DemoTaskStatus.RUNNING -> "Running"
-                                    DemoTaskStatus.WAITING -> "Pending"
-                                    DemoTaskStatus.FAILED -> "Failed"
-                                    DemoTaskStatus.CANCELLED -> "Cancelled"
-                                    else -> "Planned"
-                                },
-                                onClick = {
-                                    send(DemoAction.SelectTask(task.id))
-                                    nav(SynapseRoute.AUDIT)
-                                },
-                            )
+        }
+        if(matching.isEmpty()) DesignNotice("No matching tasks","Try another name or status filter.")
+        listOf("Today" to demoHistoryRecords.take(4),"Yesterday" to demoHistoryRecords.drop(4).take(4),"Earlier" to if(earlier || query.isNotBlank() || filter!="All") demoHistoryRecords.drop(8) else emptyList()).forEach { (day,records) ->
+            val visible=records.filter { it in matching }
+            if(visible.isNotEmpty()) {
+                Text(day,fontSize=11.sp,lineHeight=14.sp,fontWeight=FontWeight.SemiBold)
+                Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                    visible.forEach { record ->
+                        val status=statuses[record.id]?.status ?: record.status
+                        val color=when(status) {DemoTaskStatus.VERIFIED->Color(0xFF009D42);DemoTaskStatus.FAILED->Color(0xFFFF293B);DemoTaskStatus.PARTIAL->Color(0xFFE89200);else->MaterialTheme.colorScheme.onSurfaceVariant}
+                        Surface(onClick={send(DemoAction.SelectTask(record.id));nav(SynapseRoute.AUDIT)},shape=RoundedCornerShape(10.dp),color=MaterialTheme.colorScheme.surfaceContainerLow) {
+                            Row(Modifier.fillMaxWidth().heightIn(min=43.dp).padding(horizontal=7.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                                IconTile(record.icon,if(record.icon==SynapseIcon.PLAY) entryColor(3) else entryColor(0),32)
+                                Column(Modifier.weight(1f)) {
+                                    Text(record.title,fontSize=10.sp,lineHeight=12.sp,fontWeight=FontWeight.SemiBold)
+                                    Text(record.detail,fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(record.metadata,fontSize=7.sp,lineHeight=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Column(horizontalAlignment=Alignment.End) {
+                                    Text(when(status) {DemoTaskStatus.VERIFIED->"✓ Completed";DemoTaskStatus.FAILED->"! Failed";DemoTaskStatus.PARTIAL->"◌ Partially completed";DemoTaskStatus.CANCELLED->"⊗ Cancelled";else->"Planned"},
+                                        Modifier.background(color.copy(alpha=.08f),RoundedCornerShape(50)).padding(horizontal=5.dp,vertical=3.dp),fontSize=7.sp,lineHeight=9.sp,color=color)
+                                    Text(record.time,fontSize=8.sp,lineHeight=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text("⋮",color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
+            }
         }
+        if(!earlier && query.isBlank() && filter=="All") DesignAction("Load earlier tasks (16)") {earlier=true}
     }
 }
 
