@@ -913,6 +913,7 @@ internal fun DesignNotice(
     title: String,
     body: String,
     tone: dev.deviceagent.app.Tone = dev.deviceagent.app.Tone.INFO,
+    compact: Boolean = false,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val (bg, fg) = dev.deviceagent.app.ui.toneColors(tone)
@@ -938,8 +939,8 @@ internal fun DesignNotice(
                     size = 20.dp,
                 )
                 Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleSmall)
-                    Text(body, style = MaterialTheme.typography.bodySmall)
+                    Text(title, style = if(compact) MaterialTheme.typography.titleSmall.copy(fontSize=8.sp,lineHeight=10.sp) else MaterialTheme.typography.titleSmall)
+                    Text(body, style = if(compact) MaterialTheme.typography.bodySmall.copy(fontSize=8.sp,lineHeight=10.sp) else MaterialTheme.typography.bodySmall)
                 }
             }
             content()
